@@ -5,24 +5,24 @@ export default {
     extend: {
       colors: {
         bg: {
-          primary: '#0F0F14',
-          secondary: '#1A1A24',
-          card: '#16161F',
-          hover: '#1E1E2A',
+          primary:   'rgb(var(--bg-primary)   / <alpha-value>)',
+          secondary: 'rgb(var(--bg-secondary) / <alpha-value>)',
+          card:      'rgb(var(--bg-card)      / <alpha-value>)',
+          hover:     'rgb(var(--bg-hover)     / <alpha-value>)',
         },
         accent: {
-          DEFAULT: '#F5A623',
-          hover: '#F7B84B',
-          muted: '#F5A62333',
+          DEFAULT: 'rgb(var(--accent)       / <alpha-value>)',
+          hover:   'rgb(var(--accent-hover) / <alpha-value>)',
+          muted:   'rgb(var(--accent)       / <alpha-value>)',
         },
         text: {
-          primary: '#F0F0F5',
-          secondary: '#9090A0',
-          muted: '#5A5A6A',
+          primary:   'rgb(var(--text-primary)   / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+          muted:     'rgb(var(--text-muted)     / <alpha-value>)',
         },
         border: {
-          DEFAULT: '#2A2A38',
-          active: '#F5A623',
+          DEFAULT: 'rgb(var(--border)        / <alpha-value>)',
+          active:  'rgb(var(--border-active) / <alpha-value>)',
         },
       },
       fontFamily: {

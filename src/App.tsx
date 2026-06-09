@@ -6,10 +6,12 @@ import { CategoryFilter } from './components/CategoryFilter'
 import { StationGrid } from './components/StationGrid'
 import { Player } from './components/Player'
 import { AddStationModal } from './components/AddStationModal'
+import { useTheme } from './hooks/useTheme'
 
 export default function App() {
   const { setStations, setLoading, currentStation } = useRadioStore()
   const [showAdd, setShowAdd] = useState(false)
+  const { isDark, toggle } = useTheme()
 
   useEffect(() => {
     const unsubscribe = subscribeToStations(
@@ -29,15 +31,32 @@ export default function App() {
           <h1 className="font-display font-bold text-2xl text-text-primary">
             Web<span className="text-accent">Radio</span>
           </h1>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover text-bg-primary font-medium text-sm transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Tilføj station
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggle}
+              title={isDark ? 'Skift til lys tilstand' : 'Skift til mørk tilstand'}
+              className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
+            >
+              {isDark ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover text-bg-primary font-medium text-sm transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Tilføj station
+            </button>
+          </div>
         </div>
       </header>
 
@@ -56,9 +75,9 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1A1A24',
-            color: '#F0F0F5',
-            border: '1px solid #2A2A38',
+            background: isDark ? '#1A1A24' : '#FFFFFF',
+            color: isDark ? '#F0F0F5' : '#0F0F1A',
+            border: isDark ? '1px solid #2A2A38' : '1px solid #DCDCEA',
           },
         }}
       />
