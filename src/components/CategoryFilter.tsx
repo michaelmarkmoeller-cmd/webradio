@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { CATEGORIES } from '../types'
+import type { Category } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -9,6 +11,32 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Rock':  '#A855F7',
   'Dansk': '#4ADE80',
   'Italo': '#F97316',
+}
+
+function CategoryButton({ cat, isActive, onClick }: { cat: Category; isActive: boolean; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  const color = CATEGORY_COLORS[cat]
+
+  let style: React.CSSProperties
+  if (isActive) {
+    style = { backgroundColor: color, color: '#0F0F14', opacity: hovered ? 0.85 : 1 }
+  } else if (hovered) {
+    style = { backgroundColor: `${color}22`, color, border: `1px solid ${color}90` }
+  } else {
+    style = { backgroundColor: 'transparent', color, border: `1px solid ${color}40` }
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150 cursor-pointer"
+      style={style}
+    >
+      {cat}
+    </button>
+  )
 }
 
 export function CategoryFilter() {
@@ -26,24 +54,14 @@ export function CategoryFilter() {
       >
         Alle
       </button>
-      {CATEGORIES.map((cat) => {
-        const color = CATEGORY_COLORS[cat]
-        const isActive = selectedCategory === cat
-        return (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
-            style={
-              isActive
-                ? { backgroundColor: color, color: '#0F0F14' }
-                : { backgroundColor: 'transparent', color, border: `1px solid ${color}40` }
-            }
-          >
-            {cat}
-          </button>
-        )
-      })}
+      {CATEGORIES.map((cat) => (
+        <CategoryButton
+          key={cat}
+          cat={cat}
+          isActive={selectedCategory === cat}
+          onClick={() => setCategory(cat)}
+        />
+      ))}
     </div>
   )
 }
