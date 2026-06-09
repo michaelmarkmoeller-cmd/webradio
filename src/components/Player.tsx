@@ -1,7 +1,7 @@
 import { useRadioStore } from '../store/useRadioStore'
 
 export function Player() {
-  const { currentStation, isPlaying, volume, togglePlay, setVolume } = useRadioStore()
+  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume } = useRadioStore()
 
   if (!currentStation) return null
 
@@ -33,11 +33,20 @@ export function Player() {
           <div className="text-xs text-text-secondary">{currentStation.category}</div>
         </div>
 
-        {/* Live indicator */}
+        {/* Status: buffering or live */}
         {isPlaying && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Live</span>
+            {isBuffering ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                <span className="text-xs font-medium text-yellow-400 uppercase tracking-wider">Forbinder</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Live</span>
+              </>
+            )}
           </div>
         )}
 
