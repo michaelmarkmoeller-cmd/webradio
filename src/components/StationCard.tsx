@@ -84,7 +84,7 @@ export function StationCard({ station }: Props) {
   return (
     <>
       <div
-        className={`relative rounded-xl border p-4 cursor-pointer select-none transition-all duration-150 ${
+        className={`relative overflow-hidden rounded-xl border p-4 cursor-pointer select-none transition-all duration-150 ${
           isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
           isActive
@@ -114,7 +114,7 @@ export function StationCard({ station }: Props) {
           <img
             src={station.logoUrl}
             alt=""
-            className="absolute inset-y-0 right-0 h-full w-auto object-cover rounded-r-xl pointer-events-none"
+            className="absolute inset-y-0 right-0 h-full w-auto object-cover pointer-events-none"
             style={{ opacity: 0.75 }}
             draggable={false}
           />
