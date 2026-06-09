@@ -25,7 +25,7 @@ const S80 = 'https://upload.80s80s.de/production/static/1697296555757/icons/icon
 const S90 = 'https://upload.90s90s.de/production/static/1780918167754/icons/icon_512.cno7CdHz6$i.png'
 const SAW = 'https://www.radiosaw.de/images/radio-saw-logo.svg'
 const R10 = 'https://www.radio10.nl/favicon.ico'
-const RM  = 'https://www.radiomonster.fm/wp-content/uploads/2024/07/webradio_radiomonster_logo_wide.png'
+const RM  = 'https://play-lh.googleusercontent.com/8xt0bjgFJDXuhZe-HkB4QgKu5ZM3PPkX8Qd0yo1wfgSNcfuMNtOvOw22cbpIN8mrO4Sy=w240-h240'
 
 const LOGOS = {
   // 80s80s (alle varianter bruger samme logo)
@@ -52,7 +52,7 @@ const LOGOS = {
 
   // Radio SAW (kanal-specifikke square WebP fra backend.radiosaw.de)
   'Radio SAW':                 SAW,
-  'radio SAW In The Mix':      SAW,
+  'radio SAW In The Mix':      'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/migrated-images/saw-inthemix.png.webp?itok=P7GtRPZ8',
   'Radio SAW 70er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/70er.png.webp?itok=qfNZNDGs',
   'radio SAW 80er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/80er.png.webp?itok=Mt6hoLNC',
   'radio SAW 90er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/90er.png.webp?itok=m4KKyb-_',
@@ -71,15 +71,15 @@ const LOGOS = {
   // Dansk
   'Radio Danmark':             'https://www.dr.dk/favicon.ico',
   'DR P3':                     'https://www.dr.dk/favicon.ico',
-  'Radio ANR':                 'https://anr.dk/assets/images/apple-icon-180x180.png',
+  'Radio ANR':                 'https://cdn-radiotime-logos.tunein.com/s25765d.png',
   'Retro Radio':               'https://retro-radio.dk/wp-content/uploads/2023/11/logo-retro-radio-160.png',
 
-  // RadioMonster (compact square logo — wide banner erstattet)
-  'RadioMonster Rock':         'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
-  'RadioMonster Tophits':      'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
-  'RadioMonster Dance':        'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
-  'RadioMonster 80s':          'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
-  'RadioMonster 90s':          'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
+  // RadioMonster (Google Play app icon — radiomonster.fm WP blokerer direkte adgang)
+  'RadioMonster Rock':         RM,
+  'RadioMonster Tophits':      RM,
+  'RadioMonster Dance':        RM,
+  'RadioMonster 80s':          RM,
+  'RadioMonster 90s':          RM,
 
   // 538 (kanal-ikon)
   '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
