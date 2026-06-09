@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Station } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
 import { DeleteConfirm } from './DeleteConfirm'
@@ -25,9 +25,14 @@ function nameSize(name: string): string {
   return 'text-[11px]'
 }
 
+const LONG_PRESS_MS = 2000
+
 export function StationCard({ station }: Props) {
   const { currentStation, isPlaying, playStation } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
+  const [isPressing, setIsPressing] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didLongPress = useRef(false)
 
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
@@ -43,41 +48,68 @@ export function StationCard({ station }: Props) {
     setShowDelete(false)
   }
 
+  function startPress() {
+    didLongPress.current = false
+    setIsPressing(true)
+    timerRef.current = setTimeout(() => {
+      didLongPress.current = true
+      setIsPressing(false)
+      setShowDelete(true)
+    }, LONG_PRESS_MS)
+  }
+
+  function cancelPress() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setIsPressing(false)
+  }
+
+  function handleClick() {
+    if (didLongPress.current) {
+      didLongPress.current = false
+      return
+    }
+    playStation(station)
+  }
+
   return (
     <>
       <div
-        className={`group relative rounded-xl border p-4 cursor-pointer transition-all duration-150 hover:scale-[1.02] ${
+        className={`relative rounded-xl border p-4 cursor-pointer select-none transition-all duration-150 ${
+          isPressing ? 'scale-[0.97] brightness-75' : 'hover:scale-[1.02]'
+        } ${
           isActive
             ? 'border-accent/60 bg-accent/8 shadow-sm shadow-accent/20'
             : 'border-border bg-bg-card hover:border-accent/30 hover:bg-bg-hover'
         }`}
-        style={isActive ? { borderLeftColor: accentColor, borderLeftWidth: 3 } : { borderLeftWidth: 3, borderLeftColor: 'transparent' }}
-        onClick={() => playStation(station)}
+        style={{
+          borderLeftWidth: 3,
+          borderLeftColor: isActive ? accentColor : 'transparent',
+          WebkitTouchCallout: 'none',
+        }}
+        onMouseDown={startPress}
+        onMouseUp={cancelPress}
+        onMouseLeave={cancelPress}
+        onTouchStart={startPress}
+        onTouchEnd={cancelPress}
+        onTouchCancel={cancelPress}
+        onContextMenu={(e) => e.preventDefault()}
+        onClick={handleClick}
       >
-        {/* Top row: name + delete */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
-              {station.name}
-            </h3>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
-              <span className="text-xs text-text-muted">{station.category}</span>
-            </div>
+        {/* Name + category */}
+        <div className="mb-3">
+          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
+            {station.name}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
+            <span className="text-xs text-text-muted">{station.category}</span>
           </div>
-
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowDelete(true) }}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
-            aria-label="Slet station"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
         </div>
 
-        {/* Bottom row: live bars when playing, empty otherwise */}
+        {/* Live bars when playing */}
         <div className="h-5 flex items-end">
           {isCurrentlyPlaying && (
             <div className="flex items-end gap-0.5 h-full">
