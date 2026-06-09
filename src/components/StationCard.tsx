@@ -109,8 +109,16 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
-        {/* Name + category */}
+        {/* Logo + name + category */}
         <div className="mb-3">
+          {station.logoUrl && (
+            <img
+              src={station.logoUrl}
+              alt={station.name}
+              className="w-10 h-10 rounded-lg object-cover mb-2"
+              draggable={false}
+            />
+          )}
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>
