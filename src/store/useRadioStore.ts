@@ -25,7 +25,10 @@ export const useRadioStore = create<RadioStore>((set) => ({
   selectedCategory: 'All',
   isLoading: true,
 
-  setStations: (stations) => set({ stations, isLoading: false }),
+  setStations: (stations) => set({
+    stations: [...stations].sort((a, b) => a.name.localeCompare(b.name, 'da')),
+    isLoading: false,
+  }),
 
   playStation: (station) =>
     set((state) => ({

@@ -30,7 +30,7 @@ export function subscribeToStations(
   onData: (stations: Station[]) => void,
   onError: (error: Error) => void
 ) {
-  const q = query(collection(db, COLLECTION), orderBy('createdAt', 'asc'))
+  const q = query(collection(db, COLLECTION))
 
   return onSnapshot(
     q,
