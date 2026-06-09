@@ -6,7 +6,6 @@ import {
   onSnapshot,
   serverTimestamp,
   query,
-  orderBy,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Station, StationFormData } from '../types'

@@ -1,37 +1,12 @@
-import { useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 
 export function Player() {
   const { currentStation, isPlaying, volume, togglePlay, setVolume } = useRadioStore()
-  const audioRef = useRef<HTMLAudioElement>(null)
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !currentStation) return
-
-    audio.src = currentStation.streamUrl
-    audio.volume = volume
-
-    if (isPlaying) {
-      audio.play().catch(() => {
-        // Stream may not be available
-      })
-    } else {
-      audio.pause()
-    }
-  }, [currentStation, isPlaying])
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [volume])
 
   if (!currentStation) return null
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t border-border">
-      <audio ref={audioRef} />
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
         {/* Play/Pause */}
         <button

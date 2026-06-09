@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Station, Category } from '../types'
+import { audio } from '../audio'
 
 interface RadioStore {
   stations: Station[]
@@ -30,12 +31,26 @@ export const useRadioStore = create<RadioStore>((set) => ({
     isLoading: false,
   }),
 
-  playStation: (station) =>
-    set({ currentStation: station, isPlaying: true }),
+  playStation: (station) => {
+    audio.src = station.streamUrl
+    audio.volume = useRadioStore.getState().volume
+    audio.play().catch(() => {})
+    set({ currentStation: station, isPlaying: true })
+  },
 
-  togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
+  togglePlay: () => set((state) => {
+    if (state.isPlaying) {
+      audio.pause()
+    } else {
+      audio.play().catch(() => {})
+    }
+    return { isPlaying: !state.isPlaying }
+  }),
 
-  setVolume: (volume) => set({ volume }),
+  setVolume: (volume) => {
+    audio.volume = volume
+    set({ volume })
+  },
 
   setCategory: (selectedCategory) => set({ selectedCategory }),
 
