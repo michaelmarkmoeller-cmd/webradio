@@ -10,6 +10,7 @@ interface Props {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
+  "70's": '#A78BFA',
   "80's": '#F5A623',
   "90's": '#E8679A',
   'Pop':   '#6EC6F5',
