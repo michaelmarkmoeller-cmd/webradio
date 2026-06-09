@@ -19,6 +19,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Italo': '#F97316',
 }
 
+function nameSize(name: string): string {
+  if (name.length <= 12) return 'text-sm'
+  if (name.length <= 18) return 'text-xs'
+  return 'text-[11px]'
+}
+
 export function StationCard({ station }: Props) {
   const { currentStation, isPlaying, playStation } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
@@ -51,7 +57,7 @@ export function StationCard({ station }: Props) {
         {/* Top row: name + delete */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-display font-semibold text-text-primary truncate leading-tight">
+            <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
               {station.name}
             </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
