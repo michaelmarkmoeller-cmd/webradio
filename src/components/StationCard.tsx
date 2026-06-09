@@ -109,16 +109,23 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
-        {/* Logo + name + category */}
+        {/* Logo as faded background on the right */}
+        {station.logoUrl && (
+          <div
+            className="absolute inset-y-0 right-0 w-2/5 rounded-r-xl pointer-events-none"
+            style={{
+              backgroundImage: `url(${station.logoUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.15,
+              maskImage: 'linear-gradient(to right, transparent, black 70%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 70%)',
+            }}
+          />
+        )}
+
+        {/* Name + category */}
         <div className="mb-3">
-          {station.logoUrl && (
-            <img
-              src={station.logoUrl}
-              alt={station.name}
-              className="w-10 h-10 rounded-lg object-cover mb-2"
-              draggable={false}
-            />
-          )}
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>
