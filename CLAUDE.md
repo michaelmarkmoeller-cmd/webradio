@@ -15,7 +15,7 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 ## Tech stack
 - React 18 + Vite + TypeScript
 - Tailwind CSS v3 — dark theme, accent: amber `#F5A623`, baggrund `#0F0F14`
-- Zustand — global state (player, valgt kategori)
+- Zustand — global state (player, valgt kategori, isBuffering)
 - Firebase Firestore — real-time sync via `onSnapshot`
 - react-hot-toast — notifikationer
 
@@ -23,28 +23,32 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 ```
 src/
 ├── components/
-│   ├── Player.tsx          # Sticky audio-player (bund), global — play/pause + volumen
-│   ├── StationCard.tsx     # Stationskort — klik spiller øjeblikkeligt, ingen play-knap
+│   ├── Player.tsx          # Sticky audio-player (bund) — play/pause, volumen, "Forbinder"/"Live" indikator
+│   ├── StationCard.tsx     # Stationskort — klik spiller, 2-sek long-press åbner slet-dialog
 │   ├── StationGrid.tsx     # 5-kolonne grid (xl:5, lg:4, sm:3, 2 mobil)
 │   ├── CategoryFilter.tsx  # Kategoripiller
 │   ├── AddStationModal.tsx # Modal til tilføjelse af station
 │   └── DeleteConfirm.tsx   # Bekræftelsesdialog ved sletning
 ├── store/
-│   └── useRadioStore.ts    # Zustand store — sorterer stationer alfabetisk ved load
+│   └── useRadioStore.ts    # Zustand store — sorterer alfabetisk, styrer audio direkte
 ├── firebase/
 │   ├── config.ts           # Firebase init via VITE_* env vars
 │   └── stationsService.ts  # CRUD + onSnapshot + auto-seed ved tom database
 ├── types/
 │   └── index.ts            # Station, Category, CATEGORIES
+├── audio.ts                # Lazy singleton Audio-element (iOS-kompatibel)
 ├── App.tsx
 └── main.tsx
 ```
+
+## Audio-arkitektur
+`src/audio.ts` eksporterer `getOrCreateAudio()` — opretter `new Audio()` første gang den kaldes (inde i et klik-event). Dette er påkrævet på iOS Safari, som blokerer audio oprettet uden for et user gesture. Alle audio-handlinger (`play`, `pause`, `src`, `volume`) styres direkte fra Zustand-actions — ingen `useEffect`.
 
 ## Firestore
 - Collection: `stations`
 - Felter: `name`, `streamUrl`, `category`, `createdAt`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
-- Auto-seed: 9 stationer indsættes automatisk hvis databasen er tom
+- Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
 - **41 stationer** i databasen pr. juni 2026
 
 ## Kategorier (7)
@@ -60,8 +64,11 @@ Kategorifarver i StationCard:
 - Italo: `#F97316` (orange)
 
 ## UX-regler
-- Klik på et stationskort starter afspilning øjeblikkeligt
+- **Klik** på stationskort → starter afspilning øjeblikkeligt
+- **Hold i 2 sek** på stationskort → slet-dialog vises (ingen slet-ikon på kortet)
 - Play/pause styres kun fra player-baren nederst
+- Player viser gul "Forbinder"-indikator mens stream buffererer, rød "Live" når den spiller
+- Stationsnavne bruger dynamisk skriftstørrelse (ingen "..."-afskæring): ≤12 tegn → text-sm, ≤18 → text-xs, længere → 11px
 - Stationer vises alfabetisk inden for hver kategori (dansk sortering)
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
 
