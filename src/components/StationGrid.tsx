@@ -11,9 +11,9 @@ export function StationGrid() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-bg-card p-4 h-28 animate-pulse" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-border bg-bg-card h-14 animate-pulse" />
         ))}
       </div>
     )
@@ -28,7 +28,7 @@ export function StationGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
       {filtered.map((station) => (
         <StationCard key={station.id} station={station} />
       ))}
