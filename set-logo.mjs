@@ -59,15 +59,11 @@ const LOGOS = {
   'radio SAW In The Mix 90er': SAW,
   'Radio SAW 70er':            SAW,
 
-  // 538
-  '538 Party':                 'https://www.538.nl/favicon.ico',
-  '538 Hitzone':               'https://www.538.nl/favicon.ico',
-
-  // Veronica / Radio 10
+  // Veronica / Radio 10 (kanal-specifikke logoer fra Talpa/Contentful CDN)
   'Veronica Top 1000':         'https://www.radioveronica.nl/veronica/favicon.ico',
-  'Radio 10 90s Hits':         R10,
-  'Radio 10 Top 4000':         R10,
-  'Radio 10 60s & 70s':        R10,
+  'Radio 10 90s Hits':         'https://images.ctfassets.net/fpk5n836jg85/252ZxnFfthteIYOfsBgqFK/23404090945eb25843a8693bfc0a8c57/Brand_Radio_10__Type_90-s_Hits.jpg',
+  'Radio 10 Top 4000':         'https://images.ctfassets.net/fpk5n836jg85/65TqNtq7Df2iebZzFSTVnd/4b4f64226a111e358081e73b70bd739e/Brand_Radio_10__Type_Top_4000.jpg',
+  'Radio 10 60s & 70s':        'https://images.ctfassets.net/fpk5n836jg85/JepIiUVvENVE6FoJnSccC/6afc5ae514f42fc82624e05f9f1ec42c/NEW_Brand-Radio-10_Type-60s-70s.jpg',
 
   // Sky Radio
   'Sky Radio 80s Hits':        'https://www.skyradio.nl/favicon.ico',
@@ -84,6 +80,15 @@ const LOGOS = {
   'RadioMonster Dance':        RM,
   'RadioMonster 80s':          RM,
   'RadioMonster 90s':          RM,
+
+  // 538 (kanal-ikon)
+  '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
+  '538 Hitzone':               'https://www.538.nl/icons/apple-icon-144x144.png',
+
+  // laut.fm kanal-specifikke logoer
+  'Forever 80':                'https://assets.laut.fm/6f62c113e3fdbefe1a7b4fa442ae5450?t=_120x120',
+  'Vinyl Maxi FM':             'https://assets.laut.fm/9f6dbe6878c4226e46f5cd2e90e1d123?t=_120x120',
+  'laut.fm 70er':              'https://assets.laut.fm/8972525da4e196b40edba1c8e1f04269?t=_120x120',
 
   // 1.FM
   '1.FM 70s Best':             'https://www.1.fm/favicon/favicon.ico?v=2',
