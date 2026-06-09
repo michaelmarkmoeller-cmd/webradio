@@ -40,6 +40,7 @@ export function StationCard({ station }: Props) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
+  const [hovered, setHovered] = useState(false)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
   const accentColor = CATEGORY_COLORS[station.category] ?? '#F5A623'
@@ -84,20 +85,24 @@ export function StationCard({ station }: Props) {
     <>
       <div
         className={`relative rounded-xl border p-4 cursor-pointer select-none transition-all duration-150 ${
-          isPressing ? 'scale-[0.97] brightness-75' : 'hover:scale-[1.02]'
+          isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
           isActive
-            ? 'border-accent/60 bg-accent/8 shadow-sm shadow-accent/20'
-            : 'border-border bg-bg-card hover:border-accent/30 hover:bg-bg-hover'
+            ? 'border-accent/60 bg-accent/8'
+            : 'border-border bg-bg-card'
         }`}
         style={{
           borderLeftWidth: 3,
-          borderLeftColor: isActive ? accentColor : 'transparent',
+          borderLeftColor: isActive || hovered ? accentColor : 'transparent',
+          boxShadow: isActive
+            ? `0 0 12px ${accentColor}33`
+            : hovered ? `0 0 14px ${accentColor}28` : 'none',
           WebkitTouchCallout: 'none',
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); cancelPress() }}
         onMouseDown={startPress}
         onMouseUp={cancelPress}
-        onMouseLeave={cancelPress}
         onTouchStart={startPress}
         onTouchEnd={cancelPress}
         onTouchCancel={cancelPress}
