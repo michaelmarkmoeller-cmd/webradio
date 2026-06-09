@@ -31,10 +31,7 @@ export const useRadioStore = create<RadioStore>((set) => ({
   }),
 
   playStation: (station) =>
-    set((state) => ({
-      currentStation: station,
-      isPlaying: state.currentStation?.id === station.id ? !state.isPlaying : true,
-    })),
+    set({ currentStation: station, isPlaying: true }),
 
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 

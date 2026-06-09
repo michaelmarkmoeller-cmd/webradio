@@ -71,30 +71,10 @@ export function StationCard({ station }: Props) {
           </button>
         </div>
 
-        {/* Bottom row: play button + live bars */}
-        <div className="flex items-center justify-between">
-          <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-              isActive ? 'bg-accent' : 'bg-bg-secondary group-hover:bg-accent/20'
-            }`}
-          >
-            {isCurrentlyPlaying ? (
-              <svg className="w-4 h-4 text-bg-primary" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-              </svg>
-            ) : (
-              <svg
-                className={`w-4 h-4 ml-0.5 ${isActive ? 'text-bg-primary' : 'text-text-secondary group-hover:text-accent'}`}
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </div>
-
+        {/* Bottom row: live bars when playing, empty otherwise */}
+        <div className="h-5 flex items-end">
           {isCurrentlyPlaying && (
-            <div className="flex items-end gap-0.5 h-5">
+            <div className="flex items-end gap-0.5 h-full">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
