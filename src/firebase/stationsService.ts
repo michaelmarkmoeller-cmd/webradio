@@ -14,15 +14,15 @@ import type { Station, StationFormData } from '../types'
 const COLLECTION = 'stations'
 
 const SEED_STATIONS: Omit<Station, 'id'>[] = [
-  { name: '80s80s Radio', streamUrl: 'https://streams.80s80s.de/80s80s/mp3-192/stream.mp3', category: "80's" },
-  { name: 'Radio 80s', streamUrl: 'https://str0.creacast.com/radio80s128', category: "80's" },
-  { name: '90s90s Radio', streamUrl: 'https://streams.90s90s.de/90s90s/mp3-192/stream.mp3', category: "90's" },
-  { name: 'Radio Nostalgia', streamUrl: 'https://streaming.radio.co/s3f6d17f78/listen', category: "90's" },
-  { name: 'Radio Pop FM', streamUrl: 'https://stream.popfm.pl/pop/mp3', category: 'Pop' },
-  { name: 'Absolute Radio', streamUrl: 'https://icecast.thisisdax.com/AbsoluteRadioMP3', category: 'Rock' },
-  { name: 'Radio Danmark', streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3', category: 'Dansk' },
-  { name: 'DR P3', streamUrl: 'https://live-icy.gss.dr.dk/A/A03H.mp3', category: 'Dansk' },
-  { name: 'Italo Radio', streamUrl: 'https://streaming.radio.co/s8f2a77f5a/listen', category: 'Italo' },
+  { name: '80s80s Radio',    streamUrl: 'https://streams.80s80s.de/80s80s/mp3-192/stream.mp3',      category: "80's" },
+  { name: 'Underground 80s', streamUrl: 'https://ice5.somafm.com/u80s-256-mp3',                     category: "80's" },
+  { name: '90s90s Radio',    streamUrl: 'https://streams.90s90s.de/90s90s/mp3-192/stream.mp3',      category: "90's" },
+  { name: '90s Eurodance',   streamUrl: 'https://streams.90s90s.de/eurodance/mp3-192/stream.mp3',   category: "90's" },
+  { name: 'PopTron',         streamUrl: 'https://ice5.somafm.com/poptron-128-mp3',                  category: 'Pop'  },
+  { name: 'Rock Antenne',    streamUrl: 'https://stream.rockantenne.de/rockantenne/stream/mp3',      category: 'Rock' },
+  { name: 'Radio Danmark',   streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                   category: 'Dansk'},
+  { name: 'DR P3',           streamUrl: 'https://live-icy.gss.dr.dk/A/A03H.mp3',                   category: 'Dansk'},
+  { name: 'Synthetic FM',    streamUrl: 'http://stream.syntheticfm.com:8030/stream',                category: 'Italo'},
 ]
 
 export function subscribeToStations(
