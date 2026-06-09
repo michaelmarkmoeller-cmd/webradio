@@ -2,6 +2,8 @@
 
 En moderne webradio-app bygget med React + Vite + TypeScript. Afspiller live radiostreams, organiserer stationer i kategorier og synkroniserer via Firebase Firestore på tværs af alle enheder.
 
+**Live:** https://webradio-chi.vercel.app
+
 ## Tech Stack
 
 - **Frontend:** React 18 + Vite + TypeScript
@@ -9,21 +11,16 @@ En moderne webradio-app bygget med React + Vite + TypeScript. Afspiller live rad
 - **State:** Zustand
 - **Database:** Firebase Firestore (real-time sync)
 - **Hosting:** Vercel
+- **Kode:** https://github.com/michaelmarkmoeller-cmd/webradio
 
 ## Kom i gang lokalt
 
 ```bash
-# Klon projektet
-git clone https://github.com/DIT-BRUGERNAVN/webradio.git
+git clone https://github.com/michaelmarkmoeller-cmd/webradio.git
 cd webradio
-
-# Installer dependencies
 npm install
-
-# Opret .env fra skabelon og udfyld Firebase-værdier
 cp .env.example .env
-
-# Start dev-server
+# Udfyld .env med Firebase-credentials
 npm run dev
 ```
 
@@ -42,7 +39,7 @@ npm run dev
    git add .
    git commit -m "Initial commit"
    git branch -M main
-   git remote add origin https://github.com/DIT-BRUGERNAVN/webradio.git
+   git remote add origin https://github.com/michaelmarkmoeller-cmd/webradio.git
    git push -u origin main
    ```
 5. Koden er nu på GitHub
@@ -54,19 +51,8 @@ npm run dev
 1. Gå til [console.firebase.google.com](https://console.firebase.google.com) og log ind
 2. Klik **"Add project"** → giv navn (f.eks. `webradio`) → Continue → Disable Google Analytics → Create project
 3. Klik **"Firestore Database"** i venstre menu → **"Create database"**
-4. Vælg **"Start in test mode"** (skift til production rules senere) → vælg en region (f.eks. `europe-west1`) → Done
-5. Gå til **Project Settings** (tandhjul øverst til venstre) → **"Your apps"** → klik **`</>`** (Web)
-6. Giv appen et navn → klik **"Register app"**
-7. Kopiér de viste config-værdier ind i din `.env`-fil:
-   ```env
-   VITE_FIREBASE_API_KEY=...
-   VITE_FIREBASE_AUTH_DOMAIN=...
-   VITE_FIREBASE_PROJECT_ID=...
-   VITE_FIREBASE_STORAGE_BUCKET=...
-   VITE_FIREBASE_MESSAGING_SENDER_ID=...
-   VITE_FIREBASE_APP_ID=...
-   ```
-8. Gå til **Firestore** → **"Rules"** og sæt regler (når du er klar til produktion):
+4. Vælg **"Start in test mode"** → vælg region `europe-west1` → Done
+5. Gå til **Firestore** → **"Rules"** og sæt permanente regler:
    ```
    rules_version = '2';
    service cloud.firestore {
@@ -77,6 +63,17 @@ npm run dev
      }
    }
    ```
+6. Gå til **Project Settings** → **"Your apps"** → klik **`</>`** (Web)
+7. Giv appen et navn → klik **"Register app"**
+8. Kopiér config-værdierne ind i din `.env`-fil:
+   ```env
+   VITE_FIREBASE_API_KEY=...
+   VITE_FIREBASE_AUTH_DOMAIN=...
+   VITE_FIREBASE_PROJECT_ID=...
+   VITE_FIREBASE_STORAGE_BUCKET=...
+   VITE_FIREBASE_MESSAGING_SENDER_ID=...
+   VITE_FIREBASE_APP_ID=...
+   ```
 
 Ved første opstart med en tom Firestore-database seedes 9 standard-stationer automatisk.
 
@@ -85,12 +82,12 @@ Ved første opstart med en tom Firestore-database seedes 9 standard-stationer au
 ## Guide 3: Vercel – Deploy og miljøvariabler
 
 1. Gå til [vercel.com](https://vercel.com) og log ind med GitHub
-2. Klik **"Add New Project"** → vælg dit `webradio` repository → klik **"Import"**
+2. Klik **"Add New Project"** → vælg `webradio` repository → klik **"Import"**
 3. Framework preset sættes automatisk til **Vite** – lad det være
-4. Klik **"Environment Variables"** og tilføj alle 6 variabler fra din `.env`-fil
+4. Åbn **"Environment Variables"** → klik **"Import .env"** og vælg din `.env`-fil
 5. Klik **"Deploy"** – Vercel bygger og deployer automatisk
 6. Fremover: hver `git push` til `main` udløser automatisk et nyt deploy
-7. Del den genererede URL (f.eks. `https://webradio-xyz.vercel.app`) med andre enheder
+7. Del URL (f.eks. https://webradio-chi.vercel.app) med andre enheder
 
 ---
 
