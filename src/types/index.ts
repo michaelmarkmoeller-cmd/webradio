@@ -7,6 +7,7 @@ export interface Station {
   name: string
   streamUrl: string
   category: Category
+  bitrate?: number
   createdAt?: Date
 }
 
@@ -14,4 +15,5 @@ export interface StationFormData {
   name: string
   streamUrl: string
   category: Category
+  bitrate?: number
 }

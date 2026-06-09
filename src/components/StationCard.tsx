@@ -19,6 +19,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Italo': '#F97316',
 }
 
+function bitrateColor(bitrate: number): string {
+  if (bitrate >= 320) return '#4ADE80'
+  if (bitrate >= 192) return '#F5A623'
+  return '#F87171'
+}
+
 function nameSize(name: string): string {
   if (name.length <= 12) return 'text-sm'
   if (name.length <= 18) return 'text-xs'
@@ -106,6 +112,13 @@ export function StationCard({ station }: Props) {
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
             <span className="text-xs text-text-muted">{station.category}</span>
+            {station.bitrate && (
+              <>
+                <span className="text-xs text-text-muted/40">·</span>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
+                <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
+              </>
+            )}
           </div>
         </div>
 

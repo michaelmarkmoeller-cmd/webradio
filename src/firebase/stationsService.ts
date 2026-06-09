@@ -39,6 +39,7 @@ export function subscribeToStations(
         name: doc.data().name,
         streamUrl: doc.data().streamUrl,
         category: doc.data().category,
+        bitrate: doc.data().bitrate ?? undefined,
         createdAt: doc.data().createdAt?.toDate(),
       }))
 

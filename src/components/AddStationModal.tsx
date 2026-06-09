@@ -12,6 +12,7 @@ export function AddStationModal({ onClose }: Props) {
   const [name, setName] = useState('')
   const [streamUrl, setStreamUrl] = useState('')
   const [category, setCategory] = useState<Category>(CATEGORIES[0])
+  const [bitrate, setBitrate] = useState<number | undefined>(undefined)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -20,7 +21,7 @@ export function AddStationModal({ onClose }: Props) {
 
     setSaving(true)
     try {
-      await addStation({ name: name.trim(), streamUrl: streamUrl.trim(), category })
+      await addStation({ name: name.trim(), streamUrl: streamUrl.trim(), category, bitrate })
       toast.success(`"${name.trim()}" tilføjet`)
       onClose()
     } catch {
@@ -94,6 +95,22 @@ export function AddStationModal({ onClose }: Props) {
                   {cat}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Bitrate
+            </label>
+            <select
+              value={bitrate ?? ''}
+              onChange={(e) => setBitrate(e.target.value ? Number(e.target.value) : undefined)}
+              className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-text-primary text-sm focus:outline-none focus:border-accent transition-colors appearance-none cursor-pointer"
+            >
+              <option value="">Ukendt</option>
+              <option value="128">128 kbps</option>
+              <option value="192">192 kbps</option>
+              <option value="320">320 kbps</option>
             </select>
           </div>
 
