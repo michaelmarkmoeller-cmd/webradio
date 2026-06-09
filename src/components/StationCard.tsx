@@ -109,34 +109,33 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
-        <div className="flex items-start justify-between gap-3">
-          {/* Name + category */}
-          <div className="min-w-0 flex-1 mb-3">
-            <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
-              {station.name}
-            </h3>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
-              <span className="text-xs text-text-muted">{station.category}</span>
-              {station.bitrate && (
-                <>
-                  <span className="text-xs text-text-muted/40">·</span>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
-                  <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
-                </>
-              )}
-            </div>
-          </div>
+        {/* Logo — absolutely positioned background, does not affect layout */}
+        {station.logoUrl && (
+          <img
+            src={station.logoUrl}
+            alt=""
+            className="absolute inset-y-0 right-0 h-full w-auto object-cover rounded-r-xl pointer-events-none"
+            style={{ opacity: 0.75 }}
+            draggable={false}
+          />
+        )}
 
-          {/* Logo */}
-          {station.logoUrl && (
-            <img
-              src={station.logoUrl}
-              alt={station.name}
-              className="w-12 h-12 rounded-lg object-cover shrink-0"
-              draggable={false}
-            />
-          )}
+        {/* Name + category */}
+        <div className="mb-3">
+          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
+            {station.name}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
+            <span className="text-xs text-text-muted">{station.category}</span>
+            {station.bitrate && (
+              <>
+                <span className="text-xs text-text-muted/40">·</span>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
+                <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Live bars when playing */}
