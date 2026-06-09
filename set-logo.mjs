@@ -50,14 +50,14 @@ const LOGOS = {
   '90s90s Radio':              S90,
   '90s Eurodance':             S90,
 
-  // Radio SAW (alle varianter)
+  // Radio SAW (kanal-specifikke square WebP fra backend.radiosaw.de)
   'Radio SAW':                 SAW,
-  'radio SAW 80er':            SAW,
-  'radio SAW 90er':            SAW,
   'radio SAW In The Mix':      SAW,
-  'radio SAW In The Mix 80er': SAW,
-  'radio SAW In The Mix 90er': SAW,
-  'Radio SAW 70er':            SAW,
+  'Radio SAW 70er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/70er.png.webp?itok=qfNZNDGs',
+  'radio SAW 80er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/80er.png.webp?itok=Mt6hoLNC',
+  'radio SAW 90er':            'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/90er.png.webp?itok=m4KKyb-_',
+  'radio SAW In The Mix 80er': 'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/migrated-images/saw-inthemix80er.png.webp?itok=DThkyWmg',
+  'radio SAW In The Mix 90er': 'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/migrated-images/saw-inthemix90er.png.webp?itok=85xR_OCL',
 
   // Veronica / Radio 10 (kanal-specifikke logoer fra Talpa/Contentful CDN)
   'Veronica Top 1000':         'https://www.radioveronica.nl/veronica/favicon.ico',
@@ -71,15 +71,15 @@ const LOGOS = {
   // Dansk
   'Radio Danmark':             'https://www.dr.dk/favicon.ico',
   'DR P3':                     'https://www.dr.dk/favicon.ico',
-  'Radio ANR':                 'https://www.anr.dk/media/x0jhtpgi/ah_logo_620x620_neg.svg',
+  'Radio ANR':                 'https://anr.dk/assets/images/apple-icon-180x180.png',
   'Retro Radio':               'https://retro-radio.dk/wp-content/uploads/2023/11/logo-retro-radio-160.png',
 
-  // RadioMonster (alle varianter)
-  'RadioMonster Rock':         RM,
-  'RadioMonster Tophits':      RM,
-  'RadioMonster Dance':        RM,
-  'RadioMonster 80s':          RM,
-  'RadioMonster 90s':          RM,
+  // RadioMonster (compact square logo — wide banner erstattet)
+  'RadioMonster Rock':         'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
+  'RadioMonster Tophits':      'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
+  'RadioMonster Dance':        'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
+  'RadioMonster 80s':          'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
+  'RadioMonster 90s':          'https://www.radiomonster.fm/wp-content/uploads/2020/06/cropped-radiomonster_logo_compact_transparent_2000px-180x180.png',
 
   // 538 (kanal-ikon)
   '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
