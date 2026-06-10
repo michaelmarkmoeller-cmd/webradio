@@ -46,10 +46,10 @@ src/
 
 ## Firestore
 - Collection: `stations`
-- Felter: `name`, `streamUrl`, `category`, `createdAt`
+- Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
-- **41 stationer** i databasen pr. juni 2026
+- **51 stationer** i databasen pr. juni 2026 — alle har logoer
 
 ## Kategorier (7)
 `70's` | `80's` | `90's` | `Pop` | `Rock` | `Dansk` | `Italo`
@@ -76,10 +76,18 @@ Kategorifarver i StationCard:
 Ligger i `.env` (ikke i Git). Skabelon i `.env.example`.
 Samme variabler skal sættes i Vercel under Environment Variables.
 
+## Logoer
+- Alle 51 stationer har `logoUrl` i Firestore
+- Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
+- **Rock Antenne** og **Retro Radio** er hostet lokalt: `public/logos/` → serveres via Vercel CDN
+- Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
+- Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
+
 ## Hjælpescripts (rod-mappen)
 - `check-streams.mjs` — checker bitrate og tilgængelighed på alle streams
 - `migrate-stations.mjs` — erstattede 5 døde streams med nye
 - `add-new-stations.mjs` — tilføjede 22 stationer fra brugerliste
+- `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
