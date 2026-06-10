@@ -31,9 +31,13 @@ export function subscribeToStations(
 ) {
   const q = query(collection(db, COLLECTION))
 
+  let seeded = false
+
   return onSnapshot(
     q,
     async (snapshot) => {
+      if (snapshot.metadata.fromCache && snapshot.empty) return
+
       const stations: Station[] = snapshot.docs.map((doc) => ({
         id: doc.id,
         name: doc.data().name,
@@ -44,7 +48,8 @@ export function subscribeToStations(
         createdAt: doc.data().createdAt?.toDate(),
       }))
 
-      if (stations.length === 0) {
+      if (stations.length === 0 && !seeded) {
+        seeded = true
         await seedStations()
         return
       }
