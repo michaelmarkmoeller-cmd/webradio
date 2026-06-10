@@ -20,7 +20,7 @@ const SEED_STATIONS: Omit<Station, 'id'>[] = [
   { name: 'Radio SAW 70er',  streamUrl: 'https://stream.radiosaw.de/saw-70er/mp3-192/stream.radiosaw.de/', category: "70's" },
   { name: 'PopTron',         streamUrl: 'https://ice5.somafm.com/poptron-128-mp3',                  category: 'Pop'  },
   { name: 'Rock Antenne',    streamUrl: 'https://stream.rockantenne.de/rockantenne/stream/mp3',      category: 'Rock' },
-  { name: 'Radio Danmark',   streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                   category: 'Dansk'},
+  { name: 'DR P4 Nordjylland', streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                 category: 'Dansk'},
   { name: 'DR P3',           streamUrl: 'https://live-icy.gss.dr.dk/A/A03H.mp3',                   category: 'Dansk'},
   { name: 'Synthetic FM',    streamUrl: 'http://stream.syntheticfm.com:8030/stream',                category: 'Italo'},
 ]

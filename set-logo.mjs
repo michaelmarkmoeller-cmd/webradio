@@ -70,7 +70,7 @@ const LOGOS = {
   'Sky Radio 80s Hits':        'https://www.skyradio.nl/favicon.ico',
 
   // Dansk
-  'Radio Danmark':             'https://www.dr.dk/favicon.ico',
+  'DR P4 Nordjylland':         'https://www.dr.dk/favicon.ico',
   'DR P3':                     'https://www.dr.dk/favicon.ico',
   'Radio ANR':                 'https://cdn-radiotime-logos.tunein.com/s25765d.png',
   'Retro Radio':               'https://webradio-chi.vercel.app/logos/retro-radio.png',
