@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio } from '../audio'
+import { getOrCreateAudio, startKeepalive } from '../audio'
 
 interface RadioStore {
   stations: Station[]
@@ -71,7 +71,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   }),
 
   playStation: (station) => {
-    const a = audio() // created within user gesture on first call
+    startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused
+    const a = audio()
     const { volume } = get()
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
