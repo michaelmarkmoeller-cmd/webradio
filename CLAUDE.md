@@ -44,6 +44,13 @@ src/
 ## Audio-arkitektur
 `src/audio.ts` eksporterer `getOrCreateAudio()` — opretter `new Audio()` første gang den kaldes (inde i et klik-event). Dette er påkrævet på iOS Safari, som blokerer audio oprettet uden for et user gesture. Alle audio-handlinger (`play`, `pause`, `src`, `volume`) styres direkte fra Zustand-actions — ingen `useEffect`.
 
+**MediaSession API** er implementeret i `useRadioStore.ts`:
+- Registrerer WebRadio i OS'et ved første afspilning (lock screen, medietaster, headset-knapper)
+- Stationsnavn og logo vises i OS-mediekontroller
+- `navigator.mediaSession.setActionHandler` for play/pause/stop
+
+**Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden.
+
 ## Firestore
 - Collection: `stations`
 - Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
@@ -79,7 +86,10 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 ## Logoer
 - Alle 51 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
-- **Rock Antenne** og **Retro Radio** er hostet lokalt: `public/logos/` → serveres via Vercel CDN
+- Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
+  - `rock-antenne.png`, `retro-radio.png` — PNG-logoer fra kanalernes egne ressourcer
+  - `big-70s-radio.png` — 160×160 kvadratisk version (original var 160×85 landscape)
+  - `radiomonster-80s/90s/dance/rock.svg` — custom SVG: pixel-målte fra Tophits-logo (robot + farvet bjælke, x=8-91, y=77-91)
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
 
