@@ -52,10 +52,17 @@ function syncMediaSession(station: Station, playing: boolean) {
     })
     mediaSessionReady = true
   }
+  const artwork: MediaImage[] = [
+    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+  ]
+  if (station.logoUrl) {
+    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: 'image/png' })
+  }
   navigator.mediaSession.metadata = new MediaMetadata({
     title: station.name,
     artist: 'WebRadio',
-    ...(station.logoUrl ? { artwork: [{ src: station.logoUrl }] } : {}),
+    artwork,
   })
   navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
 }
