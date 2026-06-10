@@ -17,23 +17,23 @@ function buildKeepaliveUrl(): string {
   v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
   v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true)
   s(36, 'data'); v.setUint32(40, n, true)
-  // 440 Hz sine at amplitude 1 — iOS does not classify this as silence and keeps
-  // the audio session alive in the background. At volume 0.001 it is inaudible (~-102 dB).
-  for (let i = 0; i < n; i++) u[44 + i] = 128 + Math.round(Math.sin(2 * Math.PI * 440 * i / sr))
+  // PCM silence (128 = center/zero in unsigned 8-bit PCM). The <audio> element
+  // staying in "playing" state is sufficient to keep the iOS audio session alive
+  // on iOS 16+. A non-silent tone caused audible artefacts through headphones.
+  for (let i = 0; i < n; i++) u[44 + i] = 128
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
 }
 
 // Must be called once inside a user-gesture handler (e.g. first tap to play).
-// Starts a separate silent audio loop that keeps the iOS audio session alive
-// while the radio stream is paused. Without this, iOS deactivates our session
-// and hands "Now Playing" to a native app (Spotify, Music, etc.).
+// Loops a silent WAV to keep the iOS audio session alive while the stream is
+// paused, so WebRadio stays "Now Playing" on the lock screen.
 export function startKeepalive(): void {
   if (!_keepalive) {
     _silentUrl = _silentUrl ?? buildKeepaliveUrl()
     _keepalive = new Audio()
     _keepalive.src = _silentUrl
     _keepalive.loop = true
-    _keepalive.volume = 0.001
+    _keepalive.volume = 1
   }
   if (_keepalive.paused) _keepalive.play().catch(() => {})
 }
