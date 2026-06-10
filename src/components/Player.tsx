@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -13,6 +14,30 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function Player() {
   const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume } = useRadioStore()
+
+  const [nowPlaying, setNowPlaying] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!currentStation || !isPlaying) {
+      setNowPlaying(null)
+      return
+    }
+    let cancelled = false
+
+    async function fetchMeta() {
+      try {
+        const res = await fetch(`/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`)
+        const data = await res.json()
+        if (!cancelled) setNowPlaying(data.title ?? null)
+      } catch {
+        // stream doesn't support ICY metadata — ignore silently
+      }
+    }
+
+    fetchMeta()
+    const interval = setInterval(fetchMeta, 30000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [currentStation?.id, isPlaying])
 
   if (!currentStation) return null
 
@@ -129,6 +154,14 @@ export function Player() {
               <span className="text-[11px] text-text-muted">{currentStation.bitrate} kbps</span>
             )}
           </div>
+          {nowPlaying && (
+            <div className="flex items-center gap-1 mt-1.5 min-w-0">
+              <svg className="w-3 h-3 shrink-0" style={{ color: accent }} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+              </svg>
+              <span className="text-[11px] text-text-muted truncate">{nowPlaying}</span>
+            </div>
+          )}
         </div>
 
         {/* Play / Pause */}
