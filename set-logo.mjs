@@ -75,12 +75,12 @@ const LOGOS = {
   'Radio ANR':                 'https://cdn-radiotime-logos.tunein.com/s25765d.png',
   'Retro Radio':               'https://webradio-chi.vercel.app/logos/retro-radio.png',
 
-  // RadioMonster (Google Play app icon — radiomonster.fm WP blokerer direkte adgang)
-  'RadioMonster Rock':         RM,
-  'RadioMonster Tophits':      RM,
-  'RadioMonster Dance':        RM,
-  'RadioMonster 80s':          RM,
-  'RadioMonster 90s':          RM,
+  // RadioMonster — kanal-specifikke SVG-logoer (Vercel CDN)
+  'RadioMonster 80s':          'https://webradio-chi.vercel.app/logos/radiomonster-80s.svg',
+  'RadioMonster 90s':          'https://webradio-chi.vercel.app/logos/radiomonster-90s.svg',
+  'RadioMonster Dance':        'https://webradio-chi.vercel.app/logos/radiomonster-dance.svg',
+  'RadioMonster Rock':         'https://webradio-chi.vercel.app/logos/radiomonster-rock.svg',
+  'RadioMonster Tophits':      'https://www.radiomonster.fm/wp-content/uploads/2020/12/radiomonster_tophits_2000px-100x100.png',
 
   // 538 (kanal-ikon)
   '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
