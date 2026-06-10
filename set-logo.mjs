@@ -37,6 +37,7 @@ const LOGOS = {
   '80s80s Summerhits':         S80TILE + 'summer.jpg',
   '80s80s 70er':               'https://webradio-chi.vercel.app/logos/80s80s-70er.png',
   '80s80s Italo Hits':         'https://webradio-chi.vercel.app/logos/80s80s-italo-disco.png',
+  '80s80s Italo Mix':          'https://webradio-chi.vercel.app/logos/80s80s-italo-mix.png',
 
   // SomaFM
   'Underground 80s':           'https://somafm.com/img3/u80s-400.png',
