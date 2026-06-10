@@ -23,12 +23,13 @@ const db = getFirestore(app)
 
 const S80 = 'https://upload.80s80s.de/production/static/1697296555757/icons/icon_512.ewwAEi8A30w.png'
 const S90 = 'https://upload.90s90s.de/production/static/1780918167754/icons/icon_512.cno7CdHz6$i.png'
-const SAW = 'https://www.radiosaw.de/images/radio-saw-logo.svg'
+const SAW = 'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/radio-saw-simulcast_0.png.webp?itok=KJstbbvk'
 const R10 = 'https://www.radio10.nl/favicon.ico'
 const RM  = 'https://play-lh.googleusercontent.com/8xt0bjgFJDXuhZe-HkB4QgKu5ZM3PPkX8Qd0yo1wfgSNcfuMNtOvOw22cbpIN8mrO4Sy=w240-h240'
 
 const LOGOS = {
   // 80s80s (alle varianter bruger samme logo)
+  '80s80s Radio':              S80,
   '80s80s In The Mix':         S80,
   '80s80s Partyhits':          S80,
   '80s80s Maxis':              S80,
@@ -41,7 +42,7 @@ const LOGOS = {
   'PopTron':                   'https://somafm.com/img3/poptron-400.png',
 
   // Rock
-  'Rock Antenne':              'https://www.rockantenne.de/favicon.ico',
+  'Rock Antenne':              'https://www.rockantenne.de/logos/station-rock-antenne/station.svg',
 
   // Italo
   'Synthetic FM':              'https://syntheticfm.com/logo-syntheticfm1.png',
@@ -91,7 +92,10 @@ const LOGOS = {
   'laut.fm 70er':              'https://assets.laut.fm/8972525da4e196b40edba1c8e1f04269?t=_120x120',
 
   // 1.FM
-  '1.FM 70s Best':             'https://www.1.fm/favicon/favicon.ico?v=2',
+  '1.FM 70s Best':             'https://cdn-profiles.tunein.com/s9115/images/logod.png',
+
+  // Big R Radio
+  'Big 70s Radio':             'https://cdn.onlineradiobox.com/img/l/9/31669.v3.png',
 }
 
 async function run() {
