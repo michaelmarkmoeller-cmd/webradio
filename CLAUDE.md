@@ -26,7 +26,7 @@ src/
 │   ├── Player.tsx          # Sticky audio-player (bund) — play/pause, volumen, "Forbinder"/"Live" indikator
 │   ├── StationCard.tsx     # Stationskort — klik spiller, 2-sek long-press åbner slet-dialog
 │   ├── StationGrid.tsx     # 5-kolonne grid (xl:5, lg:4, sm:3, 2 mobil)
-│   ├── CategoryFilter.tsx  # Kategoripiller
+│   ├── CategoryFilter.tsx  # Kategoripiller — CATEGORY_COLORS skal matche StationCard
 │   ├── AddStationModal.tsx # Modal til tilføjelse af station
 │   └── DeleteConfirm.tsx   # Bekræftelsesdialog ved sletning
 ├── store/
@@ -36,7 +36,7 @@ src/
 │   └── stationsService.ts  # CRUD + onSnapshot + auto-seed ved tom database
 ├── types/
 │   └── index.ts            # Station, Category, CATEGORIES
-├── audio.ts                # Lazy singleton Audio-element (iOS-kompatibel)
+├── audio.ts                # Lazy singleton Audio-element + keepalive (iOS-kompatibel)
 ├── App.tsx
 └── main.tsx
 ```
@@ -48,10 +48,14 @@ src/
 - Registrerer WebRadio i OS'et ved første afspilning (lock screen, medietaster, headset-knapper)
 - Stationsnavn og logo vises i OS-mediekontroller
 - `navigator.mediaSession.setActionHandler` for play/pause/stop
+- `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
 
 **Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden.
 
-**iOS audio session keepalive**: `src/audio.ts` eksporterer `startKeepalive()` — starter et separat `<audio>`-element der looper en 440 Hz sinus-WAV ved volume 0.001 (uhørlig, ~-102 dB). Kaldes ved første `playStation()` (user gesture). Formål: forhindre iOS i at deaktivere audio-sessionen når streamen pauses, så WebRadio forbliver "Now Playing"-appen på låseskærmen og via headset-knapper. Keepalive WAV er ikke stille (PCM-nul) men en svag tone — iOS suspenderer ikke aktive audio-sessioner med reelt indhold. MediaSession play-handler kalder `startKeepalive()` eksplicit for at genaktivere sessionen hvis iOS har suspenderet den mens skærmen var låst.
+**iOS audio session keepalive**: `src/audio.ts` eksporterer `startKeepalive()` — starter et separat `<audio>`-element der looper en **1 Hz sinus-WAV** ved volume 1.0. Kaldes ved første `playStation()` (user gesture). Formål: forhindre iOS i at deaktivere audio-sessionen når streamen pauses, så WebRadio forbliver "Now Playing"-appen på låseskærmen og via headset-knapper.
+- **Hvorfor 1 Hz**: Under menneskelig høretærskel (20 Hz) → fuldstændig uhørbar. Præcist 1 komplet cyklus i 8000 samples → begge endpoints er 128 (silence) i 8-bit → ingen loop-klik. iOS klassificerer det ikke som stilhed.
+- **Undgå** 440 Hz (hørbart via høretelefoner, giver loop-klik) og PCM-nul/stilhed (iOS suspenderer sessionen).
+- MediaSession play-handler kalder `startKeepalive()` eksplicit for at genaktivere sessionen hvis iOS har suspenderet den mens skærmen var låst.
 
 **Kendt iOS-begrænsning**: AirPods ear detection (automatisk ørengenkendelse) styres på native iOS-niveau via AVAudioSession — web apps kan ikke fuldt ud intercepte dette. `devicechange`-eventet i `App.tsx` håndterer Bluetooth connect/disconnect (AirPods på bord) ved auto-resume.
 
@@ -60,12 +64,12 @@ src/
 - Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
-- **51 stationer** i databasen pr. juni 2026 — alle har logoer
+- **55 stationer** i databasen pr. juni 2026 — alle har logoer
 
-## Kategorier (7)
-`70's` | `80's` | `90's` | `Pop` | `Rock` | `Dansk` | `Italo`
+## Kategorier (8)
+`70's` | `80's` | `90's` | `Pop` | `Rock` | `Dansk` | `Italo` | `Jul`
 
-Kategorifarver i StationCard:
+Kategorifarver — defineres i **både** `StationCard.tsx` og `CategoryFilter.tsx`:
 - 70's: `#A78BFA` (lys lilla)
 - 80's: `#F5A623` (amber)
 - 90's: `#E8679A` (pink)
@@ -73,6 +77,9 @@ Kategorifarver i StationCard:
 - Rock: `#A855F7` (lilla)
 - Dansk: `#4ADE80` (grøn)
 - Italo: `#F97316` (orange)
+- Jul: `#E8262A` (rød)
+
+⚠️ Når der tilføjes en ny kategori, skal farven sættes i **begge** filer.
 
 ## UX-regler
 - **Klik** på stationskort → starter afspilning øjeblikkeligt
@@ -87,21 +94,33 @@ Kategorifarver i StationCard:
 Ligger i `.env` (ikke i Git). Skabelon i `.env.example`.
 Samme variabler skal sættes i Vercel under Environment Variables.
 
+## App-ikoner og PWA
+- `public/app-icon.svg` — kilde-SVG: 512×512, mørk baggrund (#1e0b3d→#0F0F14) + lilla lyn med glow
+- `public/apple-touch-icon.png` — 180×180, iPhone hjemskærm
+- `public/icons/icon-192.png` og `icon-512.png` — PWA + MediaSession artwork
+- `public/manifest.json` — PWA manifest (standalone, theme-color #0F0F14)
+- Genskabes med `node generate-icons.mjs` (kræver `sharp` dev-dep)
+- `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
+
 ## Logoer
-- Alle 51 stationer har `logoUrl` i Firestore
+- Alle 55 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
-  - `rock-antenne.png`, `retro-radio.png` — PNG-logoer fra kanalernes egne ressourcer
-  - `big-70s-radio.png` — 160×160 kvadratisk version (original var 160×85 landscape)
+  - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
+  - `big-70s-radio.png` — 160×160 kvadratisk version
   - `radiomonster-80s/90s/dance/rock.svg` — custom SVG: pixel-målte fra Tophits-logo (robot + farvet bjælke, x=8-91, y=77-91)
+  - `80s80s-*.png` — kanal-specifikke 80s80s-logoer (In The Mix, Party, Maxis, 70er, Italo Disco, Italo Mix)
+  - `sky-radio-christmas.png`, `christmas-vinyl-hd.jpg` — Jul-kategori logoer
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
+- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
 ## Hjælpescripts (rod-mappen)
 - `check-streams.mjs` — checker bitrate og tilgængelighed på alle streams
-- `migrate-stations.mjs` — erstattede 5 døde streams med nye
-- `add-new-stations.mjs` — tilføjede 22 stationer fra brugerliste
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
+- `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
+- `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
+- `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
