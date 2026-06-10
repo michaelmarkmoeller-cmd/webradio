@@ -42,7 +42,7 @@ const LOGOS = {
   'PopTron':                   'https://somafm.com/img3/poptron-400.png',
 
   // Rock
-  'Rock Antenne':              'https://www.rockantenne.de/logos/station-rock-antenne/station.svg',
+  'Rock Antenne':              'https://webradio-chi.vercel.app/logos/rock-antenne.png',
 
   // Italo
   'Synthetic FM':              'https://syntheticfm.com/logo-syntheticfm1.png',
@@ -73,7 +73,7 @@ const LOGOS = {
   'Radio Danmark':             'https://www.dr.dk/favicon.ico',
   'DR P3':                     'https://www.dr.dk/favicon.ico',
   'Radio ANR':                 'https://cdn-radiotime-logos.tunein.com/s25765d.png',
-  'Retro Radio':               'https://retro-radio.dk/wp-content/uploads/2023/11/logo-retro-radio-160.png',
+  'Retro Radio':               'https://webradio-chi.vercel.app/logos/retro-radio.png',
 
   // RadioMonster (Google Play app icon — radiomonster.fm WP blokerer direkte adgang)
   'RadioMonster Rock':         RM,
