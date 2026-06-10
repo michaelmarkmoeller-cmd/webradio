@@ -51,6 +51,10 @@ src/
 
 **Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden.
 
+**iOS audio session keepalive**: `src/audio.ts` eksporterer `startKeepalive()` — starter et separat `<audio>`-element der looper en 440 Hz sinus-WAV ved volume 0.001 (uhørlig, ~-102 dB). Kaldes ved første `playStation()` (user gesture). Formål: forhindre iOS i at deaktivere audio-sessionen når streamen pauses, så WebRadio forbliver "Now Playing"-appen på låseskærmen og via headset-knapper. Keepalive WAV er ikke stille (PCM-nul) men en svag tone — iOS suspenderer ikke aktive audio-sessioner med reelt indhold. MediaSession play-handler kalder `startKeepalive()` eksplicit for at genaktivere sessionen hvis iOS har suspenderet den mens skærmen var låst.
+
+**Kendt iOS-begrænsning**: AirPods ear detection (automatisk ørengenkendelse) styres på native iOS-niveau via AVAudioSession — web apps kan ikke fuldt ud intercepte dette. `devicechange`-eventet i `App.tsx` håndterer Bluetooth connect/disconnect (AirPods på bord) ved auto-resume.
+
 ## Firestore
 - Collection: `stations`
 - Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
