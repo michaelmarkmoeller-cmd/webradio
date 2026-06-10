@@ -17,10 +17,11 @@ function buildKeepaliveUrl(): string {
   v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
   v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true)
   s(36, 'data'); v.setUint32(40, n, true)
-  // PCM silence (128 = center/zero in unsigned 8-bit PCM). The <audio> element
-  // staying in "playing" state is sufficient to keep the iOS audio session alive
-  // on iOS 16+. A non-silent tone caused audible artefacts through headphones.
-  for (let i = 0; i < n; i++) u[44 + i] = 128
+  // 1 Hz sine: below the 20 Hz human hearing threshold → truly inaudible at any
+  // volume. Exactly 1 complete cycle fits in 8000 samples → both endpoints
+  // quantise to 128 (silence) → seamless loop, zero clicks. iOS does not
+  // classify sub-20 Hz content as silence, so the audio session stays alive.
+  for (let i = 0; i < n; i++) u[44 + i] = 128 + Math.round(Math.sin(2 * Math.PI * i / n))
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
 }
 
@@ -33,7 +34,7 @@ export function startKeepalive(): void {
     _keepalive = new Audio()
     _keepalive.src = _silentUrl
     _keepalive.loop = true
-    _keepalive.volume = 1
+    _keepalive.volume = 1.0
   }
   if (_keepalive.paused) _keepalive.play().catch(() => {})
 }
