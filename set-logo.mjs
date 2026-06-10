@@ -46,6 +46,11 @@ const LOGOS = {
 
   // Italo
   'Synthetic FM':              'https://syntheticfm.com/logo-syntheticfm1.png',
+  'Radio Stad Den Haag':       'https://cdn-radiotime-logos.tunein.com/s3089q.png',
+  'DanceClassics Italo Disco': 'https://assets.laut.fm/8c9067ca2261b700bcc98139d417a6fd?t=_640x640',
+  'RdMix Italo Disco 80s':     'https://radiodimensionemix.torontocast.stream/wp-content/uploads/2023/07/RADIO-DIMENSIONE-MIX_200.jpg',
+  'R.SA Italo Disco Hits':     'https://images.rsa-sachsen.de/files/2024-07/streamtile-rsa-italo-disco-hits.jpg',
+  '95.5 Charivari Italo-Hits': 'https://www.charivari.de/apple-touch-icon.png',
 
   // 90s90s (alle varianter)
   '90s90s Radio':              S90,
