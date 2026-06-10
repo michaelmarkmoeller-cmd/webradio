@@ -30,7 +30,33 @@ function audio() {
   })
 }
 
-export const useRadioStore = create<RadioStore>((set) => ({
+// Registers WebRadio with the OS media session (lock screen, media keys, headphone buttons).
+// Initialized once on first playback; metadata updated on each station change.
+let mediaSessionReady = false
+function syncMediaSession(station: Station, playing: boolean) {
+  if (!('mediaSession' in navigator)) return
+  if (!mediaSessionReady) {
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
+    })
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
+    })
+    navigator.mediaSession.setActionHandler('stop', () => {
+      audio().pause()
+      useRadioStore.setState({ isPlaying: false, isBuffering: false })
+    })
+    mediaSessionReady = true
+  }
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: station.name,
+    artist: 'WebRadio',
+    ...(station.logoUrl ? { artwork: [{ src: station.logoUrl }] } : {}),
+  })
+  navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
+}
+
+export const useRadioStore = create<RadioStore>((set, get) => ({
   stations: [],
   currentStation: null,
   isPlaying: false,
@@ -46,7 +72,7 @@ export const useRadioStore = create<RadioStore>((set) => ({
 
   playStation: (station) => {
     const a = audio() // created within user gesture on first call
-    const { volume } = useRadioStore.getState()
+    const { volume } = get()
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
       a.pause()
@@ -59,18 +85,24 @@ export const useRadioStore = create<RadioStore>((set) => ({
       }
     })
     set({ currentStation: station, isPlaying: true, isBuffering: true })
+    syncMediaSession(station, true)
   },
 
-  togglePlay: () => set((state) => {
+  togglePlay: () => {
+    const { isPlaying, currentStation } = get()
     const a = audio()
-    if (state.isPlaying) {
+    if (isPlaying) {
       a.pause()
-      return { isPlaying: false, isBuffering: false }
+      set({ isPlaying: false, isBuffering: false })
+      if (currentStation) syncMediaSession(currentStation, false)
     } else {
+      // Live streams can't resume from a buffered position — reconnect from "now"
+      if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
-      return { isPlaying: true, isBuffering: true }
+      set({ isPlaying: true, isBuffering: true })
+      if (currentStation) syncMediaSession(currentStation, true)
     }
-  }),
+  },
 
   setVolume: (volume) => {
     audio().volume = volume
