@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio } from '../audio'
+import { getOrCreateAudio, getSilentUrl } from '../audio'
 
 interface RadioStore {
   stations: Station[]
@@ -87,6 +87,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
       a.pause()
+      a.loop = false   // stop silent keepalive if active
       a.src = station.streamUrl
     }
     a.volume = volume
@@ -100,14 +101,23 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   togglePlay: () => {
-    const { isPlaying, currentStation } = get()
+    const { isPlaying, currentStation, volume } = get()
     const a = audio()
     if (isPlaying) {
       a.pause()
+      // Switch to a silent loop so iOS keeps our audio session alive while "paused".
+      // This prevents iOS from handing the session to a native app (Spotify, Music)
+      // when AirPods disconnect and reconnect.
+      a.loop = true
+      a.volume = 0
+      a.src = getSilentUrl()
+      a.play().catch(() => {})
       set({ isPlaying: false, isBuffering: false })
       if (currentStation) syncMediaSession(currentStation, false)
     } else {
-      // Live streams can't resume from a buffered position — reconnect from "now"
+      // Stop keepalive, reconnect live stream from "now"
+      a.loop = false
+      a.volume = volume
       if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
       set({ isPlaying: true, isBuffering: true })
