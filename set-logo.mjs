@@ -29,14 +29,14 @@ const R10 = 'https://www.radio10.nl/favicon.ico'
 const RM  = 'https://play-lh.googleusercontent.com/8xt0bjgFJDXuhZe-HkB4QgKu5ZM3PPkX8Qd0yo1wfgSNcfuMNtOvOw22cbpIN8mrO4Sy=w240-h240'
 
 const LOGOS = {
-  // 80s80s — hvert kanalnavn bruger kanalspecifikt stream-tile fra images.80s80s.de
+  // 80s80s — brandede kanallogoer (Vercel CDN) + stream-tiles for kanaler uden logo
   '80s80s Radio':              S80,
-  '80s80s In The Mix':         S80TILE + 'inthemix.jpg',
-  '80s80s Partyhits':          S80TILE + 'party.jpg',
-  '80s80s Maxis':              S80TILE + 'maxis_neu.jpg',
+  '80s80s In The Mix':         'https://webradio-chi.vercel.app/logos/80s80s-in-the-mix.png',
+  '80s80s Partyhits':          'https://webradio-chi.vercel.app/logos/80s80s-party.png',
+  '80s80s Maxis':              'https://webradio-chi.vercel.app/logos/80s80s-maxis.png',
   '80s80s Summerhits':         S80TILE + 'summer.jpg',
-  '80s80s 70er':               S80,   // ingen kanal-tile på 80s80s.de — kanalen er ikke promoteret på sitet
-  '80s80s Italo Hits':         S80TILE + 'italodisco.jpg',
+  '80s80s 70er':               'https://webradio-chi.vercel.app/logos/80s80s-70er.png',
+  '80s80s Italo Hits':         'https://webradio-chi.vercel.app/logos/80s80s-italo-disco.png',
 
   // SomaFM
   'Underground 80s':           'https://somafm.com/img3/u80s-400.png',
