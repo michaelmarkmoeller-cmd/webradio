@@ -27,6 +27,17 @@ function audio() {
     onPlaying: () => useRadioStore.setState({ isBuffering: false }),
     onWaiting: () => useRadioStore.setState({ isBuffering: true }),
     onError:   () => useRadioStore.setState({ isBuffering: false, isPlaying: false }),
+    // Fires on system-initiated pauses (AirPods disconnected, phone call, audio route change).
+    // Keeps our state and mediaSession.playbackState in sync so iOS knows we're paused and
+    // routes the next play command back to us instead of another app.
+    onPause: () => {
+      const { isPlaying, currentStation } = useRadioStore.getState()
+      if (isPlaying) {
+        useRadioStore.setState({ isPlaying: false, isBuffering: false })
+        if (currentStation && 'mediaSession' in navigator)
+          navigator.mediaSession.playbackState = 'paused'
+      }
+    },
   })
 }
 

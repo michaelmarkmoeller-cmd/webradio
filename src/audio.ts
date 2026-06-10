@@ -2,6 +2,7 @@ type AudioCallbacks = {
   onPlaying: () => void
   onWaiting: () => void
   onError: () => void
+  onPause?: () => void
 }
 
 let _audio: HTMLAudioElement | null = null
@@ -15,6 +16,7 @@ export function getOrCreateAudio(callbacks?: AudioCallbacks): HTMLAudioElement {
       _audio.addEventListener('playing', callbacks.onPlaying)
       _audio.addEventListener('waiting', callbacks.onWaiting)
       _audio.addEventListener('error', callbacks.onError)
+      if (callbacks.onPause) _audio.addEventListener('pause', callbacks.onPause)
     }
   }
   return _audio
