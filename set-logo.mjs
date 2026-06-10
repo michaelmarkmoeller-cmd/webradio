@@ -69,9 +69,9 @@ const LOGOS = {
   // Sky Radio
   'Sky Radio 80s Hits':        'https://www.skyradio.nl/favicon.ico',
 
-  // Dansk
-  'DR P4 Nordjylland':         'https://www.dr.dk/favicon.ico',
-  'DR P3':                     'https://www.dr.dk/favicon.ico',
+  // Dansk — kanal-specifikke DR-logoer (Wikimedia Commons, 834x834 PNG)
+  'DR P4 Nordjylland':         'https://upload.wikimedia.org/wikipedia/commons/2/22/DR_P4_2017_logo.png',
+  'DR P3':                     'https://upload.wikimedia.org/wikipedia/commons/6/6e/DR_P3_2017_logo.png',
   'Radio ANR':                 'https://cdn-radiotime-logos.tunein.com/s25765d.png',
   'Retro Radio':               'https://webradio-chi.vercel.app/logos/retro-radio.png',
 
