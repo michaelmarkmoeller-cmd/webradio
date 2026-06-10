@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, getSilentUrl } from '../audio'
+import { getOrCreateAudio } from '../audio'
 
 interface RadioStore {
   stations: Station[]
@@ -27,17 +27,6 @@ function audio() {
     onPlaying: () => useRadioStore.setState({ isBuffering: false }),
     onWaiting: () => useRadioStore.setState({ isBuffering: true }),
     onError:   () => useRadioStore.setState({ isBuffering: false, isPlaying: false }),
-    // Fires on system-initiated pauses (AirPods disconnected, phone call, audio route change).
-    // Keeps our state and mediaSession.playbackState in sync so iOS knows we're paused and
-    // routes the next play command back to us instead of another app.
-    onPause: () => {
-      const { isPlaying, currentStation } = useRadioStore.getState()
-      if (isPlaying) {
-        useRadioStore.setState({ isPlaying: false, isBuffering: false })
-        if (currentStation && 'mediaSession' in navigator)
-          navigator.mediaSession.playbackState = 'paused'
-      }
-    },
   })
 }
 
@@ -87,7 +76,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
       a.pause()
-      a.loop = false   // stop silent keepalive if active
       a.src = station.streamUrl
     }
     a.volume = volume
@@ -101,23 +89,14 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   togglePlay: () => {
-    const { isPlaying, currentStation, volume } = get()
+    const { isPlaying, currentStation } = get()
     const a = audio()
     if (isPlaying) {
       a.pause()
-      // Switch to a silent loop so iOS keeps our audio session alive while "paused".
-      // This prevents iOS from handing the session to a native app (Spotify, Music)
-      // when AirPods disconnect and reconnect.
-      a.loop = true
-      a.volume = 0
-      a.src = getSilentUrl()
-      a.play().catch(() => {})
       set({ isPlaying: false, isBuffering: false })
       if (currentStation) syncMediaSession(currentStation, false)
     } else {
-      // Stop keepalive, reconnect live stream from "now"
-      a.loop = false
-      a.volume = volume
+      // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
       set({ isPlaying: true, isBuffering: true })
