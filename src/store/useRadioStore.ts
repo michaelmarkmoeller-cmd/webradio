@@ -37,6 +37,10 @@ function syncMediaSession(station: Station, playing: boolean) {
   if (!('mediaSession' in navigator)) return
   if (!mediaSessionReady) {
     navigator.mediaSession.setActionHandler('play', () => {
+      // Restart keepalive first — iOS may have suspended it while locked, making
+      // the audio session inactive. Restarting it here (inside a user gesture)
+      // reactivates the session so the stream play() call succeeds.
+      startKeepalive()
       if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('pause', () => {

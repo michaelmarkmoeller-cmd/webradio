@@ -8,7 +8,7 @@ let _audio: HTMLAudioElement | null = null
 let _keepalive: HTMLAudioElement | null = null
 let _silentUrl: string | null = null
 
-function buildSilentUrl(): string {
+function buildKeepaliveUrl(): string {
   const sr = 8000, n = sr  // 1 s @ 8 kHz, mono, 8-bit unsigned PCM
   const buf = new ArrayBuffer(44 + n)
   const v = new DataView(buf), u = new Uint8Array(buf)
@@ -16,7 +16,10 @@ function buildSilentUrl(): string {
   s(0, 'RIFF'); v.setUint32(4, 36 + n, true); s(8, 'WAVEfmt ')
   v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
   v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true)
-  s(36, 'data'); v.setUint32(40, n, true); u.fill(128, 44)
+  s(36, 'data'); v.setUint32(40, n, true)
+  // 440 Hz sine at amplitude 1 — iOS does not classify this as silence and keeps
+  // the audio session alive in the background. At volume 0.001 it is inaudible (~-102 dB).
+  for (let i = 0; i < n; i++) u[44 + i] = 128 + Math.round(Math.sin(2 * Math.PI * 440 * i / sr))
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
 }
 
@@ -26,7 +29,7 @@ function buildSilentUrl(): string {
 // and hands "Now Playing" to a native app (Spotify, Music, etc.).
 export function startKeepalive(): void {
   if (!_keepalive) {
-    _silentUrl = _silentUrl ?? buildSilentUrl()
+    _silentUrl = _silentUrl ?? buildKeepaliveUrl()
     _keepalive = new Audio()
     _keepalive.src = _silentUrl
     _keepalive.loop = true
