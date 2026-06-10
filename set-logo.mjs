@@ -94,8 +94,8 @@ const LOGOS = {
   // 1.FM
   '1.FM 70s Best':             'https://cdn-profiles.tunein.com/s9115/images/logod.png',
 
-  // Big R Radio
-  'Big 70s Radio':             'https://cdn.onlineradiobox.com/img/l/9/31669.v3.png',
+  // Big R Radio (kvadratisk version i public/logos)
+  'Big 70s Radio':             'https://webradio-chi.vercel.app/logos/big-70s-radio.png',
 }
 
 async function run() {
