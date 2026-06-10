@@ -76,6 +76,18 @@ const LOGOS = {
   // Sky Radio
   'Sky Radio 80s Hits':        'https://www.skyradio.nl/favicon.ico',
 
+  // Dansk
+  'Radio Limfjord':            'https://cdn-radiotime-logos.tunein.com/s10576q.png',
+  'Limfjord Mix':              'https://cdn-radiotime-logos.tunein.com/s134818q.png',
+  'Radio Nord':                'https://cdn-radiotime-logos.tunein.com/s269114q.png',
+
+  // Jul
+  'Antenne Bayern Weihnachten': 'https://cdn-radiotime-logos.tunein.com/s244472q.png',
+  '80s80s Xmas':               'https://cdn-radiotime-logos.tunein.com/s258389q.png',
+  'Sky Radio Christmas':       'https://webradio-chi.vercel.app/logos/sky-radio-christmas.png',
+  'Klassik Radio Christmas':   'https://www.klassikradio.de/apple-touch-icon.png',
+  'Christmas Vinyl HD':        'https://webradio-chi.vercel.app/logos/christmas-vinyl-hd.jpg',
+
   // Dansk — kanal-specifikke DR-logoer (Wikimedia Commons, 834x834 PNG)
   'DR P4 Nordjylland':         'https://upload.wikimedia.org/wikipedia/commons/2/22/DR_P4_2017_logo.png',
   'DR P3':                     'https://upload.wikimedia.org/wikipedia/commons/6/6e/DR_P3_2017_logo.png',
