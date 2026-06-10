@@ -59,8 +59,21 @@ export default function App() {
     <div className="min-h-screen bg-bg-primary font-sans text-text-primary">
       <header className="border-b border-border bg-bg-secondary">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="font-display font-bold text-2xl text-text-primary">
-            Web<span className="text-accent">Radio</span>
+          <h1 className="font-display font-bold leading-tight">
+            <span
+              className="block text-2xl"
+              style={{
+                background: 'linear-gradient(to bottom, #ff3b3b, #ff8c00, #ffe600, #3ddc3d, #2196f3, #7b2ff7)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Michaels
+            </span>
+            <span className="block text-2xl text-text-primary">
+              Web<span className="text-accent">Radio</span>
+            </span>
           </h1>
           <div className="flex items-center gap-2">
             <button
