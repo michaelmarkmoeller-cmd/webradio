@@ -11,6 +11,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Rock':  '#A855F7',
   'Dansk': '#4ADE80',
   'Italo': '#F97316',
+  'Jul':   '#E8262A',
 }
 
 function CategoryButton({ cat, isActive, onClick }: { cat: Category; isActive: boolean; onClick: () => void }) {
