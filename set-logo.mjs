@@ -21,21 +21,22 @@ const app = initializeApp({
 
 const db = getFirestore(app)
 
-const S80 = 'https://upload.80s80s.de/production/static/1697296555757/icons/icon_512.ewwAEi8A30w.png'
+const S80     = 'https://upload.80s80s.de/production/static/1697296555757/icons/icon_512.ewwAEi8A30w.png'
+const S80TILE = 'https://images.80s80s.de/files/streams/80s80s_stream-tile_'
 const S90 = 'https://upload.90s90s.de/production/static/1780918167754/icons/icon_512.cno7CdHz6$i.png'
 const SAW = 'https://backend.radiosaw.de/sites/default/files/styles/square_tiny_200_x_200/public/2023-11/radio-saw-simulcast_0.png.webp?itok=KJstbbvk'
 const R10 = 'https://www.radio10.nl/favicon.ico'
 const RM  = 'https://play-lh.googleusercontent.com/8xt0bjgFJDXuhZe-HkB4QgKu5ZM3PPkX8Qd0yo1wfgSNcfuMNtOvOw22cbpIN8mrO4Sy=w240-h240'
 
 const LOGOS = {
-  // 80s80s (alle varianter bruger samme logo)
+  // 80s80s — hvert kanalnavn bruger kanalspecifikt stream-tile fra images.80s80s.de
   '80s80s Radio':              S80,
-  '80s80s In The Mix':         S80,
-  '80s80s Partyhits':          S80,
-  '80s80s Maxis':              S80,
-  '80s80s Summerhits':         S80,
-  '80s80s 70er':               S80,
-  '80s80s Italo Hits':         S80,
+  '80s80s In The Mix':         S80TILE + 'inthemix.jpg',
+  '80s80s Partyhits':          S80TILE + 'party.jpg',
+  '80s80s Maxis':              S80TILE + 'maxis_neu.jpg',
+  '80s80s Summerhits':         S80TILE + 'summer.jpg',
+  '80s80s 70er':               S80,   // ingen kanal-tile på 80s80s.de — kanalen er ikke promoteret på sitet
+  '80s80s Italo Hits':         S80TILE + 'italodisco.jpg',
 
   // SomaFM
   'Underground 80s':           'https://somafm.com/img3/u80s-400.png',
