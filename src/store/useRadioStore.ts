@@ -13,6 +13,7 @@ interface RadioStore {
   selectedCategory: Category | 'All'
   isLoading: boolean
   sleepTimerEnd: number | null
+  sleepTimerMinutes: number | null
 
   setStations: (stations: Station[]) => void
   playStation: (station: Station) => void
@@ -82,6 +83,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   selectedCategory: 'All',
   isLoading: true,
   sleepTimerEnd: null,
+  sleepTimerMinutes: null,
 
   setStations: (stations) => set({
     stations: [...stations].sort((a, b) => {
@@ -96,7 +98,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   playStation: (station) => {
     startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused
     const a = audio()
-    const { volume } = get()
+    const { volume, sleepTimerMinutes } = get()
+    // Reset sleep timer on station change so the full duration applies to the new station
+    if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
       a.pause()
@@ -142,18 +146,18 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       sleepTimerInterval = null
     }
     if (minutes === null) {
-      set({ sleepTimerEnd: null })
+      set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       return
     }
     const end = Date.now() + minutes * 60_000
-    set({ sleepTimerEnd: end })
+    set({ sleepTimerEnd: end, sleepTimerMinutes: minutes })
     sleepTimerInterval = setInterval(() => {
       const state = useRadioStore.getState()
       if (!state.sleepTimerEnd || Date.now() < state.sleepTimerEnd) return
       clearInterval(sleepTimerInterval!)
       sleepTimerInterval = null
       if (state.isPlaying) state.togglePlay()
-      set({ sleepTimerEnd: null })
+      set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       toast('Sov godt', { icon: '🌙' })
     }, 10_000)
   },
