@@ -150,12 +150,10 @@ export function Player() {
             >
               {currentStation.category}
             </span>
-          </div>
-          {currentStation.bitrate && (
-            <div className="mt-0.5">
+            {currentStation.bitrate && (
               <span className="text-[11px] text-text-muted">{currentStation.bitrate} kbps</span>
-            </div>
-          )}
+            )}
+          </div>
           {meta.title && (
             <div className="flex items-center gap-1 mt-1 min-w-0">
               <svg className="w-3 h-3 shrink-0" style={{ color: accent }} fill="currentColor" viewBox="0 0 24 24">

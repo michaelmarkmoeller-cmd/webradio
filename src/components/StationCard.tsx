@@ -133,14 +133,13 @@ export function StationCard({ station }: Props) {
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
             <span className="text-xs text-text-muted">{station.category}</span>
-            {station.bitrate && (
-              <>
-                <span className="text-xs text-text-muted/40">·</span>
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
-                <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
-              </>
-            )}
           </div>
+          {station.bitrate && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
+              <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
+            </div>
+          )}
         </div>
 
         {/* Live bars when playing */}
