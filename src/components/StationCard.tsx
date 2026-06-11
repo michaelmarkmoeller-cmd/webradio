@@ -118,8 +118,8 @@ export function StationCard({ station }: Props) {
             className="absolute inset-y-0 right-0 h-full w-[55%] object-contain object-right pointer-events-none"
             style={{
               opacity: 0.4,
-              maskImage: 'linear-gradient(to right, transparent 0%, black 35%)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 35%)',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
             }}
             draggable={false}
           />
