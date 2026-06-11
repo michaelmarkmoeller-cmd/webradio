@@ -70,7 +70,7 @@ src/
 - Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
-- **55 stationer** i databasen pr. juni 2026 — alle har logoer
+- **60 stationer** i databasen pr. juni 2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (8)
@@ -112,7 +112,7 @@ Farve-accent (top-stripe, play-knap, badge) følger stationens kategorifarve —
 - Forbinder til stream-URL med `Icy-MetaData: 1` header
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
-- **32 ud af 55 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
+- **32 ud af 60 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
 - 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
 - Player poller hvert 30. sek når der spiller
 
@@ -132,7 +132,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 55 stationer har `logoUrl` i Firestore
+- Alle 60 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
@@ -150,6 +150,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
 - `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
+- `add-rock-stations-jun2026.mjs` — tilføjede 5 Rock stationer (juni 2026)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
