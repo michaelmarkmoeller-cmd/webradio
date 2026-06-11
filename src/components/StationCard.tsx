@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Station } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
+import { isIOS } from '../utils/platform'
 import { DeleteConfirm } from './DeleteConfirm'
 import { deleteStation } from '../firebase/stationsService'
 import toast from 'react-hot-toast'
@@ -115,7 +116,9 @@ export function StationCard({ station }: Props) {
           <img
             src={station.logoUrl}
             alt=""
-            className="absolute inset-y-0 right-0 h-full aspect-square object-contain pointer-events-none"
+            className={`absolute inset-y-0 right-0 h-full pointer-events-none object-contain ${
+              isIOS ? 'w-[45%] object-right' : 'aspect-square'
+            }`}
             style={{ opacity: 0.4 }}
             draggable={false}
           />
