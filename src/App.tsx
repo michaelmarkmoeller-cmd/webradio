@@ -44,7 +44,7 @@ export default function App() {
         if (!isPlaying && currentStation) togglePlay()
       } else {
         pendingReconnect = true
-        timer = setTimeout(() => { pendingReconnect = false }, 5 * 60 * 1000)
+        timer = setTimeout(() => { pendingReconnect = false }, 10_000)
       }
     }
 
