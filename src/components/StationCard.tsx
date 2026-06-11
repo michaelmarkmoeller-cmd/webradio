@@ -116,6 +116,7 @@ export function StationCard({ station }: Props) {
         <button
           className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"
           onClick={(e) => { e.stopPropagation(); toggleFavorite(station.id) }}
+          onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           aria-label={isFavorite ? 'Fjern fra favoritter' : 'Tilføj til favoritter'}
         >
