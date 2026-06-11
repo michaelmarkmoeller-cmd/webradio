@@ -13,6 +13,7 @@ export function AddStationModal({ onClose }: Props) {
   const [streamUrl, setStreamUrl] = useState('')
   const [category, setCategory] = useState<Category>(CATEGORIES[0])
   const [bitrate, setBitrate] = useState<number | undefined>(undefined)
+  const [country, setCountry] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,7 +22,7 @@ export function AddStationModal({ onClose }: Props) {
 
     setSaving(true)
     try {
-      await addStation({ name: name.trim(), streamUrl: streamUrl.trim(), category, bitrate })
+      await addStation({ name: name.trim(), streamUrl: streamUrl.trim(), category, bitrate, country: country.trim().toLowerCase() || undefined })
       toast.success(`"${name.trim()}" tilføjet`)
       onClose()
     } catch {
@@ -112,6 +113,20 @@ export function AddStationModal({ onClose }: Props) {
               <option value="192">192 kbps</option>
               <option value="320">320 kbps</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Land (ISO-kode, fx dk, de, nl)
+            </label>
+            <input
+              type="text"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="dk"
+              maxLength={2}
+              className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-text-primary placeholder-text-muted text-sm focus:outline-none focus:border-accent transition-colors"
+            />
           </div>
 
           <div className="flex gap-3 mt-2">

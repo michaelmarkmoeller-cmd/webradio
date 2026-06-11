@@ -9,6 +9,7 @@ export interface Station {
   category: Category
   bitrate?: number
   logoUrl?: string
+  country?: string
   createdAt?: Date
 }
 
@@ -18,4 +19,5 @@ export interface StationFormData {
   category: Category
   bitrate?: number
   logoUrl?: string
+  country?: string
 }

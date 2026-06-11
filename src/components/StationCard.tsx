@@ -142,6 +142,16 @@ export function StationCard({ station }: Props) {
           )}
         </div>
 
+        {/* Country flag */}
+        {station.country && (
+          <img
+            src={`https://flagcdn.com/w40/${station.country}.png`}
+            alt={station.country}
+            className="absolute bottom-1.5 left-1.5 w-[5%] rounded-sm pointer-events-none"
+            draggable={false}
+          />
+        )}
+
         {/* Live bars when playing */}
         <div className="h-5 flex items-end">
           {isCurrentlyPlaying && (
