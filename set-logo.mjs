@@ -104,7 +104,7 @@ const LOGOS = {
   // Dance
   'Sunshine Live':    'https://cdn-radiotime-logos.tunein.com/s10637q.png',
   'RauteMusik House': 'https://cdn-radiotime-logos.tunein.com/s139254q.png',
-  'Radio Record':     'https://cdn-radiotime-logos.tunein.com/s10018q.png',
+  'Capital Dance':    'https://cdn-profiles.tunein.com/s309497/images/logod.jpg',
 
   // 538 (kanal-ikon)
   '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
