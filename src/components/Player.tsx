@@ -15,11 +15,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function Player() {
   const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume } = useRadioStore()
 
-  const [nowPlaying, setNowPlaying] = useState<string | null>(null)
+  const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
 
   useEffect(() => {
     if (!currentStation || !isPlaying) {
-      setNowPlaying(null)
+      setMeta({ title: null, genre: null })
       return
     }
     let cancelled = false
@@ -28,7 +28,7 @@ export function Player() {
       try {
         const res = await fetch(`/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`)
         const data = await res.json()
-        if (!cancelled) setNowPlaying(data.title ?? null)
+        if (!cancelled) setMeta({ title: data.title ?? null, genre: data.genre ?? null })
       } catch {
         // stream doesn't support ICY metadata — ignore silently
       }
@@ -154,12 +154,20 @@ export function Player() {
               <span className="text-[11px] text-text-muted">{currentStation.bitrate} kbps</span>
             )}
           </div>
-          {nowPlaying && (
+          {meta.title && (
             <div className="flex items-center gap-1 mt-1.5 min-w-0">
               <svg className="w-3 h-3 shrink-0" style={{ color: accent }} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
               </svg>
-              <span className="text-[11px] text-text-muted truncate">{nowPlaying}</span>
+              <span className="text-[11px] text-text-muted truncate">{meta.title}</span>
+            </div>
+          )}
+          {meta.genre && (
+            <div className="flex items-center gap-1 mt-0.5 min-w-0">
+              <svg className="w-3 h-3 shrink-0 text-text-muted/50" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+              </svg>
+              <span className="text-[10px] text-text-muted/60 truncate">{meta.genre}</span>
             </div>
           )}
         </div>

@@ -76,8 +76,9 @@ export default async function handler(req: any, res: any) {
 
     const match = metaStr.match(/StreamTitle='([^']*)'/)
     const title = match?.[1]?.trim() || null
+    const genre = response.headers.get('icy-genre') || null
 
-    return res.json({ title })
+    return res.json({ title, genre })
   } catch {
     return res.json({ title: null })
   }
