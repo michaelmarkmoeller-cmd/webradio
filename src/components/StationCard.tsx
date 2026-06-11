@@ -147,7 +147,7 @@ export function StationCard({ station }: Props) {
           <img
             src={`https://flagcdn.com/w40/${station.country}.png`}
             alt={station.country}
-            className="absolute bottom-1.5 left-1.5 w-[5%] rounded-sm pointer-events-none"
+            className="absolute bottom-1.5 left-1.5 w-[18px] rounded-sm pointer-events-none"
             draggable={false}
           />
         )}
