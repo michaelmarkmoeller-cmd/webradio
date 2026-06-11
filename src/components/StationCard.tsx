@@ -115,7 +115,7 @@ export function StationCard({ station }: Props) {
           <img
             src={station.logoUrl}
             alt=""
-            className="absolute inset-y-0 right-0 h-full w-[45%] object-cover object-right pointer-events-none"
+            className="absolute inset-y-0 right-0 h-full w-[55%] object-cover object-right pointer-events-none"
             style={{ opacity: 0.4 }}
             draggable={false}
           />
