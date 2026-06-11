@@ -38,6 +38,8 @@ src/
 │   └── stationsService.ts  # CRUD + onSnapshot + auto-seed ved tom database
 ├── types/
 │   └── index.ts            # Station, Category, CATEGORIES
+├── utils/
+│   └── platform.ts         # isIOS — UA-detection (iPad/iPhone/iPod + MacIntel + maxTouchPoints)
 ├── audio.ts                # Lazy singleton Audio-element + keepalive (iOS-kompatibel)
 ├── App.tsx
 └── main.tsx
@@ -67,7 +69,7 @@ src/
 
 ## Firestore
 - Collection: `stations`
-- Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`
+- Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`, `country`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
 - **60 stationer** i databasen pr. juni 2026 — alle har logoer
@@ -96,15 +98,20 @@ Kategorifarver — defineres i **både** `StationCard.tsx` og `CategoryFilter.ts
 - Stationsnavne bruger dynamisk skriftstørrelse (ingen "..."-afskæring): ≤12 tegn → text-sm, ≤18 → text-xs, længere → 11px
 - Stationer vises alfabetisk inden for hver kategori (dansk sortering)
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
-- **Stationskort-logo**: fast 45% bredde (`w-[45%]`) med `object-contain object-right` — sikrer ens visuel størrelse på tværs af logoer med forskellig aspect ratio
+- **Stationskort-logo**: `w-[55%] object-contain object-right`, opacity 0.4, CSS gradient-maske `linear-gradient(to right, transparent 0%, black 50%)` — viser fuldt logo uden crop og fader venstrekanten ind i kortbaggrunden
+- **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, absolut positioneret `bottom-1.5 left-1.5 w-[18px]`
+- **Stationskort-equalizer**: live bars absolut positioneret `bottom-1.5 left-[30px]` (til højre for flaget)
+- **Stationskort-bitrate**: vises på egen linje under kategori-badge
 
 ## Player (20vh)
-Tre rækker fordelt med `justify-between`:
+På **desktop** (ikke-iOS): tre rækker fordelt med `justify-between`:
 1. **Now Playing** (venstre) + Live/Forbinder-status (højre) — equalizer-animation når der spiller
 2. **Volume-slider** med speaker-ikoner
 3. **Logo** (48×48, afrundet) + stationsinfo + play-knap i kategoriens farve
 
-Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate, sangtitel (ICY) og genre (ICY).
+På **iOS** (isIOS === true): volume-slideren skjules (iOS WebKit gør `audio.volume` read-only). Player bruger `gap-3 py-4` i stedet for fast `h-[20vh]`.
+
+Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate på egen linje, sangtitel (ICY) og genre (ICY).
 Farve-accent (top-stripe, play-knap, badge) følger stationens kategorifarve — defineret i `CATEGORY_COLORS` i `Player.tsx`.
 
 ## ICY stream-metadata
@@ -151,6 +158,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
 - `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
 - `add-rock-stations-jun2026.mjs` — tilføjede 5 Rock stationer (juni 2026)
+- `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
