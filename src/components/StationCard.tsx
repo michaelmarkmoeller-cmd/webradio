@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Station } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
 import { DeleteConfirm } from './DeleteConfirm'
@@ -7,6 +9,7 @@ import toast from 'react-hot-toast'
 
 interface Props {
   station: Station
+  sortable?: boolean
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -35,7 +38,7 @@ function nameSize(name: string): string {
 
 const LONG_PRESS_MS = 2000
 
-export function StationCard({ station }: Props) {
+export function StationCard({ station, sortable = false }: Props) {
   const { currentStation, isPlaying, playStation, favorites, toggleFavorite } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
   const [isPressing, setIsPressing] = useState(false)
@@ -43,6 +46,11 @@ export function StationCard({ station }: Props) {
   const didLongPress = useRef(false)
 
   const [hovered, setHovered] = useState(false)
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: station.id,
+    disabled: !sortable,
+  })
   const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
@@ -87,6 +95,7 @@ export function StationCard({ station }: Props) {
   return (
     <>
       <div
+        ref={setNodeRef}
         className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 cursor-pointer select-none transition-all duration-150 ${
           isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
@@ -101,6 +110,10 @@ export function StationCard({ station }: Props) {
             ? `0 0 12px ${accentColor}33`
             : hovered ? `0 0 14px ${accentColor}28` : 'none',
           WebkitTouchCallout: 'none',
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0.4 : 1,
+          zIndex: isDragging ? 1 : undefined,
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); cancelPress() }}
@@ -112,6 +125,26 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
+        {/* Drag handle — visible on hover when sortable */}
+        {sortable && (
+          <button
+            {...listeners}
+            {...attributes}
+            className={`absolute top-2 left-2 z-10 p-0.5 touch-none transition-opacity ${
+              hovered ? 'opacity-40' : 'opacity-0'
+            } hover:opacity-70 cursor-grab active:cursor-grabbing`}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label="Flyt station"
+          >
+            <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="9" cy="5" r="1.8"/><circle cx="15" cy="5" r="1.8"/>
+              <circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/>
+              <circle cx="9" cy="19" r="1.8"/><circle cx="15" cy="19" r="1.8"/>
+            </svg>
+          </button>
+        )}
+
         {/* Favorite heart */}
         <button
           className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"

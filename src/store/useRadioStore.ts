@@ -102,6 +102,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       const catA = CATEGORIES.indexOf(a.category as Category)
       const catB = CATEGORIES.indexOf(b.category as Category)
       if (catA !== catB) return catA - catB
+      const orderA = a.sortOrder ?? Infinity
+      const orderB = b.sortOrder ?? Infinity
+      if (orderA !== orderB) return orderA - orderB
       return a.name.localeCompare(b.name, 'da')
     }),
     isLoading: false,

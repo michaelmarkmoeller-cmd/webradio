@@ -6,6 +6,8 @@ import {
   onSnapshot,
   serverTimestamp,
   query,
+  writeBatch,
+  updateDoc,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Station, StationFormData } from '../types'
@@ -47,6 +49,7 @@ export function subscribeToStations(
         logoUrl: doc.data().logoUrl ?? undefined,
         country: doc.data().country ?? undefined,
         createdAt: doc.data().createdAt?.toDate(),
+        sortOrder: doc.data().sortOrder ?? undefined,
       }))
 
       if (stations.length === 0 && !seeded) {
@@ -77,4 +80,12 @@ export async function addStation(data: StationFormData): Promise<void> {
 
 export async function deleteStation(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id))
+}
+
+export async function updateSortOrders(updates: { id: string; sortOrder: number }[]): Promise<void> {
+  const batch = writeBatch(db)
+  for (const { id, sortOrder } of updates) {
+    batch.update(doc(db, COLLECTION, id), { sortOrder })
+  }
+  await batch.commit()
 }
