@@ -42,6 +42,10 @@ const upgradeCandidates = {
 }
 
 function checkStream(url, timeoutMs = 6000) {
+  // http:// streams are blocked as mixed content in the HTTPS app — treat as failed
+  if (url.startsWith('http://')) {
+    return Promise.resolve({ ok: false, error: 'mixed-content: http:// blocked in HTTPS app' })
+  }
   return new Promise((resolve) => {
     const parsed = new URL(url)
     const lib = parsed.protocol === 'https:' ? https : http
