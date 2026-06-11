@@ -7,7 +7,6 @@ import {
   serverTimestamp,
   query,
   writeBatch,
-  updateDoc,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Station, StationFormData } from '../types'
