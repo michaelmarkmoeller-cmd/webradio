@@ -122,9 +122,6 @@ export function Player() {
             </svg>
           )}
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
-          <span className="text-[10px] tabular-nums text-text-muted/60">
-            {formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt && isPlaying ? Date.now() - listenStartedAt : 0)) / 1000))}
-          </span>
         </div>
         <div className="flex items-center gap-3">
           {/* Sleep timer */}
@@ -178,6 +175,9 @@ export function Player() {
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Live</span>
+              <span className="text-[10px] tabular-nums text-red-400">
+                {formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)) / 1000))}
+              </span>
             </>
           ) : null}
         </div>
