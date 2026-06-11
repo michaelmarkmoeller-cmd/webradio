@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
+import { isIOS } from '../utils/platform'
 
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA',
@@ -11,12 +12,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Italo': '#F97316',
   'Jul':   '#E8262A',
 }
-
-// iOS WebKit makes audio.volume read-only — volume slider has no effect there.
-const isIOS =
-  typeof navigator !== 'undefined' &&
-  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
 export function Player() {
   const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume } = useRadioStore()
@@ -48,7 +43,9 @@ export function Player() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 h-[20vh] bg-bg-secondary flex flex-col justify-between px-5 pt-3 pb-4"
+      className={`fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary flex flex-col px-5 ${
+        isIOS ? 'gap-3 py-4' : 'h-[20vh] justify-between pt-3 pb-4'
+      }`}
       style={{ borderTop: `1px solid ${accent}50` }}
     >
       {/* Accent stripe */}

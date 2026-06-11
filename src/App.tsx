@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isIOS } from './utils/platform'
 import { Toaster } from 'react-hot-toast'
 import { subscribeToStations } from './firebase/stationsService'
 import { useRadioStore } from './store/useRadioStore'
@@ -104,7 +105,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`max-w-5xl mx-auto px-4 py-6 ${currentStation ? 'pb-[20vh]' : ''}`}>
+      <main className={`max-w-5xl mx-auto px-4 py-6 ${currentStation ? (isIOS ? 'pb-28' : 'pb-[20vh]') : ''}`}>
         <div className="mb-6">
           <CategoryFilter />
         </div>
