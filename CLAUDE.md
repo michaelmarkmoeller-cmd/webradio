@@ -21,9 +21,11 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 
 ## Projektstruktur
 ```
+api/
+└── icy-meta.ts             # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
 src/
 ├── components/
-│   ├── Player.tsx          # Sticky audio-player (bund) — play/pause, volumen, "Forbinder"/"Live" indikator
+│   ├── Player.tsx          # Player (20vh) — Now Playing, volume, stationsinfo, ICY-metadata
 │   ├── StationCard.tsx     # Stationskort — klik spiller, 2-sek long-press åbner slet-dialog
 │   ├── StationGrid.tsx     # 5-kolonne grid (xl:5, lg:4, sm:3, 2 mobil)
 │   ├── CategoryFilter.tsx  # Kategoripiller — CATEGORY_COLORS skal matche StationCard
@@ -32,7 +34,7 @@ src/
 ├── store/
 │   └── useRadioStore.ts    # Zustand store — sorterer alfabetisk, styrer audio direkte
 ├── firebase/
-│   ├── config.ts           # Firebase init via VITE_* env vars
+│   ├── config.ts           # Firebase init + IndexedDB offline persistence
 │   └── stationsService.ts  # CRUD + onSnapshot + auto-seed ved tom database
 ├── types/
 │   └── index.ts            # Station, Category, CATEGORIES
@@ -57,7 +59,11 @@ src/
 - **Undgå** 440 Hz (hørbart via høretelefoner, giver loop-klik) og PCM-nul/stilhed (iOS suspenderer sessionen).
 - MediaSession play-handler kalder `startKeepalive()` eksplicit for at genaktivere sessionen hvis iOS har suspenderet den mens skærmen var låst.
 
-**Kendt iOS-begrænsning**: AirPods ear detection (automatisk ørengenkendelse) styres på native iOS-niveau via AVAudioSession — web apps kan ikke fuldt ud intercepte dette. `devicechange`-eventet i `App.tsx` håndterer Bluetooth connect/disconnect (AirPods på bord) ved auto-resume.
+**Bluetooth auto-resume**: `devicechange`-eventet i `App.tsx` håndterer AirPods connect/disconnect. To events inden for **10 sekunder** trigger auto-resume (disconnect + reconnect). Vinduet er bevidst kort (10 sek) — AirPods reconnecter på 2-3 sek. Et langt vindue ville fejlagtigt trigge auto-resume ved CarPlay-frakobling (~1 min efter bil slukkes).
+
+**CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
+
+**Kendt iOS-begrænsning**: AirPods ear detection (automatisk ørengenkendelse) styres på native iOS-niveau via AVAudioSession — web apps kan ikke fuldt ud intercepte dette.
 
 ## Firestore
 - Collection: `stations`
@@ -65,6 +71,7 @@ src/
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
 - **55 stationer** i databasen pr. juni 2026 — alle har logoer
+- **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (8)
 `70's` | `80's` | `90's` | `Pop` | `Rock` | `Dansk` | `Italo` | `Jul`
@@ -89,6 +96,28 @@ Kategorifarver — defineres i **både** `StationCard.tsx` og `CategoryFilter.ts
 - Stationsnavne bruger dynamisk skriftstørrelse (ingen "..."-afskæring): ≤12 tegn → text-sm, ≤18 → text-xs, længere → 11px
 - Stationer vises alfabetisk inden for hver kategori (dansk sortering)
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
+- **Stationskort-logo**: fast 45% bredde (`w-[45%]`) med `object-contain object-right` — sikrer ens visuel størrelse på tværs af logoer med forskellig aspect ratio
+
+## Player (20vh)
+Tre rækker fordelt med `justify-between`:
+1. **Now Playing** (venstre) + Live/Forbinder-status (højre) — equalizer-animation når der spiller
+2. **Volume-slider** med speaker-ikoner
+3. **Logo** (48×48, afrundet) + stationsinfo + play-knap i kategoriens farve
+
+Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate, sangtitel (ICY) og genre (ICY).
+Farve-accent (top-stripe, play-knap, badge) følger stationens kategorifarve — defineret i `CATEGORY_COLORS` i `Player.tsx`.
+
+## ICY stream-metadata
+`api/icy-meta.ts` — Vercel serverless funktion:
+- Forbinder til stream-URL med `Icy-MetaData: 1` header
+- Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
+- Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
+- **32 ud af 55 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
+- 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
+- Player poller hvert 30. sek når der spiller
+
+## Header
+Overskriften i toppen viser "Michaels" med regnbue-gradient (CSS `background-clip: text`) og "WebRadio" nedenunder med amber-accent på "Radio".
 
 ## Miljøvariabler
 Ligger i `.env` (ikke i Git). Skabelon i `.env.example`.
