@@ -72,21 +72,22 @@ src/
 - Felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`, `country`
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato)
 - Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
-- **60 stationer** i databasen pr. juni 2026 — alle har logoer
+- **70 stationer** i databasen pr. juni 2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
-## Kategorier (8)
-`70's` | `80's` | `90's` | `Pop` | `Rock` | `Dansk` | `Italo` | `Jul`
+## Kategorier (9)
+`70's` | `80's` | `90's` | `Dance` | `Dansk` | `Italo` | `Jul` | `Pop` | `Rock`
 
-Kategorifarver — defineres i **både** `StationCard.tsx` og `CategoryFilter.tsx`:
+Kategorifarver — defineres i **både** `StationCard.tsx`, `CategoryFilter.tsx` og `Player.tsx`:
 - 70's: `#A78BFA` (lys lilla)
 - 80's: `#F5A623` (amber)
 - 90's: `#E8679A` (pink)
-- Pop: `#6EC6F5` (lyseblå)
-- Rock: `#A855F7` (lilla)
+- Dance: `#22D3EE` (cyan)
 - Dansk: `#4ADE80` (grøn)
 - Italo: `#F97316` (orange)
 - Jul: `#E8262A` (rød)
+- Pop: `#6EC6F5` (lyseblå)
+- Rock: `#A855F7` (lilla)
 
 ⚠️ Når der tilføjes en ny kategori, skal farven sættes i **begge** filer.
 
@@ -99,8 +100,8 @@ Kategorifarver — defineres i **både** `StationCard.tsx` og `CategoryFilter.ts
 - Stationer vises alfabetisk inden for hver kategori (dansk sortering)
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
 - **Stationskort-logo**: `w-[55%] object-contain object-right`, opacity 0.4, CSS gradient-maske `linear-gradient(to right, transparent 0%, black 50%)` — viser fuldt logo uden crop og fader venstrekanten ind i kortbaggrunden
-- **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, absolut positioneret `bottom-1.5 left-1.5 w-[18px]`
-- **Stationskort-equalizer**: live bars absolut positioneret `bottom-1.5 left-[30px]` (til højre for flaget)
+- **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, absolut positioneret `bottom-3 left-4 w-[18px]` (flugter med kortets `p-4` padding)
+- **Stationskort-equalizer**: live bars absolut positioneret `bottom-3 left-[38px]` (til højre for flaget)
 - **Stationskort-bitrate**: vises på egen linje under kategori-badge
 
 ## Player (20vh)
@@ -119,7 +120,7 @@ Farve-accent (top-stripe, play-knap, badge) følger stationens kategorifarve —
 - Forbinder til stream-URL med `Icy-MetaData: 1` header
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
-- **32 ud af 60 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
+- **32 ud af 70 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
 - 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
 - Player poller hvert 30. sek når der spiller
 
@@ -139,13 +140,13 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 60 stationer har `logoUrl` i Firestore
+- Alle 70 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
   - `big-70s-radio.png` — 160×160 kvadratisk version
   - `radiomonster-80s/90s/dance/rock.svg` — custom SVG: pixel-målte fra Tophits-logo (robot + farvet bjælke, x=8-91, y=77-91)
-  - `80s80s-*.png` — kanal-specifikke 80s80s-logoer (In The Mix, Party, Maxis, 70er, Italo Disco, Italo Mix)
+  - `80s80s-*.png` — kanal-specifikke 80s80s-logoer (In The Mix, Party, Maxis)
   - `sky-radio-christmas.png`, `christmas-vinyl-hd.jpg` — Jul-kategori logoer
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
@@ -158,6 +159,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
 - `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
 - `add-rock-stations-jun2026.mjs` — tilføjede 5 Rock stationer (juni 2026)
+- `add-dance-stations-jun2026.mjs` — tilføjede 10 Dance-stationer inkl. ny kategori (juni 2026)
 - `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 
 ## Workflow ved ændringer
