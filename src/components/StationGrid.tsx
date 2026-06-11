@@ -2,11 +2,13 @@ import { useRadioStore } from '../store/useRadioStore'
 import { StationCard } from './StationCard'
 
 export function StationGrid() {
-  const { stations, selectedCategory, isLoading } = useRadioStore()
+  const { stations, selectedCategory, isLoading, favorites } = useRadioStore()
 
   const filtered =
     selectedCategory === 'All'
       ? stations
+      : selectedCategory === 'Favorites'
+      ? stations.filter((s) => favorites.includes(s.id))
       : stations.filter((s) => s.category === selectedCategory)
 
   if (isLoading) {

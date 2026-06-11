@@ -36,13 +36,14 @@ function nameSize(name: string): string {
 const LONG_PRESS_MS = 2000
 
 export function StationCard({ station }: Props) {
-  const { currentStation, isPlaying, playStation } = useRadioStore()
+  const { currentStation, isPlaying, playStation, favorites, toggleFavorite } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
   const [isPressing, setIsPressing] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
   const [hovered, setHovered] = useState(false)
+  const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
   const accentColor = CATEGORY_COLORS[station.category] ?? '#F5A623'
@@ -111,6 +112,24 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
+        {/* Favorite heart */}
+        <button
+          className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"
+          onClick={(e) => { e.stopPropagation(); toggleFavorite(station.id) }}
+          onTouchEnd={(e) => e.stopPropagation()}
+          aria-label={isFavorite ? 'Fjern fra favoritter' : 'Tilføj til favoritter'}
+        >
+          <svg
+            className="w-4 h-4 drop-shadow-sm"
+            fill={isFavorite ? '#ef4444' : 'none'}
+            stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.4)'}
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+
         {/* Logo — absolutely positioned background, does not affect layout */}
         {station.logoUrl && (
           <img

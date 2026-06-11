@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { isIOS } from './utils/platform'
 import { Toaster } from 'react-hot-toast'
 import { subscribeToStations } from './firebase/stationsService'
+import { subscribeFavorites } from './firebase/favoritesService'
+import { getDeviceId } from './utils/deviceId'
 import { useRadioStore } from './store/useRadioStore'
 import { CategoryFilter } from './components/CategoryFilter'
 import { StationGrid } from './components/StationGrid'
@@ -10,7 +12,7 @@ import { AddStationModal } from './components/AddStationModal'
 import { useTheme } from './hooks/useTheme'
 
 export default function App() {
-  const { setStations, setLoading, currentStation } = useRadioStore()
+  const { setStations, setLoading, setFavorites, currentStation } = useRadioStore()
   const [showAdd, setShowAdd] = useState(false)
   const { isDark, toggle } = useTheme()
 
@@ -23,6 +25,11 @@ export default function App() {
       }
     )
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    const deviceId = getDeviceId()
+    return subscribeFavorites(deviceId, (ids) => setFavorites(ids))
   }, [])
 
   // Auto-resume when Bluetooth headphones reconnect (e.g. AirPods picked up from table).

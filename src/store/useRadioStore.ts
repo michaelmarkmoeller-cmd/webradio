@@ -3,6 +3,8 @@ import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
+import { getDeviceId } from '../utils/deviceId'
+import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 
 interface RadioStore {
   stations: Station[]
@@ -10,18 +12,21 @@ interface RadioStore {
   isPlaying: boolean
   isBuffering: boolean
   volume: number
-  selectedCategory: Category | 'All'
+  selectedCategory: Category | 'All' | 'Favorites'
   isLoading: boolean
   sleepTimerEnd: number | null
   sleepTimerMinutes: number | null
+  favorites: string[]
 
   setStations: (stations: Station[]) => void
   playStation: (station: Station) => void
   togglePlay: () => void
   setVolume: (volume: number) => void
-  setCategory: (category: Category | 'All') => void
+  setCategory: (category: Category | 'All' | 'Favorites') => void
   setLoading: (loading: boolean) => void
   setSleepTimer: (minutes: number | null) => void
+  setFavorites: (ids: string[]) => void
+  toggleFavorite: (stationId: string) => void
 }
 
 let sleepTimerInterval: ReturnType<typeof setInterval> | null = null
@@ -84,6 +89,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   isLoading: true,
   sleepTimerEnd: null,
   sleepTimerMinutes: null,
+  favorites: [],
 
   setStations: (stations) => set({
     stations: [...stations].sort((a, b) => {
@@ -139,6 +145,13 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 
   setCategory: (selectedCategory) => set({ selectedCategory }),
   setLoading: (isLoading) => set({ isLoading }),
+  setFavorites: (ids) => set({ favorites: ids }),
+  toggleFavorite: (stationId) => {
+    const { favorites } = get()
+    const isFav = favorites.includes(stationId)
+    set({ favorites: isFav ? favorites.filter(id => id !== stationId) : [...favorites, stationId] })
+    toggleFavoriteInFirestore(getDeviceId(), stationId, !isFav).catch(() => {})
+  },
 
   setSleepTimer: (minutes) => {
     if (sleepTimerInterval) {
