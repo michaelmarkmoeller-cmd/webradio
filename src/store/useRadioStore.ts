@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
@@ -11,6 +12,7 @@ interface RadioStore {
   volume: number
   selectedCategory: Category | 'All'
   isLoading: boolean
+  sleepTimerEnd: number | null
 
   setStations: (stations: Station[]) => void
   playStation: (station: Station) => void
@@ -18,7 +20,10 @@ interface RadioStore {
   setVolume: (volume: number) => void
   setCategory: (category: Category | 'All') => void
   setLoading: (loading: boolean) => void
+  setSleepTimer: (minutes: number | null) => void
 }
+
+let sleepTimerInterval: ReturnType<typeof setInterval> | null = null
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -76,6 +81,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   volume: 0.8,
   selectedCategory: 'All',
   isLoading: true,
+  sleepTimerEnd: null,
 
   setStations: (stations) => set({
     stations: [...stations].sort((a, b) => {
@@ -129,4 +135,26 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 
   setCategory: (selectedCategory) => set({ selectedCategory }),
   setLoading: (isLoading) => set({ isLoading }),
+
+  setSleepTimer: (minutes) => {
+    if (sleepTimerInterval) {
+      clearInterval(sleepTimerInterval)
+      sleepTimerInterval = null
+    }
+    if (minutes === null) {
+      set({ sleepTimerEnd: null })
+      return
+    }
+    const end = Date.now() + minutes * 60_000
+    set({ sleepTimerEnd: end })
+    sleepTimerInterval = setInterval(() => {
+      const state = useRadioStore.getState()
+      if (!state.sleepTimerEnd || Date.now() < state.sleepTimerEnd) return
+      clearInterval(sleepTimerInterval!)
+      sleepTimerInterval = null
+      if (state.isPlaying) state.togglePlay()
+      set({ sleepTimerEnd: null })
+      toast('Sov godt', { icon: '🌙' })
+    }, 10_000)
+  },
 }))
