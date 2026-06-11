@@ -52,7 +52,7 @@ export function Player() {
       <div className="h-[2px] shrink-0" style={{ background: `linear-gradient(to right, ${accent}, ${accent}30 70%, transparent)` }} />
 
       {/* Row 1 — NOW PLAYING + status */}
-      <div className="flex items-center justify-between px-5 pt-2.5 shrink-0">
+      <div className="flex-1 flex items-center justify-between px-5">
         <div className="flex items-center gap-1.5">
           {/* Equalizer animation when playing */}
           {isPlaying && !isBuffering ? (
