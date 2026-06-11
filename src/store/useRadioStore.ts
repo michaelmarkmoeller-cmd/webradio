@@ -150,7 +150,14 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const { favorites } = get()
     const isFav = favorites.includes(stationId)
     set({ favorites: isFav ? favorites.filter(id => id !== stationId) : [...favorites, stationId] })
-    toggleFavoriteInFirestore(getDeviceId(), stationId, !isFav).catch(() => {})
+    toggleFavoriteInFirestore(getDeviceId(), stationId, !isFav).catch((err) => {
+      // Revert optimistic update on failure
+      set({ favorites: get().favorites.includes(stationId) && !isFav
+        ? get().favorites.filter(id => id !== stationId)
+        : [...get().favorites, stationId] })
+      toast.error('Kunne ikke gemme favorit — tjek Firestore-regler')
+      console.error('Firestore favorites error:', err)
+    })
   },
 
   setSleepTimer: (minutes) => {
