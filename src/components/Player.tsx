@@ -4,6 +4,14 @@ import { isIOS } from '../utils/platform'
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
+function formatListenTime(sec: number): string {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA',
   "80's": '#F5A623',
@@ -17,11 +25,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function Player() {
-  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer } = useRadioStore()
+  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
   const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
   const sleepMenuRef = useRef<HTMLDivElement>(null)
   const [, setTick] = useState(0)
+  const [, setListenTick] = useState(0)
 
   useEffect(() => {
     if (!currentStation || !isPlaying) {
@@ -49,6 +58,13 @@ export function Player() {
     const id = setInterval(() => setTick(t => t + 1), 30_000)
     return () => clearInterval(id)
   }, [sleepTimerEnd])
+
+  // 1s tick to keep listen timer display up to date
+  useEffect(() => {
+    if (!isPlaying) return
+    const id = setInterval(() => setListenTick(t => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [isPlaying])
 
   // Close sleep menu on outside click
   useEffect(() => {
@@ -106,6 +122,9 @@ export function Player() {
             </svg>
           )}
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
+          <span className="text-[10px] tabular-nums text-text-muted/60">
+            {formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt && isPlaying ? Date.now() - listenStartedAt : 0)) / 1000))}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           {/* Sleep timer */}

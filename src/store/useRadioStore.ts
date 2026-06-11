@@ -17,6 +17,8 @@ interface RadioStore {
   sleepTimerEnd: number | null
   sleepTimerMinutes: number | null
   favorites: string[]
+  listenAccumulatedMs: number
+  listenStartedAt: number | null
 
   setStations: (stations: Station[]) => void
   playStation: (station: Station) => void
@@ -59,8 +61,10 @@ function syncMediaSession(station: Station, playing: boolean) {
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('stop', () => {
+      const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
+      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       audio().pause()
-      useRadioStore.setState({ isPlaying: false, isBuffering: false })
+      useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
     })
     mediaSessionReady = true
   }
@@ -90,6 +94,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   sleepTimerEnd: null,
   sleepTimerMinutes: null,
   favorites: [],
+  listenAccumulatedMs: 0,
+  listenStartedAt: null,
 
   setStations: (stations) => set({
     stations: [...stations].sort((a, b) => {
@@ -104,7 +110,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   playStation: (station) => {
     startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused
     const a = audio()
-    const { volume, sleepTimerMinutes } = get()
+    const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
     // Reset sleep timer on station change so the full duration applies to the new station
     if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
     // Only change src if station is different — avoids aborting in-progress buffering
@@ -118,22 +124,25 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         set({ isPlaying: false, isBuffering: false })
       }
     })
-    set({ currentStation: station, isPlaying: true, isBuffering: true })
+    const isNewStation = prev?.id !== station.id
+    const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+    set({ currentStation: station, isPlaying: true, isBuffering: true, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
   },
 
   togglePlay: () => {
-    const { isPlaying, currentStation } = get()
+    const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
     const a = audio()
     if (isPlaying) {
       a.pause()
-      set({ isPlaying: false, isBuffering: false })
+      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+      set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
       if (currentStation) syncMediaSession(currentStation, false)
     } else {
       // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
-      set({ isPlaying: true, isBuffering: true })
+      set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })
       if (currentStation) syncMediaSession(currentStation, true)
     }
   },
