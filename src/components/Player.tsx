@@ -42,7 +42,7 @@ export function Player() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 h-[15vh] bg-bg-secondary flex flex-col justify-between px-5 pt-3 pb-4"
+      className="fixed bottom-0 left-0 right-0 z-40 h-[20vh] bg-bg-secondary flex flex-col justify-between px-5 pt-3 pb-4"
       style={{ borderTop: `1px solid ${accent}50` }}
     >
       {/* Accent stripe */}
