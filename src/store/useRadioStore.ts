@@ -5,6 +5,21 @@ import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
+import { saveStationOrder } from '../firebase/stationOrderService'
+
+function sortWithOrder(stations: Station[], order: Record<string, string[]>): Station[] {
+  return [...stations].sort((a, b) => {
+    const catA = CATEGORIES.indexOf(a.category as Category)
+    const catB = CATEGORIES.indexOf(b.category as Category)
+    if (catA !== catB) return catA - catB
+    const posA = (order[a.category] ?? []).indexOf(a.id)
+    const posB = (order[b.category] ?? []).indexOf(b.id)
+    const oA = posA === -1 ? Infinity : posA
+    const oB = posB === -1 ? Infinity : posB
+    if (oA !== oB) return oA - oB
+    return a.name.localeCompare(b.name, 'da')
+  })
+}
 
 interface RadioStore {
   stations: Station[]
@@ -17,10 +32,13 @@ interface RadioStore {
   sleepTimerEnd: number | null
   sleepTimerMinutes: number | null
   favorites: string[]
+  stationOrder: Record<string, string[]>
   listenAccumulatedMs: number
   listenStartedAt: number | null
 
   setStations: (stations: Station[]) => void
+  setStationOrder: (order: Record<string, string[]>) => void
+  reorderCategory: (category: Category, orderedIds: string[]) => void
   playStation: (station: Station) => void
   togglePlay: () => void
   setVolume: (volume: number) => void
@@ -94,21 +112,29 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   sleepTimerEnd: null,
   sleepTimerMinutes: null,
   favorites: [],
+  stationOrder: {},
   listenAccumulatedMs: 0,
   listenStartedAt: null,
 
-  setStations: (stations) => set({
-    stations: [...stations].sort((a, b) => {
-      const catA = CATEGORIES.indexOf(a.category as Category)
-      const catB = CATEGORIES.indexOf(b.category as Category)
-      if (catA !== catB) return catA - catB
-      const orderA = a.sortOrder ?? Infinity
-      const orderB = b.sortOrder ?? Infinity
-      if (orderA !== orderB) return orderA - orderB
-      return a.name.localeCompare(b.name, 'da')
-    }),
+  setStations: (stations) => set((state) => ({
+    stations: sortWithOrder(stations, state.stationOrder),
     isLoading: false,
-  }),
+  })),
+
+  setStationOrder: (order) => set((state) => ({
+    stationOrder: order,
+    stations: sortWithOrder(state.stations, order),
+  })),
+
+  reorderCategory: (category, orderedIds) => {
+    const { stationOrder, stations } = get()
+    const newOrder = { ...stationOrder, [category]: orderedIds }
+    set({ stationOrder: newOrder, stations: sortWithOrder(stations, newOrder) })
+    saveStationOrder(getDeviceId(), category, orderedIds).catch(() => {
+      // Revert on failure
+      set({ stationOrder, stations: sortWithOrder(stations, stationOrder) })
+    })
+  },
 
   playStation: (station) => {
     startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused

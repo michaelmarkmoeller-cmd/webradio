@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor,
   useSensor, useSensors, closestCenter,
@@ -6,9 +6,8 @@ import {
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import { useRadioStore } from '../store/useRadioStore'
-import { updateSortOrders } from '../firebase/stationsService'
 import { StationCard } from './StationCard'
-import type { Station } from '../types'
+import type { Station, Category } from '../types'
 
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA', "80's": '#F5A623', "90's": '#E8679A',
@@ -17,12 +16,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function StationGrid() {
-  const { stations, selectedCategory, isLoading, favorites } = useRadioStore()
-  const [optimistic, setOptimistic] = useState<Station[] | null>(null)
+  const { stations, selectedCategory, isLoading, favorites, reorderCategory } = useRadioStore()
   const [activeStation, setActiveStation] = useState<Station | null>(null)
-
-  // Clear optimistic state when Firestore pushes confirmed order
-  useEffect(() => { setOptimistic(null) }, [stations])
 
   const isDndEnabled = selectedCategory !== 'All' && selectedCategory !== 'Favorites'
 
@@ -33,27 +28,22 @@ export function StationGrid() {
       ? stations.filter((s) => favorites.includes(s.id))
       : stations.filter((s) => s.category === selectedCategory)
 
-  const displayed = optimistic ?? filtered
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
   function handleDragStart({ active }: DragStartEvent) {
-    setActiveStation(displayed.find((s) => s.id === active.id) ?? null)
+    setActiveStation(filtered.find((s) => s.id === active.id) ?? null)
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveStation(null)
     if (!over || active.id === over.id) return
-    const oldIndex = displayed.findIndex((s) => s.id === active.id)
-    const newIndex = displayed.findIndex((s) => s.id === over.id)
+    const oldIndex = filtered.findIndex((s) => s.id === active.id)
+    const newIndex = filtered.findIndex((s) => s.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
-    const reordered = arrayMove(displayed, oldIndex, newIndex)
-    setOptimistic(reordered)
-    updateSortOrders(reordered.map((s, idx) => ({ id: s.id, sortOrder: idx }))).catch(() => {
-      setOptimistic(null)
-    })
+    const reordered = arrayMove(filtered, oldIndex, newIndex)
+    reorderCategory(selectedCategory as Category, reordered.map((s) => s.id))
   }
 
   if (isLoading) {
@@ -66,7 +56,7 @@ export function StationGrid() {
     )
   }
 
-  if (displayed.length === 0) {
+  if (filtered.length === 0) {
     return (
       <div className="text-center py-16 text-text-muted">
         Ingen stationer i denne kategori
@@ -83,9 +73,9 @@ export function StationGrid() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={displayed.map((s) => s.id)} strategy={rectSortingStrategy}>
+      <SortableContext items={filtered.map((s) => s.id)} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-          {displayed.map((station) => (
+          {filtered.map((station) => (
             <StationCard key={station.id} station={station} sortable={isDndEnabled} />
           ))}
         </div>
