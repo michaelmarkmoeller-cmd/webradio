@@ -26,7 +26,7 @@ export function StationGrid() {
   const displayed = optimistic ?? filtered
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
   function handleDragEnd({ active, over }: DragEndEvent) {

@@ -51,6 +51,14 @@ export function StationCard({ station, sortable = false }: Props) {
     id: station.id,
     disabled: !sortable,
   })
+
+  const wasDragged = useRef(false)
+  useEffect(() => {
+    if (isDragging) {
+      wasDragged.current = true
+      cancelPress()
+    }
+  }, [isDragging])
   const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
@@ -85,10 +93,8 @@ export function StationCard({ station, sortable = false }: Props) {
   }
 
   function handleClick() {
-    if (didLongPress.current) {
-      didLongPress.current = false
-      return
-    }
+    if (wasDragged.current) { wasDragged.current = false; return }
+    if (didLongPress.current) { didLongPress.current = false; return }
     playStation(station)
   }
 
@@ -96,7 +102,11 @@ export function StationCard({ station, sortable = false }: Props) {
     <>
       <div
         ref={setNodeRef}
-        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 cursor-pointer select-none transition-all duration-150 ${
+        {...(sortable ? listeners : {})}
+        {...(sortable ? attributes : {})}
+        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 select-none transition-all duration-150 ${
+          sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
+        } ${
           isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
           isActive
@@ -125,26 +135,6 @@ export function StationCard({ station, sortable = false }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
-        {/* Drag handle — visible on hover when sortable */}
-        {sortable && (
-          <button
-            {...listeners}
-            {...attributes}
-            className={`absolute top-2 left-2 z-10 p-0.5 touch-none transition-opacity ${
-              hovered ? 'opacity-40' : 'opacity-0'
-            } hover:opacity-70 cursor-grab active:cursor-grabbing`}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Flyt station"
-          >
-            <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="9" cy="5" r="1.8"/><circle cx="15" cy="5" r="1.8"/>
-              <circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/>
-              <circle cx="9" cy="19" r="1.8"/><circle cx="15" cy="19" r="1.8"/>
-            </svg>
-          </button>
-        )}
-
         {/* Favorite heart */}
         <button
           className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"
