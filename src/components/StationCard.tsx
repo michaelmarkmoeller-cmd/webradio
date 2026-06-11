@@ -147,14 +147,14 @@ export function StationCard({ station }: Props) {
           <img
             src={`https://flagcdn.com/w40/${station.country}.png`}
             alt={station.country}
-            className="absolute bottom-1.5 left-1.5 w-[18px] rounded-sm pointer-events-none"
+            className="absolute bottom-4 left-4 w-[18px] rounded-sm pointer-events-none"
             draggable={false}
           />
         )}
 
         {/* Live bars when playing — absolute, between flag and logo */}
         {isCurrentlyPlaying && (
-          <div className="absolute bottom-1.5 left-[30px] flex items-end gap-0.5 h-5">
+          <div className="absolute bottom-4 left-[38px] flex items-end gap-0.5 h-5">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
