@@ -152,25 +152,23 @@ export function StationCard({ station }: Props) {
           />
         )}
 
-        {/* Live bars when playing */}
-        <div className="h-5 flex items-end">
-          {isCurrentlyPlaying && (
-            <div className="flex items-end gap-0.5 h-full">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="w-1 rounded-sm animate-pulse"
-                  style={{
-                    height: `${40 + i * 15}%`,
-                    backgroundColor: accentColor,
-                    animationDelay: `${i * 0.15}s`,
-                    animationDuration: `${0.8 + i * 0.1}s`,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Live bars when playing — absolute, between flag and logo */}
+        {isCurrentlyPlaying && (
+          <div className="absolute bottom-1.5 left-[30px] flex items-end gap-0.5 h-5">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-1 rounded-sm animate-pulse"
+                style={{
+                  height: `${40 + i * 15}%`,
+                  backgroundColor: accentColor,
+                  animationDelay: `${i * 0.15}s`,
+                  animationDuration: `${0.8 + i * 0.1}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {showDelete && (
