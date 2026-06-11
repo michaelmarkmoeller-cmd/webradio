@@ -7,6 +7,8 @@ type AudioCallbacks = {
 let _audio: HTMLAudioElement | null = null
 let _keepalive: HTMLAudioElement | null = null
 let _silentUrl: string | null = null
+let _audioCtx: AudioContext | null = null
+let _gainNode: GainNode | null = null
 
 function buildKeepaliveUrl(): string {
   const sr = 8000, n = sr  // 1 s @ 8 kHz, mono, 8-bit unsigned PCM
@@ -39,16 +41,46 @@ export function startKeepalive(): void {
   if (_keepalive.paused) _keepalive.play().catch(() => {})
 }
 
+// Routes _audio through a GainNode so volume can be set via setGain().
+// iOS WebKit makes audio.volume read-only, but GainNode.gain.value works.
+function setupGain(audioEl: HTMLAudioElement): void {
+  if (_gainNode || typeof AudioContext === 'undefined') return
+  try {
+    _audioCtx = new AudioContext()
+    const source = _audioCtx.createMediaElementSource(audioEl)
+    _gainNode = _audioCtx.createGain()
+    source.connect(_gainNode)
+    _gainNode.connect(_audioCtx.destination)
+  } catch {
+    // Web Audio API unavailable — setGain() will fall back to audio.volume
+  }
+}
+
+// Sets playback volume (0–1). Uses GainNode when available (works on iOS);
+// falls back to audio.volume on older browsers without Web Audio API.
+export function setGain(value: number): void {
+  if (_gainNode) {
+    if (_audioCtx?.state === 'suspended') _audioCtx.resume().catch(() => {})
+    _gainNode.gain.value = value
+    if (_audio) _audio.volume = 1.0   // keep at unity — GainNode controls level
+  } else if (_audio) {
+    _audio.volume = value             // fallback: no Web Audio API
+  }
+}
+
 // Lazy: creates the Audio element the first time it's called.
 // On iOS Safari, Audio must be created within a user gesture to be playable.
 export function getOrCreateAudio(callbacks?: AudioCallbacks): HTMLAudioElement {
   if (!_audio) {
     _audio = new Audio()
+    setupGain(_audio)
     if (callbacks) {
       _audio.addEventListener('playing', callbacks.onPlaying)
       _audio.addEventListener('waiting', callbacks.onWaiting)
       _audio.addEventListener('error', callbacks.onError)
     }
   }
+  // Resume AudioContext if iOS suspended it in background
+  if (_audioCtx?.state === 'suspended') _audioCtx.resume().catch(() => {})
   return _audio
 }

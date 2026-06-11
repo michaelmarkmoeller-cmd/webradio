@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, startKeepalive } from '../audio'
+import { getOrCreateAudio, startKeepalive, setGain } from '../audio'
 
 interface RadioStore {
   stations: Station[]
@@ -90,7 +90,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       a.pause()
       a.src = station.streamUrl
     }
-    a.volume = volume
+    setGain(volume)
     a.play().catch((err) => {
       if (err.name === 'NotAllowedError') {
         set({ isPlaying: false, isBuffering: false })
@@ -117,7 +117,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   setVolume: (volume) => {
-    audio().volume = volume
+    audio() // ensure GainNode is set up
+    setGain(volume)
     set({ volume })
   },
 
