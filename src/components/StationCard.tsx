@@ -172,7 +172,7 @@ export function StationCard({ station, sortable = false }: Props) {
         )}
 
         {/* Name + category */}
-        <div className="mb-3">
+        <div className="mb-3 pointer-events-none">
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>
