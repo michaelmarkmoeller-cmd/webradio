@@ -115,8 +115,12 @@ export function StationCard({ station }: Props) {
           <img
             src={station.logoUrl}
             alt=""
-            className="absolute inset-y-0 right-0 h-full w-[55%] object-cover object-right pointer-events-none"
-            style={{ opacity: 0.4 }}
+            className="absolute inset-y-0 right-0 h-full w-[55%] object-contain object-right pointer-events-none"
+            style={{
+              opacity: 0.4,
+              maskImage: 'linear-gradient(to right, transparent 0%, black 35%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 35%)',
+            }}
             draggable={false}
           />
         )}
