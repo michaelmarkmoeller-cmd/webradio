@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CATEGORIES } from '../types'
 import type { Category } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
+import { isJulSeason } from '../utils/platform'
 
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA',
@@ -69,7 +70,7 @@ export function CategoryFilter() {
         </svg>
         Favoritter{favorites.length > 0 && <span className="text-xs opacity-75">({favorites.length})</span>}
       </button>
-      {CATEGORIES.map((cat) => (
+      {CATEGORIES.filter(cat => cat !== 'Jul' || isJulSeason()).map((cat) => (
         <CategoryButton
           key={cat}
           cat={cat}

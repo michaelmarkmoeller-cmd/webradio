@@ -8,6 +8,7 @@ import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortab
 import { useRadioStore } from '../store/useRadioStore'
 import { StationCard } from './StationCard'
 import type { Station, Category } from '../types'
+import { isJulSeason } from '../utils/platform'
 
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA', "80's": '#F5A623', "90's": '#E8679A',
@@ -21,12 +22,13 @@ export function StationGrid() {
 
   const isDndEnabled = selectedCategory !== 'All' && selectedCategory !== 'Favorites'
 
+  const julVisible = isJulSeason()
   const filtered =
     selectedCategory === 'All'
-      ? stations
+      ? stations.filter(s => julVisible || s.category !== 'Jul')
       : selectedCategory === 'Favorites'
-      ? stations.filter((s) => favorites.includes(s.id))
-      : stations.filter((s) => s.category === selectedCategory)
+      ? stations.filter(s => favorites.includes(s.id) && (julVisible || s.category !== 'Jul'))
+      : stations.filter(s => s.category === selectedCategory)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
