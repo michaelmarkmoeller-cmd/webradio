@@ -104,7 +104,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`max-w-5xl mx-auto px-4 py-6 ${currentStation ? 'pb-[25vh]' : ''}`}>
+      <main className={`max-w-5xl mx-auto px-4 py-6 ${currentStation ? 'pb-[15vh]' : ''}`}>
         <div className="mb-6">
           <CategoryFilter />
         </div>
