@@ -85,7 +85,7 @@ export function StationCard({ station }: Props) {
   return (
     <>
       <div
-        className={`relative overflow-hidden rounded-xl border p-4 cursor-pointer select-none transition-all duration-150 ${
+        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 cursor-pointer select-none transition-all duration-150 ${
           isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
           isActive
@@ -147,14 +147,14 @@ export function StationCard({ station }: Props) {
           <img
             src={`https://flagcdn.com/w40/${station.country}.png`}
             alt={station.country}
-            className="absolute bottom-4 left-4 w-[18px] rounded-sm pointer-events-none"
+            className="absolute bottom-3 left-4 w-[18px] rounded-sm pointer-events-none"
             draggable={false}
           />
         )}
 
         {/* Live bars when playing — absolute, between flag and logo */}
         {isCurrentlyPlaying && (
-          <div className="absolute bottom-4 left-[38px] flex items-end gap-0.5 h-5">
+          <div className="absolute bottom-3 left-[38px] flex items-end gap-0.5 h-5">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
