@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
 
@@ -77,7 +78,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   isLoading: true,
 
   setStations: (stations) => set({
-    stations: [...stations].sort((a, b) => a.name.localeCompare(b.name, 'da')),
+    stations: [...stations].sort((a, b) => {
+      const catA = CATEGORIES.indexOf(a.category as Category)
+      const catB = CATEGORIES.indexOf(b.category as Category)
+      if (catA !== catB) return catA - catB
+      return a.name.localeCompare(b.name, 'da')
+    }),
     isLoading: false,
   }),
 

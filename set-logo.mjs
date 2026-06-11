@@ -101,6 +101,11 @@ const LOGOS = {
   'RadioMonster Rock':         'https://webradio-chi.vercel.app/logos/radiomonster-rock.svg',
   'RadioMonster Tophits':      'https://www.radiomonster.fm/wp-content/uploads/2020/12/radiomonster_tophits_2000px-100x100.png',
 
+  // Dance
+  'Sunshine Live':    'https://cdn-radiotime-logos.tunein.com/s10637q.png',
+  'RauteMusik House': 'https://cdn-radiotime-logos.tunein.com/s139254q.png',
+  'Radio Record':     'https://cdn-radiotime-logos.tunein.com/s10018q.png',
+
   // 538 (kanal-ikon)
   '538 Party':                 'https://www.538.nl/icons/apple-icon-144x144.png',
   '538 Hitzone':               'https://www.538.nl/icons/apple-icon-144x144.png',
