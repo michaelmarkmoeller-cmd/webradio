@@ -104,10 +104,12 @@ export function StationCard({ station, sortable = false }: Props) {
         ref={setNodeRef}
         {...(sortable ? listeners : {})}
         {...(sortable ? attributes : {})}
-        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 select-none transition-all duration-150 ${
+        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 select-none ${
+          isDragging ? '' : 'transition-all duration-150'
+        } ${
           sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
         } ${
-          isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
+          isDragging ? '' : (isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : '')
         } ${
           isActive
             ? 'border-accent/60 bg-accent/8'
@@ -122,7 +124,7 @@ export function StationCard({ station, sortable = false }: Props) {
           WebkitTouchCallout: 'none',
           transform: CSS.Transform.toString(transform),
           transition,
-          opacity: isDragging ? 0.4 : 1,
+          opacity: isDragging ? 0 : 1,
           zIndex: isDragging ? 1 : undefined,
         }}
         onMouseEnter={() => setHovered(true)}
