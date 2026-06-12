@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Station } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
 import { DeleteConfirm } from './DeleteConfirm'
@@ -7,6 +9,7 @@ import toast from 'react-hot-toast'
 
 interface Props {
   station: Station
+  sortable?: boolean
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -35,14 +38,28 @@ function nameSize(name: string): string {
 
 const LONG_PRESS_MS = 2000
 
-export function StationCard({ station }: Props) {
-  const { currentStation, isPlaying, playStation } = useRadioStore()
+export function StationCard({ station, sortable = false }: Props) {
+  const { currentStation, isPlaying, playStation, favorites, toggleFavorite } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
   const [isPressing, setIsPressing] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
   const [hovered, setHovered] = useState(false)
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: station.id,
+    disabled: !sortable,
+  })
+
+  const wasDragged = useRef(false)
+  useEffect(() => {
+    if (isDragging) {
+      wasDragged.current = true
+      cancelPress()
+    }
+  }, [isDragging])
+  const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
   const accentColor = CATEGORY_COLORS[station.category] ?? '#F5A623'
@@ -76,18 +93,23 @@ export function StationCard({ station }: Props) {
   }
 
   function handleClick() {
-    if (didLongPress.current) {
-      didLongPress.current = false
-      return
-    }
+    if (wasDragged.current) { wasDragged.current = false; return }
+    if (didLongPress.current) { didLongPress.current = false; return }
     playStation(station)
   }
 
   return (
     <>
       <div
-        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 cursor-pointer select-none transition-all duration-150 ${
-          isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
+        ref={setNodeRef}
+        {...(sortable ? listeners : {})}
+        {...(sortable ? attributes : {})}
+        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 select-none ${
+          isDragging ? '' : 'transition-all duration-150'
+        } ${
+          sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
+        } ${
+          isDragging ? '' : (isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : '')
         } ${
           isActive
             ? 'border-accent/60 bg-accent/8'
@@ -100,6 +122,10 @@ export function StationCard({ station }: Props) {
             ? `0 0 12px ${accentColor}33`
             : hovered ? `0 0 14px ${accentColor}28` : 'none',
           WebkitTouchCallout: 'none',
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0 : 1,
+          zIndex: isDragging ? 1 : undefined,
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); cancelPress() }}
@@ -111,6 +137,25 @@ export function StationCard({ station }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >
+        {/* Favorite heart */}
+        <button
+          className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"
+          onClick={(e) => { e.stopPropagation(); toggleFavorite(station.id) }}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          aria-label={isFavorite ? 'Fjern fra favoritter' : 'Tilføj til favoritter'}
+        >
+          <svg
+            className="w-4 h-4 drop-shadow-sm"
+            fill={isFavorite ? '#ef4444' : 'none'}
+            stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.4)'}
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+
         {/* Logo — absolutely positioned background, does not affect layout */}
         {station.logoUrl && (
           <img
@@ -127,7 +172,7 @@ export function StationCard({ station }: Props) {
         )}
 
         {/* Name + category */}
-        <div className="mb-3">
+        <div className="mb-3 pointer-events-none">
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>

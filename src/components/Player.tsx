@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
+
+const SLEEP_OPTIONS = [10, 20, 30, 60] as const
+
+function formatListenTime(sec: number): string {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   "70's": '#A78BFA',
@@ -15,8 +25,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function Player() {
-  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume } = useRadioStore()
+  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
+  const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
+  const sleepMenuRef = useRef<HTMLDivElement>(null)
+  const [, setTick] = useState(0)
+  const [, setListenTick] = useState(0)
 
   useEffect(() => {
     if (!currentStation || !isPlaying) {
@@ -37,6 +51,35 @@ export function Player() {
     const interval = setInterval(fetchMeta, 30000)
     return () => { cancelled = true; clearInterval(interval) }
   }, [currentStation?.id, isPlaying])
+
+  // Refresh countdown display every 30s while timer is active
+  useEffect(() => {
+    if (!sleepTimerEnd) return
+    const id = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [sleepTimerEnd])
+
+  // 1s tick to keep listen timer display up to date
+  useEffect(() => {
+    if (!isPlaying) return
+    const id = setInterval(() => setListenTick(t => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [isPlaying])
+
+  // Close sleep menu on outside click
+  useEffect(() => {
+    if (!sleepMenuOpen) return
+    function onPointerDown(e: PointerEvent) {
+      if (sleepMenuRef.current && !sleepMenuRef.current.contains(e.target as Node))
+        setSleepMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [sleepMenuOpen])
+
+  const remainingMinutes = sleepTimerEnd
+    ? Math.max(1, Math.ceil((sleepTimerEnd - Date.now()) / 60_000))
+    : null
 
   if (!currentStation) return null
 
@@ -80,7 +123,49 @@ export function Player() {
           )}
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-3">
+          {/* Sleep timer */}
+          <div ref={sleepMenuRef} className="relative">
+            <button
+              onClick={() => setSleepMenuOpen(v => !v)}
+              className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
+              aria-label="Sleep timer"
+            >
+              <svg className="w-3.5 h-3.5" style={{ color: sleepTimerEnd ? accent : undefined }} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
+              </svg>
+              {remainingMinutes && (
+                <span className="text-[10px] font-bold tabular-nums" style={{ color: accent }}>{remainingMinutes}m</span>
+              )}
+            </button>
+            {sleepMenuOpen && (
+              <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a24] border border-white/10 rounded-xl py-1 min-w-[90px] shadow-xl z-50">
+                <button
+                  onClick={() => { setSleepTimer(null); setSleepMenuOpen(false) }}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                    !sleepTimerEnd ? 'text-text-primary bg-white/5' : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+                  }`}
+                >
+                  Fra
+                </button>
+                {SLEEP_OPTIONS.map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => { setSleepTimer(mins); setSleepMenuOpen(false) }}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                      remainingMinutes && Math.abs(remainingMinutes - mins) <= 1 && sleepTimerEnd
+                        ? 'text-text-primary bg-white/5'
+                        : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+                    }`}
+                  >
+                    {mins} min
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Live / Forbinder status */}
           {isBuffering ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
@@ -90,6 +175,9 @@ export function Player() {
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Live</span>
+              <span className="text-[10px] tabular-nums text-red-400">
+                {formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)) / 1000))}
+              </span>
             </>
           ) : null}
         </div>

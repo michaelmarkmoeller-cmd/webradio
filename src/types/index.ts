@@ -11,6 +11,7 @@ export interface Station {
   logoUrl?: string
   country?: string
   createdAt?: Date
+  sortOrder?: number
 }
 
 export interface StationFormData {

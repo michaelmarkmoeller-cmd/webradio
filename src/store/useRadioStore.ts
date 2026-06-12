@@ -1,7 +1,25 @@
 import { create } from 'zustand'
+import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
+import { getDeviceId } from '../utils/deviceId'
+import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
+import { saveStationOrder } from '../firebase/stationOrderService'
+
+function sortWithOrder(stations: Station[], order: Record<string, string[]>): Station[] {
+  return [...stations].sort((a, b) => {
+    const catA = CATEGORIES.indexOf(a.category as Category)
+    const catB = CATEGORIES.indexOf(b.category as Category)
+    if (catA !== catB) return catA - catB
+    const posA = (order[a.category] ?? []).indexOf(a.id)
+    const posB = (order[b.category] ?? []).indexOf(b.id)
+    const oA = posA === -1 ? Infinity : posA
+    const oB = posB === -1 ? Infinity : posB
+    if (oA !== oB) return oA - oB
+    return a.name.localeCompare(b.name, 'da')
+  })
+}
 
 interface RadioStore {
   stations: Station[]
@@ -9,16 +27,29 @@ interface RadioStore {
   isPlaying: boolean
   isBuffering: boolean
   volume: number
-  selectedCategory: Category | 'All'
+  selectedCategory: Category | 'All' | 'Favorites'
   isLoading: boolean
+  sleepTimerEnd: number | null
+  sleepTimerMinutes: number | null
+  favorites: string[]
+  stationOrder: Record<string, string[]>
+  listenAccumulatedMs: number
+  listenStartedAt: number | null
 
   setStations: (stations: Station[]) => void
+  setStationOrder: (order: Record<string, string[]>) => void
+  reorderCategory: (category: Category, orderedIds: string[]) => void
   playStation: (station: Station) => void
   togglePlay: () => void
   setVolume: (volume: number) => void
-  setCategory: (category: Category | 'All') => void
+  setCategory: (category: Category | 'All' | 'Favorites') => void
   setLoading: (loading: boolean) => void
+  setSleepTimer: (minutes: number | null) => void
+  setFavorites: (ids: string[]) => void
+  toggleFavorite: (stationId: string) => void
 }
+
+let sleepTimerInterval: ReturnType<typeof setInterval> | null = null
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -48,8 +79,10 @@ function syncMediaSession(station: Station, playing: boolean) {
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('stop', () => {
+      const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
+      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       audio().pause()
-      useRadioStore.setState({ isPlaying: false, isBuffering: false })
+      useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
     })
     mediaSessionReady = true
   }
@@ -76,21 +109,39 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   volume: 0.8,
   selectedCategory: 'All',
   isLoading: true,
+  sleepTimerEnd: null,
+  sleepTimerMinutes: null,
+  favorites: [],
+  stationOrder: {},
+  listenAccumulatedMs: 0,
+  listenStartedAt: null,
 
-  setStations: (stations) => set({
-    stations: [...stations].sort((a, b) => {
-      const catA = CATEGORIES.indexOf(a.category as Category)
-      const catB = CATEGORIES.indexOf(b.category as Category)
-      if (catA !== catB) return catA - catB
-      return a.name.localeCompare(b.name, 'da')
-    }),
+  setStations: (stations) => set((state) => ({
+    stations: sortWithOrder(stations, state.stationOrder),
     isLoading: false,
-  }),
+  })),
+
+  setStationOrder: (order) => set((state) => ({
+    stationOrder: order,
+    stations: sortWithOrder(state.stations, order),
+  })),
+
+  reorderCategory: (category, orderedIds) => {
+    const { stationOrder, stations } = get()
+    const newOrder = { ...stationOrder, [category]: orderedIds }
+    set({ stationOrder: newOrder, stations: sortWithOrder(stations, newOrder) })
+    saveStationOrder(getDeviceId(), category, orderedIds).catch(() => {
+      // Revert on failure
+      set({ stationOrder, stations: sortWithOrder(stations, stationOrder) })
+    })
+  },
 
   playStation: (station) => {
     startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused
     const a = audio()
-    const { volume } = get()
+    const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
+    // Reset sleep timer on station change so the full duration applies to the new station
+    if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
     // Only change src if station is different — avoids aborting in-progress buffering
     if (a.src !== station.streamUrl) {
       a.pause()
@@ -102,22 +153,25 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         set({ isPlaying: false, isBuffering: false })
       }
     })
-    set({ currentStation: station, isPlaying: true, isBuffering: true })
+    const isNewStation = prev?.id !== station.id
+    const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+    set({ currentStation: station, isPlaying: true, isBuffering: true, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
   },
 
   togglePlay: () => {
-    const { isPlaying, currentStation } = get()
+    const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
     const a = audio()
     if (isPlaying) {
       a.pause()
-      set({ isPlaying: false, isBuffering: false })
+      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+      set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
       if (currentStation) syncMediaSession(currentStation, false)
     } else {
       // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
-      set({ isPlaying: true, isBuffering: true })
+      set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })
       if (currentStation) syncMediaSession(currentStation, true)
     }
   },
@@ -129,4 +183,40 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 
   setCategory: (selectedCategory) => set({ selectedCategory }),
   setLoading: (isLoading) => set({ isLoading }),
+  setFavorites: (ids) => set({ favorites: ids }),
+  toggleFavorite: (stationId) => {
+    const { favorites } = get()
+    const isFav = favorites.includes(stationId)
+    set({ favorites: isFav ? favorites.filter(id => id !== stationId) : [...favorites, stationId] })
+    toggleFavoriteInFirestore(getDeviceId(), stationId, !isFav).catch((err) => {
+      // Revert optimistic update on failure
+      set({ favorites: get().favorites.includes(stationId) && !isFav
+        ? get().favorites.filter(id => id !== stationId)
+        : [...get().favorites, stationId] })
+      toast.error('Kunne ikke gemme favorit — tjek Firestore-regler')
+      console.error('Firestore favorites error:', err)
+    })
+  },
+
+  setSleepTimer: (minutes) => {
+    if (sleepTimerInterval) {
+      clearInterval(sleepTimerInterval)
+      sleepTimerInterval = null
+    }
+    if (minutes === null) {
+      set({ sleepTimerEnd: null, sleepTimerMinutes: null })
+      return
+    }
+    const end = Date.now() + minutes * 60_000
+    set({ sleepTimerEnd: end, sleepTimerMinutes: minutes })
+    sleepTimerInterval = setInterval(() => {
+      const state = useRadioStore.getState()
+      if (!state.sleepTimerEnd || Date.now() < state.sleepTimerEnd) return
+      clearInterval(sleepTimerInterval!)
+      sleepTimerInterval = null
+      if (state.isPlaying) state.togglePlay()
+      set({ sleepTimerEnd: null, sleepTimerMinutes: null })
+      toast('Sov godt', { icon: '🌙' })
+    }, 10_000)
+  },
 }))
