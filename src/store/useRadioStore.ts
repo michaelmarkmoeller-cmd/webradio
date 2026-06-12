@@ -116,10 +116,24 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   listenAccumulatedMs: 0,
   listenStartedAt: null,
 
-  setStations: (stations) => set((state) => ({
-    stations: sortWithOrder(stations, state.stationOrder),
-    isLoading: false,
-  })),
+  setStations: (stations) => set((state) => {
+    const sorted = sortWithOrder(stations, state.stationOrder)
+    if (state.currentStation === null && sorted.length > 0) {
+      const lastId = localStorage.getItem('webradio_last_station_id')
+      if (lastId) {
+        const last = sorted.find(s => s.id === lastId)
+        if (last) {
+          return {
+            stations: sorted,
+            isLoading: false,
+            currentStation: last,
+            selectedCategory: last.category as Category,
+          }
+        }
+      }
+    }
+    return { stations: sorted, isLoading: false }
+  }),
 
   setStationOrder: (order) => set((state) => ({
     stationOrder: order,
@@ -155,6 +169,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     })
     const isNewStation = prev?.id !== station.id
     const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+    localStorage.setItem('webradio_last_station_id', station.id)
     set({ currentStation: station, isPlaying: true, isBuffering: true, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
   },
