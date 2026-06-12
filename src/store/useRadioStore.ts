@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
 import { getOrCreateAudio, startKeepalive } from '../audio'
+import { isIOS } from '../utils/platform'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
@@ -69,10 +70,7 @@ function syncMediaSession(station: Station, playing: boolean) {
   if (!('mediaSession' in navigator)) return
   if (!mediaSessionReady) {
     navigator.mediaSession.setActionHandler('play', () => {
-      // Restart keepalive first — iOS may have suspended it while locked, making
-      // the audio session inactive. Restarting it here (inside a user gesture)
-      // reactivates the session so the stream play() call succeeds.
-      startKeepalive()
+      if (isIOS) startKeepalive() // iOS only — reactivate audio session if suspended
       if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('pause', () => {
@@ -151,7 +149,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   playStation: (station) => {
-    startKeepalive() // called inside user gesture — keeps iOS audio session alive while stream is paused
+    if (isIOS) startKeepalive() // iOS only — keeps audio session alive while stream is paused
     const a = audio()
     const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
     // Reset sleep timer on station change so the full duration applies to the new station
@@ -178,10 +176,22 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
     const a = audio()
     if (isPlaying) {
-      a.pause()
+      const { volume } = get()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
       if (currentStation) syncMediaSession(currentStation, false)
+      // Fade volume to zero before pause to avoid audio click artifact
+      const fromVol = a.volume
+      let step = 0
+      const id = setInterval(() => {
+        step++
+        try { a.volume = Math.max(0, fromVol * (1 - step / 8)) } catch { /* iOS: volume read-only */ }
+        if (step >= 8) {
+          clearInterval(id)
+          a.pause()
+          try { a.volume = volume } catch {}
+        }
+      }, 10)
     } else {
       // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
