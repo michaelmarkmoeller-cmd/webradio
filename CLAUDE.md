@@ -58,12 +58,16 @@ src/
 - `navigator.mediaSession.setActionHandler` for play/pause/stop
 - `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
 
+**Sidst afspillede station**: `playStation()` gemmer stationens Firestore-ID i `localStorage` (`webradio_last_station_id`). `setStations()` gendanner ved første load (når `currentStation === null`): sætter stationen som `currentStation` i pauset tilstand og navigerer til dens kategori.
+
 **Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden.
 
-**iOS audio session keepalive**: `src/audio.ts` eksporterer `startKeepalive()` — starter et separat `<audio>`-element der looper en **1 Hz sinus-WAV** ved volume 1.0. Kaldes ved første `playStation()` (user gesture). Formål: forhindre iOS i at deaktivere audio-sessionen når streamen pauses, så WebRadio forbliver "Now Playing"-appen på låseskærmen og via headset-knapper.
-- **Hvorfor 1 Hz**: Under menneskelig høretærskel (20 Hz) → fuldstændig uhørbar. Præcist 1 komplet cyklus i 8000 samples → begge endpoints er 128 (silence) i 8-bit → ingen loop-klik. iOS klassificerer det ikke som stilhed.
-- **Undgå** 440 Hz (hørbart via høretelefoner, giver loop-klik) og PCM-nul/stilhed (iOS suspenderer sessionen).
-- MediaSession play-handler kalder `startKeepalive()` eksplicit for at genaktivere sessionen hvis iOS har suspenderet den mens skærmen var låst.
+**Pause fade-out**: `togglePlay()` fader volume til 0 over 80ms (8 trin × 10ms) inden `audio.pause()` — eliminerer det waveform-klik der opstår ved abrupt afskæring.
+
+**iOS audio session keepalive**: `src/audio.ts` eksporterer `startKeepalive()` — starter et separat `<audio>`-element der looper en **18 Hz sinus-WAV** ved volume 1.0. Kaldes **kun på iOS** (`if (isIOS) startKeepalive()`) — desktop har ikke brug for det og den gamle WAV gav hørbare artefakter. Formål: forhindre iOS i at deaktivere audio-sessionen når streamen pauses.
+- **WAV-spec**: 44100 Hz, 16-bit signed PCM, 18 Hz × 18 komplette cyklusser i 44100 samples. Begge loop-endepunkter er præcist 0 → seamless loop uden klik. 44.1 kHz = iOS native sample rate → ingen resampling. Amplitude 100/32767 ≈ −50 dB → uhørbar ved 18 Hz, men iOS klassificerer det som aktiv lyd.
+- **Undgå**: 440 Hz (hørbart), PCM-stilhed (iOS suspenderer sessionen), 8 kHz/8-bit (resampling + kvantiseringsstøj).
+- MediaSession play-handler kalder `if (isIOS) startKeepalive()` for at genaktivere sessionen fra låseskærm.
 
 **Bluetooth auto-resume**: `devicechange`-eventet i `App.tsx` håndterer AirPods connect/disconnect. To events inden for **10 sekunder** trigger auto-resume (disconnect + reconnect). Vinduet er bevidst kort (10 sek) — AirPods reconnecter på 2-3 sek. Et langt vindue ville fejlagtigt trigge auto-resume ved CarPlay-frakobling (~1 min efter bil slukkes).
 
