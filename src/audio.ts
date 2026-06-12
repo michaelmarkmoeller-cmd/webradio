@@ -9,19 +9,22 @@ let _keepalive: HTMLAudioElement | null = null
 let _silentUrl: string | null = null
 
 function buildKeepaliveUrl(): string {
-  const sr = 8000, n = sr  // 1 s @ 8 kHz, mono, 8-bit unsigned PCM
-  const buf = new ArrayBuffer(44 + n)
+  const sr = 44100, n = sr  // 1 s @ 44.1 kHz, mono, 16-bit signed PCM
+  const byteSize = n * 2
+  const buf = new ArrayBuffer(44 + byteSize)
   const v = new DataView(buf), u = new Uint8Array(buf)
-  const s = (o: number, t: string) => t.split('').forEach((c, i) => u[o + i] = c.charCodeAt(0))
-  s(0, 'RIFF'); v.setUint32(4, 36 + n, true); s(8, 'WAVEfmt ')
+  const wr = (o: number, t: string) => t.split('').forEach((c, i) => u[o + i] = c.charCodeAt(0))
+  wr(0, 'RIFF'); v.setUint32(4, 36 + byteSize, true); wr(8, 'WAVEfmt ')
   v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
-  v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true)
-  s(36, 'data'); v.setUint32(40, n, true)
-  // 1 Hz sine: below the 20 Hz human hearing threshold → truly inaudible at any
-  // volume. Exactly 1 complete cycle fits in 8000 samples → both endpoints
-  // quantise to 128 (silence) → seamless loop, zero clicks. iOS does not
-  // classify sub-20 Hz content as silence, so the audio session stays alive.
-  for (let i = 0; i < n; i++) u[44 + i] = 128 + Math.round(Math.sin(2 * Math.PI * i / n))
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true)
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true)
+  wr(36, 'data'); v.setUint32(40, byteSize, true)
+  // 18 Hz × 18 complete cycles in 44100 samples → both loop endpoints = 0, seamless loop.
+  // 16-bit at native iOS sample rate (no resampling) → no quantisation step artifacts.
+  // Amplitude 100/32767 ≈ −50 dB — inaudible at 18 Hz, not classified as silence by iOS.
+  for (let i = 0; i < n; i++) {
+    v.setInt16(44 + i * 2, Math.round(100 * Math.sin(2 * Math.PI * 18 * i / n)), true)
+  }
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
 }
 
