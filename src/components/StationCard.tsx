@@ -104,7 +104,7 @@ export function StationCard({ station, sortable = false }: Props) {
         ref={setNodeRef}
         {...(sortable ? listeners : {})}
         {...(sortable ? attributes : {})}
-        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-4 select-none ${
+        className={`relative overflow-hidden rounded-xl border px-4 pt-2 pb-2 select-none ${
           isDragging ? '' : 'transition-all duration-150'
         } ${
           sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
@@ -158,7 +158,7 @@ export function StationCard({ station, sortable = false }: Props) {
 
         {/* Logo badge — top left */}
         {station.logoUrl && (
-          <div className="absolute top-3 left-4 w-11 h-11 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center pointer-events-none">
+          <div className="absolute top-2 left-4 w-11 h-11 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center pointer-events-none">
             <img
               src={station.logoUrl}
               alt=""
