@@ -156,23 +156,20 @@ export function StationCard({ station, sortable = false }: Props) {
           </svg>
         </button>
 
-        {/* Logo — absolutely positioned background, does not affect layout */}
+        {/* Logo badge — top left */}
         {station.logoUrl && (
-          <img
-            src={station.logoUrl}
-            alt=""
-            className="absolute inset-y-0 right-0 h-full w-[55%] object-contain object-right pointer-events-none"
-            style={{
-              opacity: 0.4,
-              maskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
-            }}
-            draggable={false}
-          />
+          <div className="absolute top-3 left-4 w-11 h-11 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center pointer-events-none">
+            <img
+              src={station.logoUrl}
+              alt=""
+              className="w-full h-full object-contain"
+              draggable={false}
+            />
+          </div>
         )}
 
         {/* Name + category */}
-        <div className="mb-3 pointer-events-none">
+        <div className={`mb-3 pointer-events-none pr-7 ${station.logoUrl ? 'ml-14' : ''}`}>
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>
