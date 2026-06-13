@@ -176,23 +176,19 @@ export function StationCard({ station, sortable = false }: Props) {
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
             <span className="text-xs text-text-muted">{station.category}</span>
+            {station.country && (
+              <img
+                src={`https://flagcdn.com/w40/${station.country}.png`}
+                alt={station.country}
+                className="w-[18px] rounded-sm shrink-0"
+                draggable={false}
+              />
+            )}
           </div>
-          {(station.bitrate || station.country) && (
+          {station.bitrate && (
             <div className="flex items-center gap-1.5 mt-0.5">
-              {station.country && (
-                <img
-                  src={`https://flagcdn.com/w40/${station.country}.png`}
-                  alt={station.country}
-                  className="w-[18px] rounded-sm shrink-0"
-                  draggable={false}
-                />
-              )}
-              {station.bitrate && (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
-                  <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
-                </>
-              )}
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
+              <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
               {isCurrentlyPlaying && (
                 <div className="flex items-end gap-0.5 h-3 ml-0.5">
                   {[1, 2, 3, 4].map((i) => (
