@@ -10,11 +10,13 @@ import { CategoryFilter } from './components/CategoryFilter'
 import { StationGrid } from './components/StationGrid'
 import { Player } from './components/Player'
 import { AddStationModal } from './components/AddStationModal'
+import { ImportExportModal } from './components/ImportExportModal'
 import { useTheme } from './hooks/useTheme'
 
 export default function App() {
   const { setStations, setLoading, setFavorites, setStationOrder, currentStation } = useRadioStore()
   const [showAdd, setShowAdd] = useState(false)
+  const [showImportExport, setShowImportExport] = useState(false)
   const { isDark, toggle } = useTheme()
 
   useEffect(() => {
@@ -91,6 +93,15 @@ export default function App() {
           </h1>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowImportExport(true)}
+              title="Import / Eksport stationer"
+              className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
               onClick={toggle}
               title={isDark ? 'Skift til lys tilstand' : 'Skift til mørk tilstand'}
               className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
@@ -128,6 +139,7 @@ export default function App() {
       <Player />
 
       {showAdd && <AddStationModal onClose={() => setShowAdd(false)} />}
+      {showImportExport && <ImportExportModal onClose={() => setShowImportExport(false)} />}
 
       <Toaster
         position="top-right"

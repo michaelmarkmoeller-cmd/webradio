@@ -7,6 +7,7 @@ import {
   serverTimestamp,
   query,
   writeBatch,
+  getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Station, StationFormData } from '../types'
@@ -79,6 +80,24 @@ export async function addStation(data: StationFormData): Promise<void> {
 
 export async function deleteStation(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id))
+}
+
+export async function importStations(stations: StationFormData[]): Promise<{ imported: number; skipped: number }> {
+  const snapshot = await getDocs(collection(db, COLLECTION))
+  const existingUrls = new Set(snapshot.docs.map((d) => d.data().streamUrl as string))
+
+  const fresh = stations.filter((s) => !existingUrls.has(s.streamUrl))
+  const skipped = stations.length - fresh.length
+
+  if (fresh.length > 0) {
+    const batch = writeBatch(db)
+    for (const station of fresh) {
+      batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })
+    }
+    await batch.commit()
+  }
+
+  return { imported: fresh.length, skipped }
 }
 
 export async function updateSortOrders(updates: { id: string; sortOrder: number }[]): Promise<void> {
