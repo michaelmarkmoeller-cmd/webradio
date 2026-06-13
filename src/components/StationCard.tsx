@@ -104,7 +104,7 @@ export function StationCard({ station, sortable = false }: Props) {
         ref={setNodeRef}
         {...(sortable ? listeners : {})}
         {...(sortable ? attributes : {})}
-        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-9 select-none ${
+        className={`relative overflow-hidden rounded-xl border px-4 pt-4 pb-4 select-none ${
           isDragging ? '' : 'transition-all duration-150'
         } ${
           sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
@@ -168,8 +168,8 @@ export function StationCard({ station, sortable = false }: Props) {
           </div>
         )}
 
-        {/* Name + category */}
-        <div className={`mb-3 pointer-events-none pr-7 ${station.logoUrl ? 'ml-14' : ''}`}>
+        {/* Name + category + flag/bitrate */}
+        <div className={`pointer-events-none pr-7 ${station.logoUrl ? 'ml-14' : ''}`}>
           <h3 className={`font-display font-semibold text-text-primary leading-tight break-words ${nameSize(station.name)}`}>
             {station.name}
           </h3>
@@ -177,41 +177,41 @@ export function StationCard({ station, sortable = false }: Props) {
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
             <span className="text-xs text-text-muted">{station.category}</span>
           </div>
-          {station.bitrate && (
+          {(station.bitrate || station.country) && (
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
-              <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
+              {station.country && (
+                <img
+                  src={`https://flagcdn.com/w40/${station.country}.png`}
+                  alt={station.country}
+                  className="w-[18px] rounded-sm shrink-0"
+                  draggable={false}
+                />
+              )}
+              {station.bitrate && (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
+                  <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
+                </>
+              )}
+              {isCurrentlyPlaying && (
+                <div className="flex items-end gap-0.5 h-3 ml-0.5">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-0.5 rounded-sm animate-pulse"
+                      style={{
+                        height: `${40 + i * 15}%`,
+                        backgroundColor: accentColor,
+                        animationDelay: `${i * 0.15}s`,
+                        animationDuration: `${0.8 + i * 0.1}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* Country flag */}
-        {station.country && (
-          <img
-            src={`https://flagcdn.com/w40/${station.country}.png`}
-            alt={station.country}
-            className="absolute bottom-3 left-4 w-[18px] rounded-sm pointer-events-none"
-            draggable={false}
-          />
-        )}
-
-        {/* Live bars when playing — absolute, between flag and logo */}
-        {isCurrentlyPlaying && (
-          <div className="absolute bottom-3 left-[38px] flex items-end gap-0.5 h-5">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="w-1 rounded-sm animate-pulse"
-                style={{
-                  height: `${40 + i * 15}%`,
-                  backgroundColor: accentColor,
-                  animationDelay: `${i * 0.15}s`,
-                  animationDuration: `${0.8 + i * 0.1}s`,
-                }}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {showDelete && (
