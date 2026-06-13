@@ -112,9 +112,10 @@ Kategorifarver — defineres i `StationCard.tsx`, `CategoryFilter.tsx`, `Player.
 - Stationer vises i device-specifik rækkefølge (drag & drop), fallback til alfabetisk
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
 - **`pointer-events: none`** på tekst-container i StationCard — forhindrer iOS 16+ "Kopier/Oversæt/Læs op" callout ved long-press
-- **Stationskort-logo**: badge `w-11 h-11` absolut positioneret `top-3 left-4`, `rounded-lg`, `bg-black/30`, `object-contain` — kvadratisk thumbnail øverst til venstre. Navn-div: `ml-14` når logo er til stede (giver plads til badge), `pr-7` (giver plads til hjerte-knap)
-- **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, vises inline i bitraterækken (`w-[18px] rounded-sm shrink-0`)
+- **Stationskort-logo**: badge `w-11 h-11` absolut positioneret `top-2 left-4`, `rounded-lg`, `bg-black/30`, `object-contain` — kvadratisk thumbnail øverst til venstre. Navn-div: `ml-14` når logo er til stede (giver plads til badge), `pr-7` (giver plads til hjerte-knap)
+- **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, vises inline i **kategorirækken** til højre for kategoriteksten (`w-[18px] rounded-sm shrink-0`)
 - **Stationskort-equalizer**: live bars inline i bitraterækken efter bitrate-tekst (`h-3`, `w-0.5` bars)
+- **Stationskort-padding**: `pt-2 pb-2` (8px top/bund) — minimalt for kompakt kortlayout
 - **Stationskort-bitrate**: vises på egen linje under kategori-badge
 
 ## Lyttetimer
