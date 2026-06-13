@@ -2,6 +2,7 @@
 
 ## Samarbejdsregler
 - Spørg altid hvis der er tvivl om hvad brugeren mener, eller hvis opgaven kræver yderligere uddybning før den kan løses korrekt.
+- **Sessionstart:** Kør altid `git fetch origin` + `git pull origin main` når projektet åbnes — brugeren arbejder på flere PC'er og de lokale filer kan være bagud.
 
 ## Hvad er dette projekt
 En webradio-app der afspiller live radiostreams via browser. Stationer organiseres i kategorier og synkroniseres i realtid via Firebase Firestore på tværs af alle enheder (også iPhone).
