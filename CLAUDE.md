@@ -70,7 +70,7 @@ src/
 - **Undgå**: 440 Hz (hørbart), PCM-stilhed (iOS suspenderer sessionen), 8 kHz/8-bit (resampling + kvantiseringsstøj).
 - MediaSession play-handler kalder `if (isIOS) startKeepalive()` for at genaktivere sessionen fra låseskærm.
 
-**Bluetooth auto-resume**: `devicechange`-eventet i `App.tsx` håndterer AirPods connect/disconnect. To events inden for **10 sekunder** trigger auto-resume (disconnect + reconnect). Vinduet er bevidst kort (10 sek) — AirPods reconnecter på 2-3 sek. Et langt vindue ville fejlagtigt trigge auto-resume ved CarPlay-frakobling (~1 min efter bil slukkes).
+**Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). Hvis enheden reconnecter inden **10 sekunder** (typisk AirPods: 2-3 sek), resumés automatisk. Ellers forbliver streamen pauset og kræver manuel genstart — forhindrer at musik fortsætter efter man forlader bilen.
 
 **CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
 
