@@ -97,10 +97,8 @@ export default function App() {
           </h1>
           <div className="flex items-center gap-2">
             <a
-              href="/WebRadio-Brugervejledning.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Brugervejledning (PDF)"
+              href="/guide/"
+              title="Brugervejledning"
               className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

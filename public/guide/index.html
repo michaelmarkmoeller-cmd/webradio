@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRadio – Brugervejledning</title>
+<style>
+  /* ── Typografi ── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --amber:   #F5A623;
+    --amber-l: #FFC857;
+    --navy:    #12122A;
+    --navy-2:  #1E1E3A;
+    --gray:    #6B7280;
+    --gray-l:  #9CA3AF;
+    --border:  #E5E7EB;
+    --bg:      #F9FAFB;
+    --white:   #FFFFFF;
+    --radius:  12px;
+  }
+
+  html { font-size: 16px; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: #1F2937;
+    line-height: 1.65;
+  }
+
+  /* ── Page layout (print A4) ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 20mm;
+    background: var(--white);
+    padding: 20mm 18mm 18mm;
+    box-shadow: 0 4px 32px rgba(0,0,0,.12);
+  }
+
+  @media print {
+    body { background: white; }
+    .page {
+      width: 100%;
+      margin: 0;
+      padding: 15mm 15mm 15mm;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .no-break { page-break-inside: avoid; }
+  }
+
+  /* ── Cover page ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 257mm;
+    background: linear-gradient(160deg, var(--navy) 0%, #2D1B69 60%, var(--navy) 100%);
+    color: white;
+    border-radius: var(--radius);
+    padding: 16mm;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,166,35,.18) 0%, transparent 70%);
+    top: -100px; right: -80px;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(123,47,247,.2) 0%, transparent 70%);
+    bottom: 60px; left: -60px;
+  }
+  .cover-logo {
+    font-size: 52px; font-weight: 900;
+    letter-spacing: -1px;
+    position: relative; z-index: 1;
+  }
+  .cover-logo span { color: var(--amber); }
+  .cover-tagline {
+    font-size: 15px; color: rgba(255,255,255,.55);
+    font-weight: 500; margin-top: 6px;
+    position: relative; z-index: 1;
+  }
+  .cover-title {
+    font-size: 38px; font-weight: 800;
+    line-height: 1.15; letter-spacing: -0.5px;
+    position: relative; z-index: 1;
+  }
+  .cover-subtitle {
+    font-size: 17px; color: rgba(255,255,255,.65);
+    margin-top: 10px;
+    position: relative; z-index: 1;
+  }
+  .cover-meta {
+    font-size: 12px; color: rgba(255,255,255,.4);
+    display: flex; justify-content: space-between;
+    position: relative; z-index: 1;
+    border-top: 1px solid rgba(255,255,255,.1);
+    padding-top: 12px;
+  }
+  .cover-wave {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 0;
+    opacity: .07;
+    font-size: 120px; line-height: 1;
+    text-align: center; letter-spacing: 8px;
+  }
+
+  /* ── TOC ── */
+  .toc-title {
+    font-size: 22px; font-weight: 800;
+    color: var(--navy);
+    border-bottom: 3px solid var(--amber);
+    padding-bottom: 8px; margin-bottom: 22px;
+    display: inline-block;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    display: flex; align-items: baseline; gap: 0;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 14px;
+  }
+  .toc-list li:last-child { border-bottom: none; }
+  .toc-num {
+    font-weight: 700; color: var(--amber);
+    min-width: 28px; font-size: 12px;
+  }
+  .toc-text { flex: 1; color: #374151; font-weight: 500; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted #D1D5DB; margin: 0 8px 4px; }
+  .toc-page { color: var(--gray); font-size: 13px; font-weight: 600; }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-num {
+    background: var(--amber);
+    color: var(--navy);
+    font-size: 13px; font-weight: 800;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 22px; font-weight: 800;
+    color: var(--navy); letter-spacing: -0.3px;
+  }
+
+  h3 {
+    font-size: 16px; font-weight: 700;
+    color: var(--navy-2);
+    margin: 22px 0 10px;
+  }
+
+  p { margin-bottom: 14px; color: #374151; font-size: 14.5px; }
+
+  /* ── Screenshots ── */
+  .screenshot-wrap {
+    margin: 20px 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  .screenshot-wrap img {
+    width: 100%; display: block;
+  }
+  .screenshot-caption {
+    background: #F3F4F6;
+    border-top: 1px solid var(--border);
+    padding: 8px 14px;
+    font-size: 12px; color: var(--gray);
+    font-style: italic;
+  }
+  .screenshot-half {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin: 20px 0;
+  }
+
+  /* ── Tip / Note boxes ── */
+  .tip {
+    background: #FFFBEB;
+    border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+  .tip strong { color: #92400E; }
+  .note {
+    background: #EFF6FF;
+    border-left: 4px solid #3B82F6;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+  .note strong { color: #1E40AF; }
+
+  /* ── Callout number badges (step-by-step) ── */
+  .steps { list-style: none; margin: 16px 0; }
+  .steps li {
+    display: flex; gap: 14px; align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    background: var(--navy);
+    color: white;
+    font-size: 12px; font-weight: 700;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-text { font-size: 14.5px; color: #374151; }
+
+  /* ── Key/button badges ── */
+  kbd {
+    background: var(--navy);
+    color: white;
+    font-family: inherit;
+    font-size: 12px; font-weight: 600;
+    padding: 2px 8px; border-radius: 5px;
+    display: inline-block;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge-amber { background: #FEF3C7; color: #92400E; }
+  .badge-green { background: #D1FAE5; color: #065F46; }
+  .badge-red   { background: #FEE2E2; color: #991B1B; }
+  .badge-blue  { background: #DBEAFE; color: #1E40AF; }
+
+  /* ── Feature grid ── */
+  .feature-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin: 16px 0;
+  }
+  .feature-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .feature-card-icon { font-size: 22px; margin-bottom: 6px; }
+  .feature-card-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .feature-card-text { font-size: 12.5px; color: var(--gray); line-height: 1.5; }
+
+  /* ── Section divider ── */
+  .divider {
+    height: 2px;
+    background: linear-gradient(to right, var(--amber), transparent);
+    margin: 30px 0;
+  }
+
+  /* ── Page header (on non-cover pages) ── */
+  .page-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--gray-l);
+  }
+  .page-header-logo { font-weight: 800; color: var(--navy); font-size: 13px; }
+  .page-header-logo span { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<div style="position:sticky;top:0;z-index:999;background:#12122A;padding:10px 20px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.4);">
+  <a href="/" style="display:flex;align-items:center;gap:8px;color:#F5A623;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Tilbage til WebRadio
+  </a>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 1 — FORSIDE
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div>
+      <div class="cover-logo">Web<span>Radio</span></div>
+      <div class="cover-tagline">Live radiostreaming til alle dine enheder</div>
+    </div>
+    <div>
+      <div class="cover-title">Brugervejledning</div>
+      <div class="cover-subtitle">Alt hvad du skal vide for at komme i gang</div>
+    </div>
+    <div class="cover-meta">
+      <span>Version juni 2026</span>
+      <span>webradio-chi.vercel.app</span>
+    </div>
+    <div class="cover-wave">♫ ♪ ♫ ♪ ♫ ♪</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 2 — INDHOLDSFORTEGNELSE
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Brugervejledning</span>
+  </div>
+
+  <div class="toc-title">Indholdsfortegnelse</div>
+  <ul class="toc-list">
+    <li><span class="toc-num">1</span><span class="toc-text">Hvad er WebRadio?</span><span class="toc-dots"></span><span class="toc-page">3</span></li>
+    <li><span class="toc-num">2</span><span class="toc-text">Åbn appen</span><span class="toc-dots"></span><span class="toc-page">3</span></li>
+    <li><span class="toc-num">3</span><span class="toc-text">Afspil en radiostation</span><span class="toc-dots"></span><span class="toc-page">4</span></li>
+    <li><span class="toc-num">4</span><span class="toc-text">Kategorier — find din musikstil</span><span class="toc-dots"></span><span class="toc-page">5</span></li>
+    <li><span class="toc-num">5</span><span class="toc-text">Favoritter</span><span class="toc-dots"></span><span class="toc-page">6</span></li>
+    <li><span class="toc-num">6</span><span class="toc-text">Lydstyrke</span><span class="toc-dots"></span><span class="toc-page">6</span></li>
+    <li><span class="toc-num">7</span><span class="toc-text">Søvntimer</span><span class="toc-dots"></span><span class="toc-page">7</span></li>
+    <li><span class="toc-num">8</span><span class="toc-text">Tilføj en ny station</span><span class="toc-dots"></span><span class="toc-page">8</span></li>
+    <li><span class="toc-num">9</span><span class="toc-text">Slet en station</span><span class="toc-dots"></span><span class="toc-page">8</span></li>
+    <li><span class="toc-num">10</span><span class="toc-text">Sorter stationer efter eget valg</span><span class="toc-dots"></span><span class="toc-page">9</span></li>
+    <li><span class="toc-num">11</span><span class="toc-text">Brug på iPhone og iPad</span><span class="toc-dots"></span><span class="toc-page">10</span></li>
+    <li><span class="toc-num">12</span><span class="toc-page">Installer appen på hjemskærmen</span><span class="toc-dots"></span><span class="toc-page">10</span></li>
+  </ul>
+
+  <div style="margin-top: 36px;">
+    <div style="background: linear-gradient(135deg, #12122A, #2D1B69); border-radius: 12px; padding: 20px; color: white;">
+      <div style="font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 8px;">OM DENNE VEJLEDNING</div>
+      <p style="color: rgba(255,255,255,.75); font-size: 13px; margin: 0; line-height: 1.7;">
+        Denne vejledning er skrevet til dig, der aldrig har brugt WebRadio før.
+        Du behøver ikke teknisk viden — følg blot trinnene, og du lytter til din yndlingsradio
+        inden for få minutter. Appen fungerer i alle moderne browsere og på iPhone.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 3 — KAP 1-2: Intro + Åbn appen
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 1–2</span>
+  </div>
+
+  <!-- Kap 1 -->
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div class="section-title">Hvad er WebRadio?</div>
+  </div>
+  <p>WebRadio er en gratis webside, der samler over 70 live radiostationer på ét sted. Du kan lytte til alt fra 70'er-hits og 80'er-pop til dansk radio, dance og rock — direkte i din browser, uden at downloade noget som helst.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card-icon">🎵</div>
+      <div class="feature-card-title">Over 70 stationer</div>
+      <div class="feature-card-text">Musik fra 9 kategorier — noget for enhver smag</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">📱</div>
+      <div class="feature-card-title">Virker overalt</div>
+      <div class="feature-card-text">PC, Mac, iPhone og iPad — ingen download nødvendig</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">❤️</div>
+      <div class="feature-card-title">Dine favoritter</div>
+      <div class="feature-card-text">Gem dine yndlingsstationer og find dem hurtigt</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">🌙</div>
+      <div class="feature-card-title">Søvntimer</div>
+      <div class="feature-card-text">Sluk automatisk efter 10, 20, 30 eller 60 minutter</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Kap 2 -->
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div class="section-title">Åbn appen</div>
+  </div>
+
+  <p>Du åbner WebRadio ved at skrive adressen i din browsers adresselinje — eller klik på et bogmærke, hvis du har gemt det.</p>
+
+  <div style="background: #F3F4F6; border-radius: 10px; padding: 14px 18px; margin: 16px 0; display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 20px;">🌐</span>
+    <span style="font-family: monospace; font-size: 16px; font-weight: 700; color: #1F2937;">webradio-chi.vercel.app</span>
+  </div>
+
+  <div class="screenshot-wrap">
+    <img src="01-main.png" alt="WebRadio startside">
+    <div class="screenshot-caption">Sådan ser WebRadio ud, når du åbner den — alle stationer vises straks.</div>
+  </div>
+
+  <div class="tip">
+    <strong>Tip:</strong> Appen starter altid med at vise alle stationer. Hvis du sidst lyttede til en bestemt station, husker appen den og viser den klar til afspilning.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 4 — KAP 3: Afspil en station
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 3</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <div class="section-title">Afspil en radiostation</div>
+  </div>
+
+  <p>Det er meget enkelt at starte afspilning — ét enkelt klik er alt hvad der skal til.</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Find den station du vil lytte til i gitteret af stationskort.</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Klik én gang</strong> på kortet — afspilning starter øjeblikkeligt.</div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">En <span class="badge badge-amber">gul prik ● Forbinder</span> vises i bunden, mens streamen kobler op. Efter få sekunder skifter den til <span class="badge badge-red">rød prik ● Live</span>.</div>
+    </li>
+  </ul>
+
+  <div class="screenshot-wrap">
+    <img src="08-card-hover.png" alt="Stationskort">
+    <div class="screenshot-caption">Et stationskort viser stationens navn, kategori og bitrate (lydkvalitet). Klik på kortet for at afspille.</div>
+  </div>
+
+  <h3>Pausér og genoptag</h3>
+  <p>Når en station afspiller, vises en <strong>afspilningsbar</strong> i bunden af skærmen. Her kan du pausere og genoptage med den store knap til højre.</p>
+
+  <div class="note">
+    <strong>Bemærk:</strong> WebRadio sender live — du kan ikke spole frem eller tilbage, præcis som rigtig radio. Når du genoptager efter en pause, forbindes du direkte til det aktuelle live-tidspunkt.
+  </div>
+
+  <h3>Hvad viser afspilningsbaren?</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card-title">Stationsnavn og logo</div>
+      <div class="feature-card-text">Den aktive station vises med navn, kategori-mærke og bitraten (fx 192 kbps)</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Lyttetimer</div>
+      <div class="feature-card-text">Tæller kun den tid du aktivt lytter — sættes på pause med dig og nulstilles ved ny station</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Sangtitel (ICY)</div>
+      <div class="feature-card-text">Mange stationer sender den aktuelle sangtitel — den vises automatisk hvis tilgængelig</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Live-status</div>
+      <div class="feature-card-text"><span class="badge badge-red">● Live</span> = afspiller &nbsp; <span class="badge badge-amber">● Forbinder</span> = kobler op</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 5 — KAP 4: Kategorier
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 4</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <div class="section-title">Kategorier — find din musikstil</div>
+  </div>
+
+  <p>Øverst på siden finder du en række farverige knapper — en for hver musikstil. Klik på en kategori for kun at se stationer inden for den genre.</p>
+
+  <div class="screenshot-wrap">
+    <img src="02-category-filter.png" alt="Kategorifilter">
+    <div class="screenshot-caption">Kategorirækken øverst. Klik på en kategori for at filtrere stationerne.</div>
+  </div>
+
+  <p>WebRadio har 9 kategorier:</p>
+
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0;">
+    <div style="background:#A78BFA22;border:1px solid #A78BFA;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#5B21B6;">🎵 70's</div>
+    <div style="background:#F5A62322;border:1px solid #F5A623;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#92400E;">🎵 80's</div>
+    <div style="background:#E8679A22;border:1px solid #E8679A;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#9D174D;">🎵 90's</div>
+    <div style="background:#22D3EE22;border:1px solid #22D3EE;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#0E7490;">💃 Dance</div>
+    <div style="background:#4ADE8022;border:1px solid #4ADE80;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#065F46;">🇩🇰 Dansk</div>
+    <div style="background:#F9731622;border:1px solid #F97316;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#9A3412;">🇮🇹 Italo</div>
+    <div style="background:#E8262A22;border:1px solid #E8262A;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#991B1B;">🎄 Jul</div>
+    <div style="background:#6EC6F522;border:1px solid #6EC6F5;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#1E40AF;">🎤 Pop</div>
+    <div style="background:#A855F722;border:1px solid #A855F7;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#6B21A8;">🎸 Rock</div>
+  </div>
+
+  <div class="screenshot-half">
+    <div class="screenshot-wrap" style="margin:0">
+      <img src="03-category-80s.png" alt="80's kategori">
+      <div class="screenshot-caption">80's — kun 80'er-stationer vises</div>
+    </div>
+    <div class="screenshot-wrap" style="margin:0">
+      <img src="04-category-dansk.png" alt="Dansk kategori">
+      <div class="screenshot-caption">Dansk — kun danske stationer</div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <strong>Tip:</strong> Jul-kategorien vises kun i december og januar — den gemmes automatisk resten af året for at holde oversigten ryddelig.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 6 — KAP 5-6: Favoritter + Lydstyrke
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 5–6</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <div class="section-title">Favoritter</div>
+  </div>
+
+  <p>Gem dine yndlingsstationer som favoritter, så du hurtigt kan finde dem igen uden at scrolle igennem alle stationer.</p>
+
+  <h3>Tilføj til favoritter</h3>
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Find stationskortet du vil gemme.</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text">Klik på <strong>hjerteikonet ♡</strong> øverst til højre på kortet.</div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">Hjertet farves rødt ❤️ — stationen er nu gemt som favorit.</div>
+    </li>
+  </ul>
+
+  <h3>Se dine favoritter</h3>
+  <p>Klik på knappen <kbd>♡ Favoritter</kbd> øverst i kategorirækken. Nu ser du kun de stationer du har markeret.</p>
+
+  <div class="screenshot-wrap">
+    <img src="09-favorites.png" alt="Favoritter-visning">
+    <div class="screenshot-caption">Klik på "Favoritter" i kategorirækken for at se dine gemte stationer.</div>
+  </div>
+
+  <div class="tip">
+    <strong>Tip:</strong> Dine favoritter gemmes på din specifikke enhed — de synkroniseres ikke på tværs af din PC og iPhone.
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <div class="section-title">Lydstyrke</div>
+  </div>
+
+  <p>Lydstyrken styres med skyderen i afspilningsbaren (den midterste række).</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Start afspilning af en station (se kapitel 3).</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text">Træk i <strong>lydstyrke-skyderen</strong> midt i afspilningsbaren — venstre er stille, højre er fuld styrke.</div>
+    </li>
+  </ul>
+
+  <div class="note">
+    <strong>iPhone/iPad:</strong> Lydstyrke-skyderen vises ikke på iOS — brug i stedet din enheds egne lydstyrkeknapper på siden af telefonen.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 7 — KAP 7: Søvntimer
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 7</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <div class="section-title">Søvntimer</div>
+  </div>
+
+  <p>Søvntimeren slukker automatisk for musikken, når den indstillede tid er gået. Perfekt hvis du vil falde i søvn til radio.</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Start afspilning af en station.</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text">Klik på <strong>måne-ikonet 🌙</strong> i øverste højre hjørne af afspilningsbaren.</div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">Vælg hvor lang tid musikken skal spille: <kbd>10 min</kbd> &nbsp; <kbd>20 min</kbd> &nbsp; <kbd>30 min</kbd> &nbsp; <kbd>60 min</kbd></div>
+    </li>
+    <li>
+      <div class="step-num">4</div>
+      <div class="step-text">En nedtæller vises ved siden af måne-ikonet (fx <span class="badge badge-amber">30m</span>).</div>
+    </li>
+    <li>
+      <div class="step-num">5</div>
+      <div class="step-text">Når tiden udløber, standser musikken og du ser en besked: <em>"Sov godt 🌙"</em></div>
+    </li>
+  </ul>
+
+  <div style="background: linear-gradient(135deg, #12122A, #1E1B4B); border-radius: 12px; padding: 20px 24px; color: white; margin: 20px 0;">
+    <div style="font-size: 13px; color: #F5A623; font-weight: 700; margin-bottom: 10px;">EKSEMPEL — AFSPILNINGSBAR MED SØVNTIMER</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,.05); border-radius: 8px; padding: 10px 14px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.1em;">Now Playing</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:11px;font-weight:700;color:#F5A623;">🌙 30m</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span><span style="font-size:11px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.1em;">Live</span></span>
+        <span style="font-size:11px;color:#ef4444;font-weight:600;">00:42</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Sluk søvntimeren igen</h3>
+  <p>Klik på måne-ikonet igen og vælg <kbd>Fra</kbd> øverst i menuen — timeren annulleres øjeblikkeligt.</p>
+
+  <div class="tip">
+    <strong>Tip:</strong> Skifter du til en ny station mens søvntimeren kører, nulstilles nedtællingen automatisk — du får den fulde tid med den nye station.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 8 — KAP 8-9: Tilføj + Slet station
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 8–9</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <div class="section-title">Tilføj en ny station</div>
+  </div>
+
+  <p>Du kan tilføje dine egne radiostationer, hvis du kender stream-adressen (en URL der typisk slutter på <code style="background:#F3F4F6;padding:1px 6px;border-radius:4px;font-size:13px;">.mp3</code> eller <code style="background:#F3F4F6;padding:1px 6px;border-radius:4px;font-size:13px;">/stream</code>).</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Klik på den gule knap <kbd>+ Tilføj station</kbd> øverst til højre.</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text">Udfyld formularen: <strong>Navn</strong>, <strong>Stream-URL</strong>, <strong>Kategori</strong> og evt. bitrate.</div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">Klik på <kbd>Tilføj</kbd> — stationen vises straks i gitteret.</div>
+    </li>
+  </ul>
+
+  <div class="screenshot-wrap">
+    <img src="06-add-modal.png" alt="Tilføj station">
+    <div class="screenshot-caption">Formularen til at tilføje en ny station. Felterne "Navn" og "Stream-URL" er obligatoriske.</div>
+  </div>
+
+  <div class="note">
+    <strong>Bemærk:</strong> Nye stationer er synlige for alle enheder — de gemmes i den fælles database. Din sorteringsrækkefølge og favoritter er dog kun lokale.
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <div class="section-title">Slet en station</div>
+  </div>
+
+  <p>Af hensyn til fejl-klik er sletning gemt bag en long-press. Der er med vilje ingen slet-knap synlig på kortet.</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Hold fingeren/musen nede</strong> på stationskortet i <strong>2 sekunder</strong> uden at bevæge dig.</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text">En bekræftelsesdialog åbner: <em>"Er du sikker på at du vil slette [navn]?"</em></div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">Klik <kbd>Slet</kbd> for at bekræfte — eller <kbd>Annuller</kbd> for at fortryde.</div>
+    </li>
+  </ul>
+
+  <div class="tip">
+    <strong>Tip:</strong> Sletning fjerner stationen for alle enheder. Har du ved et uheld slettet en station, skal den tilføjes manuelt igen.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIDE 9 — KAP 10-12: Sorter + iPhone
+══════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-logo">Web<span>Radio</span></span>
+    <span>Kapitel 10–12</span>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <div class="section-title">Sorter stationer efter eget valg</div>
+  </div>
+
+  <p>Du kan selv bestemme rækkefølgen af stationerne inden for en kategori ved at trække og slippe dem.</p>
+
+  <ul class="steps">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-text">Vælg en <strong>specifik kategori</strong> (fx "80's") — sortering virker ikke i "Alle" eller "Favoritter".</div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Hold nede i 250ms</strong> på et stationskort og <strong>bevæg straks</strong> — kortet løftes og kan trækkes.</div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-text">Træk kortet til den ønskede position og slip.</div>
+    </li>
+    <li>
+      <div class="step-num">4</div>
+      <div class="step-text">Rækkefølgen gemmes automatisk og huskes næste gang du åbner appen.</div>
+    </li>
+  </ul>
+
+  <div class="note">
+    <strong>Bemærk:</strong> Sorteringsrækkefølgen er personlig — den gælder kun din enhed og påvirker ikke andres visning.
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <div class="section-title">Brug på iPhone og iPad</div>
+  </div>
+
+  <p>WebRadio fungerer fuldt ud på iPhone og iPad i Safari. Der er et par ting det er godt at vide:</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card-title">Låseskærm og CarPlay</div>
+      <div class="feature-card-text">Stationsnavn og logo vises på låseskærmen og i bilens CarPlay-skærm. Du kan styre play/pause herfra.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Bluetooth-frakobling</div>
+      <div class="feature-card-text">Tager du Bluetooth-høretelefoner ud, standser musikken automatisk. Sætter du dem i igen inden 10 sek, genoptages den.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Lydstyrke</div>
+      <div class="feature-card-text">Brug iPhone's fysiske lydstyrkeknapper — skyderen vises ikke på iOS.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-title">Baggrundsafspilning</div>
+      <div class="feature-card-text">Musikken fortsætter, selv om du skifter app eller slukker skærmen.</div>
+    </div>
+  </div>
+
+  <div class="screenshot-wrap" style="max-width:280px;margin:16px auto">
+    <img src="10-mobile.png" alt="WebRadio på mobil">
+    <div class="screenshot-caption">WebRadio på iPhone — tilpasset til lille skærm</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <div class="section-title">Installer appen på hjemskærmen</div>
+  </div>
+  <p>På iPhone kan du gemme WebRadio som et ikon på hjemskærmen, så det føles som en rigtig app:</p>
+  <ul class="steps">
+    <li><div class="step-num">1</div><div class="step-text">Åbn <strong>webradio-chi.vercel.app</strong> i Safari.</div></li>
+    <li><div class="step-num">2</div><div class="step-text">Tryk på <strong>Del-ikonet</strong> (firkant med pil op) nederst på skærmen.</div></li>
+    <li><div class="step-num">3</div><div class="step-text">Scroll ned og tryk <strong>"Føj til hjemmeskærm"</strong>.</div></li>
+    <li><div class="step-num">4</div><div class="step-text">Tryk <strong>Tilføj</strong> — WebRadio-ikonet vises nu på din hjemskærm.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>
