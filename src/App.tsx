@@ -40,11 +40,9 @@ export default function App() {
     return subscribeToStationOrder(deviceId, (order) => setStationOrder(order))
   }, [])
 
-  // Auto-resume when Bluetooth headphones reconnect (e.g. AirPods picked up from table).
-  // A Bluetooth disconnect + reconnect fires two devicechange events in sequence.
-  // We treat the second event (within 5 min) as a reconnect and resume playback,
-  // so the user doesn't need to press play — the command never reaches us via MediaSession
-  // because iOS routes it to a native app before consulting the browser.
+  // Pause on device disconnect (e.g. leaving CarPlay/car). If a reconnect arrives
+  // within 10 sec (e.g. AirPods briefly disconnected), auto-resume. Otherwise the
+  // stream stays paused and must be restarted manually.
   useEffect(() => {
     const md = navigator.mediaDevices
     if (!md?.addEventListener) return
@@ -54,11 +52,15 @@ export default function App() {
 
     const onDeviceChange = () => {
       if (pendingReconnect) {
+        // Reconnect within window (e.g. AirPods) — resume
         if (timer) clearTimeout(timer)
         pendingReconnect = false
         const { isPlaying, currentStation, togglePlay } = useRadioStore.getState()
         if (!isPlaying && currentStation) togglePlay()
       } else {
+        // Disconnect — pause immediately so music stops when leaving CarPlay/car
+        const { isPlaying, togglePlay } = useRadioStore.getState()
+        if (isPlaying) togglePlay()
         pendingReconnect = true
         timer = setTimeout(() => { pendingReconnect = false }, 10_000)
       }
