@@ -20,6 +20,7 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 - Firebase Firestore — real-time sync via `onSnapshot`
 - @dnd-kit/core + @dnd-kit/sortable — drag & drop rækkefølge
 - react-hot-toast — notifikationer
+- @playwright/test — dev-dep til screenshot-generering af brugervejledning
 
 ## Projektstruktur
 ```
@@ -32,22 +33,26 @@ src/
 │   ├── StationGrid.tsx          # Grid + DndContext + SortableContext + DragOverlay
 │   ├── CategoryFilter.tsx       # Kategoripiller inkl. Favoritter
 │   ├── AddStationModal.tsx      # Modal til tilføjelse af station
+│   ├── ImportExportModal.tsx    # Modal til import/eksport af stationer som JSON
 │   └── DeleteConfirm.tsx        # Bekræftelsesdialog ved sletning
 ├── store/
 │   └── useRadioStore.ts         # Zustand store — sortWithOrder(), reorderCategory(), lyttetimer, sleep timer
 ├── firebase/
 │   ├── config.ts                # Firebase init + IndexedDB offline persistence
-│   ├── stationsService.ts       # CRUD + onSnapshot + auto-seed + updateSortOrders (legacy, ubrugt)
+│   ├── stationsService.ts       # CRUD + onSnapshot + auto-seed + importStations
 │   ├── favoritesService.ts      # subscribe + toggle favoritter per device-ID
 │   └── stationOrderService.ts   # subscribe + save rækkefølge per device-ID
 ├── types/
-│   └── index.ts                 # Station (inkl. sortOrder?), Category, CATEGORIES
+│   └── index.ts                 # Station, Category, CATEGORIES
 ├── utils/
 │   ├── platform.ts              # isIOS — UA-detection
-│   └── deviceId.ts              # UUID fra localStorage (favoritter + stationOrder)
-├── audio.ts                     # Lazy singleton Audio + iOS keepalive (1 Hz WAV)
-├── App.tsx                      # Subscriptions: stations, favorites, stationOrder
+│   ├── deviceId.ts              # UUID fra localStorage (favoritter + stationOrder)
+│   └── categoryColors.ts        # CATEGORY_COLORS — fælles farvekort for alle 9 kategorier
+├── audio.ts                     # Lazy singleton Audio + iOS keepalive (18 Hz WAV)
+├── App.tsx                      # Subscriptions: stations, favorites, stationOrder + device disconnect
 └── main.tsx
+public/
+└── guide/                       # Brugervejledning — HTML + screenshots, serveres på /guide/
 ```
 
 ## Audio-arkitektur
@@ -70,7 +75,7 @@ src/
 - **Undgå**: 440 Hz (hørbart), PCM-stilhed (iOS suspenderer sessionen), 8 kHz/8-bit (resampling + kvantiseringsstøj).
 - MediaSession play-handler kalder `if (isIOS) startKeepalive()` for at genaktivere sessionen fra låseskærm.
 
-**Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). Hvis enheden reconnecter inden **10 sekunder** (typisk AirPods: 2-3 sek), resumés automatisk. Ellers forbliver streamen pauset og kræver manuel genstart — forhindrer at musik fortsætter efter man forlader bilen.
+**Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). `wasPlayingAtDisconnect` gemmes ved frakobling — auto-resume ved reconnect inden **10 sekunder** sker kun hvis APPEN selv pausede (ikke hvis brugeren manuelt pausede inden frakobling). Forhindrer at musik uventet starter ved tilfældig enhedsændring.
 
 **CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
 
@@ -89,7 +94,7 @@ src/
 ## Kategorier (9)
 `70's` | `80's` | `90's` | `Dance` | `Dansk` | `Italo` | `Jul` | `Pop` | `Rock`
 
-Kategorifarver — defineres i `StationCard.tsx`, `CategoryFilter.tsx`, `Player.tsx` og `StationGrid.tsx`:
+Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og importeres af alle komponenter:
 - 70's: `#A78BFA` (lys lilla)
 - 80's: `#F5A623` (amber)
 - 90's: `#E8679A` (pink)
@@ -100,7 +105,7 @@ Kategorifarver — defineres i `StationCard.tsx`, `CategoryFilter.tsx`, `Player.
 - Pop: `#6EC6F5` (lyseblå)
 - Rock: `#A855F7` (lilla)
 
-⚠️ Når der tilføjes en ny kategori, skal farven sættes i **alle fire** filer.
+⚠️ Når der tilføjes en ny kategori, opdateres **kun** `src/utils/categoryColors.ts`.
 
 ## UX-regler
 - **Klik** på stationskort → starter afspilning øjeblikkeligt
@@ -145,6 +150,18 @@ På **desktop** (ikke-iOS): tre rækker fordelt med `justify-between`:
 På **iOS** (isIOS === true): volume-slideren skjules (iOS WebKit gør `audio.volume` read-only). Player bruger `gap-3 py-4` i stedet for fast `h-[20vh]`.
 
 Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate på egen linje, sangtitel (ICY) og genre (ICY).
+
+## Søvntimer
+`setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Viser nedtæller i `Player.tsx` via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
+
+## Brugervejledning
+Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Opdateres ved at:
+1. Køre screenshot-script (kræver `@playwright/test`): `node take-screenshots.mjs`
+2. Redigere `guide-assets/webradio-guide.html`
+3. Kopiere til `public/guide/`: `Copy-Item guide-assets/*.png public/guide/` + `Copy-Item guide-assets/webradio-guide.html public/guide/index.html`
+4. Genere PDF: `node export-guide-pdf.mjs` → `guide-assets/WebRadio-Brugervejledning.pdf`
+5. Tilføj tilbage-knap øverst i `public/guide/index.html` (se eksisterende)
+Bog-ikonet i app-headeren (`App.tsx`) linker til `/guide/` i samme fane.
 
 ## ICY stream-metadata
 `api/icy-meta.ts` — Vercel serverless funktion:
@@ -198,6 +215,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
-2. Test med `npm run dev`
-3. `git add <filer> && git commit -m "beskrivelse" && git push`
-4. Vercel deployer automatisk inden for ~30 sekunder
+2. Test med `npm run dev` og verificer i browser **inden** push
+3. Kør `npx tsc --noEmit` for at tjekke TypeScript
+4. `git add <filer> && git commit -m "beskrivelse" && git push`
+5. Vercel deployer automatisk inden for ~30 sekunder
