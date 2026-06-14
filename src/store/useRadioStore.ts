@@ -50,7 +50,7 @@ interface RadioStore {
   toggleFavorite: (stationId: string) => void
 }
 
-let sleepTimerInterval: ReturnType<typeof setInterval> | null = null
+let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -215,9 +215,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     set({ favorites: isFav ? favorites.filter(id => id !== stationId) : [...favorites, stationId] })
     toggleFavoriteInFirestore(getDeviceId(), stationId, !isFav).catch((err) => {
       // Revert optimistic update on failure
-      set({ favorites: get().favorites.includes(stationId) && !isFav
-        ? get().favorites.filter(id => id !== stationId)
-        : [...get().favorites, stationId] })
+      set({ favorites })
       toast.error('Kunne ikke gemme favorit — tjek Firestore-regler')
       console.error('Firestore favorites error:', err)
     })
@@ -225,7 +223,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 
   setSleepTimer: (minutes) => {
     if (sleepTimerInterval) {
-      clearInterval(sleepTimerInterval)
+      clearTimeout(sleepTimerInterval)
       sleepTimerInterval = null
     }
     if (minutes === null) {
@@ -234,14 +232,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     }
     const end = Date.now() + minutes * 60_000
     set({ sleepTimerEnd: end, sleepTimerMinutes: minutes })
-    sleepTimerInterval = setInterval(() => {
-      const state = useRadioStore.getState()
-      if (!state.sleepTimerEnd || Date.now() < state.sleepTimerEnd) return
-      clearInterval(sleepTimerInterval!)
+    sleepTimerInterval = setTimeout(() => {
       sleepTimerInterval = null
+      const state = useRadioStore.getState()
       if (state.isPlaying) state.togglePlay()
       set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       toast('Sov godt', { icon: '🌙' })
-    }, 10_000)
+    }, end - Date.now())
   },
 }))

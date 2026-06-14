@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
+import { CATEGORY_COLORS } from '../utils/categoryColors'
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
@@ -12,17 +13,6 @@ function formatListenTime(sec: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "70's": '#A78BFA',
-  "80's": '#F5A623',
-  "90's": '#E8679A',
-  'Pop':   '#6EC6F5',
-  'Rock':  '#A855F7',
-  'Dansk': '#4ADE80',
-  'Italo': '#F97316',
-  'Jul':   '#E8262A',
-  'Dance': '#22D3EE',
-}
 
 export function Player() {
   const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
@@ -41,6 +31,7 @@ export function Player() {
     async function fetchMeta() {
       try {
         const res = await fetch(`/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`)
+        if (!res.ok) return
         const data = await res.json()
         if (!cancelled) setMeta({ title: data.title ?? null, genre: data.genre ?? null })
       } catch {
@@ -78,7 +69,7 @@ export function Player() {
   }, [sleepMenuOpen])
 
   const remainingMinutes = sleepTimerEnd
-    ? Math.max(1, Math.ceil((sleepTimerEnd - Date.now()) / 60_000))
+    ? Math.ceil((sleepTimerEnd - Date.now()) / 60_000)
     : null
 
   if (!currentStation) return null

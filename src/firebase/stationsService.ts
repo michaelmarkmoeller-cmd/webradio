@@ -100,10 +100,3 @@ export async function importStations(stations: StationFormData[]): Promise<{ imp
   return { imported: fresh.length, skipped }
 }
 
-export async function updateSortOrders(updates: { id: string; sortOrder: number }[]): Promise<void> {
-  const batch = writeBatch(db)
-  for (const { id, sortOrder } of updates) {
-    batch.update(doc(db, COLLECTION, id), { sortOrder })
-  }
-  await batch.commit()
-}

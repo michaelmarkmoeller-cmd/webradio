@@ -48,18 +48,20 @@ export default function App() {
     if (!md?.addEventListener) return
 
     let pendingReconnect = false
+    let wasPlayingAtDisconnect = false
     let timer: ReturnType<typeof setTimeout> | null = null
 
     const onDeviceChange = () => {
       if (pendingReconnect) {
-        // Reconnect within window (e.g. AirPods) — resume
+        // Reconnect within window (e.g. AirPods) — resume only if we auto-paused
         if (timer) clearTimeout(timer)
         pendingReconnect = false
         const { isPlaying, currentStation, togglePlay } = useRadioStore.getState()
-        if (!isPlaying && currentStation) togglePlay()
+        if (!isPlaying && currentStation && wasPlayingAtDisconnect) togglePlay()
       } else {
         // Disconnect — pause immediately so music stops when leaving CarPlay/car
         const { isPlaying, togglePlay } = useRadioStore.getState()
+        wasPlayingAtDisconnect = isPlaying
         if (isPlaying) togglePlay()
         pendingReconnect = true
         timer = setTimeout(() => { pendingReconnect = false }, 10_000)
