@@ -51,16 +51,31 @@ interface RadioStore {
 }
 
 let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
+let externalPauseListenerAdded = false
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
 // Event listeners are wired up on first creation only.
 function audio() {
-  return getOrCreateAudio({
+  const a = getOrCreateAudio({
     onPlaying: () => useRadioStore.setState({ isBuffering: false }),
     onWaiting: () => useRadioStore.setState({ isBuffering: true }),
     onError:   () => useRadioStore.setState({ isBuffering: false, isPlaying: false }),
   })
+  if (!externalPauseListenerAdded) {
+    externalPauseListenerAdded = true
+    // Sync UI when audio is paused externally (AirPods ear detection, phone call, etc.).
+    // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
+    // before its internal a.pause() — so isPlaying:true here always means external pause.
+    a.addEventListener('pause', () => {
+      const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+      if (!isPlaying) return
+      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+      useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+      if (currentStation) syncMediaSession(currentStation, false)
+    })
+  }
+  return a
 }
 
 // Registers WebRadio with the OS media session (lock screen, media keys, headphone buttons).
@@ -154,8 +169,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
     // Reset sleep timer on station change so the full duration applies to the new station
     if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
-    // Only change src if station is different — avoids aborting in-progress buffering
+    // Only change src if station is different — avoids aborting in-progress buffering.
+    // Set isPlaying:false before a.pause() so the external-pause listener doesn't misfire.
     if (a.src !== station.streamUrl) {
+      set({ isPlaying: false })
       a.pause()
       a.src = station.streamUrl
     }
