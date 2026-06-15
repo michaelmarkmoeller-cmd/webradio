@@ -79,7 +79,7 @@ public/
 
 **AirPods ear detection**: `useRadioStore.ts` lytter på `pause`-eventet på audio-elementet. Når iOS pauser via ear detection (ikke via vores egen kode), opdateres UI til pauset og `startKeepalive()` kaldes øjeblikkeligt — genstarter keepalive-WAV'en inden iOS fuldt deaktiverer sessionen, så MediaSession forbliver aktiv og næste AirPods-klem virker. `play`-eventet håndterer iOS auto-resume. Guard: `togglePlay()` og `playStation()` sætter begge `isPlaying:false` inden `a.pause()` → interne pauser ignoreres af listeneren.
 - **Tab-skift / baggrundsapp**: `pause`-event fyrer på iOS FØR `visibilityState` skifter til `hidden`. Løsning: tjek `visibilityState` igen efter 300ms; er siden stadig skjult springes state-opdatering over. `visibilitychange`-listener reconciler i begge retninger ved retur: `isPlaying:true + a.paused` → opdater til pauset; `isPlaying:false + !a.paused` → opdater til spillende (falsk positiv pause).
-- **Brugervejledning**: linket i headeren åbner guiden som in-app iframe-modal (ikke ny tab). Ny tab ville tilføje WebRadio til back-historikken i den nye tab → brugeren lander på en frisk instans ved at trykke tilbage → to parallelle streams. Guide-sidens "Tilbage til WebRadio"-link poster `close-guide` via `postMessage`; `App.tsx` lytter og lukker modalen.
+- **Brugervejledning**: linket i headeren åbner guiden som in-app iframe-modal (ikke ny tab). Ny tab ville tilføje WebRadio til back-historikken i den nye tab → brugeren lander på en frisk instans ved at trykke tilbage → to parallelle streams. App.tsx modal-header har "Luk ✕"-knap som lukker modalen; guide-HTML sender ingen `postMessage` mere (den sticky nav er fjernet).
 
 **CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
 
@@ -158,13 +158,12 @@ Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate 
 `setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Viser nedtæller i `Player.tsx` via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
 
 ## Brugervejledning
-Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Opdateres ved at:
+Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html`. Opdateres ved at:
 1. Køre screenshot-script (kræver `@playwright/test`): `node take-screenshots.mjs`
-2. Redigere `guide-assets/webradio-guide.html`
-3. Kopiere til `public/guide/`: `Copy-Item guide-assets/*.png public/guide/` + `Copy-Item guide-assets/webradio-guide.html public/guide/index.html`
+2. Redigere `public/guide/index.html` direkte (eller via `guide-assets/webradio-guide.html` + copy)
+3. Kopiere screenshots: `Copy-Item guide-assets/*.png public/guide/`
 4. Genere PDF: `node export-guide-pdf.mjs` → `guide-assets/WebRadio-Brugervejledning.pdf`
-5. Tilføj tilbage-knap øverst i `public/guide/index.html` (se eksisterende)
-Bog-ikonet i app-headeren (`App.tsx`) linker til `/guide/` i samme fane.
+Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lukkes med "Luk ✕" i App.tsx-headeren (ikke en knap i guide-HTML'en). Guide-HTML har ingen sticky nav. Guide bruger "Michaels WebRadio"-branding med regnbue-gradient på "Michaels" (identisk med App.tsx). Guide er responsiv (max-width: 820px → `width: 100%`).
 
 ## ICY stream-metadata
 `api/icy-meta.ts` — Vercel serverless funktion:
@@ -217,10 +216,18 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 ## Test-infrastruktur
 - `playwright.config.ts` — Playwright-konfiguration (Chromium, headless, target: live-app)
-- `tests/tc-01.spec.ts` — automatiserede Playwright-tests for TC-01 (app-start + state restore)
-- `TEST-CASES.md` — fuld testspecifikation: 90 test cases fordelt på 17 grupper
-- `TEST-REPORT.md` — testrapport med status pr. TC (opdateres løbende)
-- Kør: `npx playwright test` (kræver netværk til live-appen)
+- `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
+- `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
+- `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
+- `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
+- `tests/tc-09.spec.ts` — TC-09: drag & drop (4 pass, 2 skip — headless limitation)
+- `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
+- `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
+- `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
+- `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
+- `TEST-CASES.md` — fuld testspecifikation: **86 test cases** fordelt på 17 grupper (4 ikke-automatiserbare fjernet)
+- `TEST-REPORT.md` — testrapport: **84/86 godkendt**, 2 ikke testet (TC-09-05/06 kræver visuel drag)
+- Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
 - `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers)
