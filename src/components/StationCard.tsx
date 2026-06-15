@@ -119,11 +119,9 @@ export function StationCard({ station, sortable = false }: Props) {
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); cancelPress() }}
-        onMouseDown={startPress}
-        onMouseUp={cancelPress}
-        onTouchStart={startPress}
-        onTouchEnd={cancelPress}
-        onTouchCancel={cancelPress}
+        onPointerDown={startPress}
+        onPointerUp={cancelPress}
+        onPointerCancel={cancelPress}
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >

@@ -27,13 +27,13 @@ const SEED_STATIONS: Omit<Station, 'id'>[] = [
   { name: 'Synthetic FM',    streamUrl: 'http://stream.syntheticfm.com:8030/stream',                category: 'Italo'},
 ]
 
+let seeded = false
+
 export function subscribeToStations(
   onData: (stations: Station[]) => void,
   onError: (error: Error) => void
 ) {
   const q = query(collection(db, COLLECTION))
-
-  let seeded = false
 
   return onSnapshot(
     q,

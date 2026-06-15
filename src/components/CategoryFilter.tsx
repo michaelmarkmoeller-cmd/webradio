@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CATEGORIES } from '../types'
 import type { Category } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
@@ -33,6 +33,10 @@ function CategoryButton({ cat, isActive, onClick }: { cat: Category; isActive: b
 
 export function CategoryFilter() {
   const { selectedCategory, setCategory, favorites } = useRadioStore()
+
+  useEffect(() => {
+    if (selectedCategory === 'Jul' && !isJulSeason()) setCategory('All')
+  }, [selectedCategory])
 
   return (
     <div className="flex items-center gap-2 flex-wrap">

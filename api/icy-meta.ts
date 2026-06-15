@@ -48,16 +48,19 @@ export default async function handler(req: any, res: any) {
     clearTimeout(timeout)
 
     if (!response.ok || !response.body) {
+      if (response.body) response.body.cancel().catch(() => {})
       return res.json({ title: null })
     }
 
     const metaintHeader = response.headers.get('icy-metaint')
     if (!metaintHeader) {
+      response.body.cancel().catch(() => {})
       return res.json({ title: null })
     }
 
     const metaint = parseInt(metaintHeader, 10)
     if (!metaint || metaint <= 0 || metaint > 65536) {
+      response.body.cancel().catch(() => {})
       return res.json({ title: null })
     }
 

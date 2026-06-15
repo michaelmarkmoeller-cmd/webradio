@@ -40,7 +40,7 @@ function parseFile(raw: unknown): ParsedStation[] {
       streamUrl: s.streamUrl.trim(),
       category: s.category as Category,
       bitrate: typeof s.bitrate === 'number' ? s.bitrate : undefined,
-      logoUrl: typeof s.logoUrl === 'string' ? s.logoUrl : undefined,
+      logoUrl: typeof s.logoUrl === 'string' && /^https:\/\//i.test(s.logoUrl.trim()) ? s.logoUrl.trim() : undefined,
       country: typeof s.country === 'string' ? s.country : undefined,
       valid: true,
     }
