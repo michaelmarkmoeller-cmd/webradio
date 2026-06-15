@@ -3,7 +3,8 @@ import { db } from './config'
 
 export function subscribeFavorites(deviceId: string, onData: (stationIds: string[]) => void) {
   return onSnapshot(doc(db, 'favorites', deviceId), (snap) => {
-    onData(snap.exists() ? (snap.data().stationIds ?? []) : [])
+    const raw = snap.exists() ? snap.data().stationIds : undefined
+    onData(Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string') : [])
   })
 }
 

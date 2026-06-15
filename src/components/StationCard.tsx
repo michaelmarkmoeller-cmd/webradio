@@ -49,6 +49,7 @@ export function StationCard({ station, sortable = false }: Props) {
       cancelPress()
     }
   }, [isDragging])
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
   const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying

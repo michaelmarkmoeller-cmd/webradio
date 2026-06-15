@@ -18,11 +18,16 @@ export function AddStationModal({ onClose }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !streamUrl.trim()) return
+    const trimmedUrl = streamUrl.trim()
+    if (!name.trim() || !trimmedUrl) return
+    if (!/^https?:\/\//i.test(trimmedUrl)) {
+      toast.error('Stream URL skal starte med http:// eller https://')
+      return
+    }
 
     setSaving(true)
     try {
-      await addStation({ name: name.trim(), streamUrl: streamUrl.trim(), category, bitrate, country: country.trim().toLowerCase() || undefined })
+      await addStation({ name: name.trim(), streamUrl: trimmedUrl, category, bitrate, country: country.trim().toLowerCase() || undefined })
       toast.success(`"${name.trim()}" tilføjet`)
       onClose()
     } catch {

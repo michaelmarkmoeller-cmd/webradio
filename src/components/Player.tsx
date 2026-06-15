@@ -30,10 +30,14 @@ export function Player() {
       return
     }
     let cancelled = false
+    const controller = new AbortController()
     async function fetchMeta() {
       if (icySupportedRef.current === false) return
       try {
-        const res = await fetch(`/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`)
+        const res = await fetch(
+          `/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`,
+          { signal: controller.signal }
+        )
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
@@ -44,7 +48,7 @@ export function Player() {
     }
     fetchMeta()
     const interval = setInterval(fetchMeta, 30000)
-    return () => { cancelled = true; clearInterval(interval) }
+    return () => { cancelled = true; controller.abort(); clearInterval(interval) }
   }, [currentStation?.id, isPlaying])
 
   // Refresh countdown display every 30s while timer is active
@@ -129,7 +133,7 @@ export function Player() {
               <svg className="w-3.5 h-3.5" style={{ color: sleepTimerEnd ? accent : undefined }} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
               </svg>
-              {remainingMinutes && (
+              {!!remainingMinutes && (
                 <span className="text-[10px] font-bold tabular-nums" style={{ color: accent }}>{remainingMinutes}m</span>
               )}
             </button>
@@ -148,7 +152,7 @@ export function Player() {
                     key={mins}
                     onClick={() => { setSleepTimer(mins); setSleepMenuOpen(false) }}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      remainingMinutes && Math.abs(remainingMinutes - mins) <= 1 && sleepTimerEnd
+                      !!remainingMinutes && Math.abs(remainingMinutes - mins) <= 1 && sleepTimerEnd
                         ? 'text-text-primary bg-white/5'
                         : 'text-text-muted hover:text-text-primary hover:bg-white/5'
                     }`}

@@ -92,15 +92,23 @@ export default async function handler(req: any, res: any) {
 
     const metaLen = buffer[metaint] * 16
     if (metaLen === 0 || buffer.length < metaint + 1 + metaLen) {
-      return res.json({ title: null })
+      // Empty block is normal between track changes — stream supports ICY, just no title yet
+      return res.json({ title: null, icySupported: true })
     }
 
     const metaStr = new TextDecoder('utf-8', { fatal: false })
       .decode(buffer.slice(metaint + 1, metaint + 1 + metaLen))
       .replace(/\0+$/, '')
 
-    const match = metaStr.match(/StreamTitle='([^']*)'/)
-    const title = match?.[1]?.trim() || null
+    // Split on '; (ICY key-value pair delimiter) to correctly handle apostrophes in values.
+    // e.g. "Don't Stop Me Now" would break a naive regex like /StreamTitle='([^']*)'/
+    let title: string | null = null
+    for (const pair of metaStr.split("';")) {
+      if (pair.startsWith("StreamTitle='")) {
+        title = pair.slice("StreamTitle='".length).trim() || null
+        break
+      }
+    }
     const genre = response.headers.get('icy-genre') || null
 
     return res.json({ title, genre, icySupported: true })

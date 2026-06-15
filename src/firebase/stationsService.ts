@@ -10,7 +10,8 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Station, StationFormData } from '../types'
+import { CATEGORIES } from '../types'
+import type { Station, StationFormData, Category } from '../types'
 
 const COLLECTION = 'stations'
 
@@ -24,7 +25,6 @@ const SEED_STATIONS: Omit<Station, 'id'>[] = [
   { name: 'Rock Antenne',    streamUrl: 'https://stream.rockantenne.de/rockantenne/stream/mp3',      category: 'Rock' },
   { name: 'DR P4 Nordjylland', streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                 category: 'Dansk'},
   { name: 'DR P3',           streamUrl: 'https://live-icy.gss.dr.dk/A/A03H.mp3',                   category: 'Dansk'},
-  { name: 'Synthetic FM',    streamUrl: 'http://stream.syntheticfm.com:8030/stream',                category: 'Italo'},
 ]
 
 let seeded = false
@@ -40,21 +40,25 @@ export function subscribeToStations(
     async (snapshot) => {
       if (snapshot.metadata.fromCache && snapshot.empty) return
 
-      const stations: Station[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name,
-        streamUrl: doc.data().streamUrl,
-        category: doc.data().category,
-        bitrate: doc.data().bitrate ?? undefined,
-        logoUrl: doc.data().logoUrl ?? undefined,
-        country: doc.data().country ?? undefined,
-        createdAt: doc.data().createdAt?.toDate(),
-        sortOrder: doc.data().sortOrder ?? undefined,
-      }))
+      const stations: Station[] = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        const cat = data.category as string
+        return {
+          id: doc.id,
+          name: data.name,
+          streamUrl: data.streamUrl,
+          category: (CATEGORIES.includes(cat as Category) ? cat : CATEGORIES[0]) as Category,
+          bitrate: data.bitrate ?? undefined,
+          logoUrl: data.logoUrl ?? undefined,
+          country: data.country ?? undefined,
+          createdAt: data.createdAt?.toDate(),
+          sortOrder: data.sortOrder ?? undefined,
+        }
+      })
 
       if (stations.length === 0 && !seeded) {
         seeded = true
-        await seedStations()
+        seedStations().catch(onError)
         return
       }
 

@@ -42,6 +42,12 @@ export function startKeepalive(): void {
   if (_keepalive.paused) _keepalive.play().catch(() => {})
 }
 
+export function stopKeepalive(): void {
+  if (_keepalive && !_keepalive.paused) _keepalive.pause()
+  if (_silentUrl) { URL.revokeObjectURL(_silentUrl); _silentUrl = null }
+  _keepalive = null
+}
+
 window.addEventListener('beforeunload', () => {
   if (_silentUrl) URL.revokeObjectURL(_silentUrl)
 })

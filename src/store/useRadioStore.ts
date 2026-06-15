@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, startKeepalive } from '../audio'
+import { getOrCreateAudio, startKeepalive, stopKeepalive } from '../audio'
 import { isIOS } from '../utils/platform'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
@@ -135,6 +135,7 @@ function syncMediaSession(station: Station, playing: boolean) {
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+      if (isIOS) stopKeepalive()
       audio().pause()
     })
     mediaSessionReady = true
@@ -144,7 +145,9 @@ function syncMediaSession(station: Station, playing: boolean) {
     { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
   ]
   if (station.logoUrl) {
-    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: 'image/png' })
+    const ext = station.logoUrl.split('.').pop()?.toLowerCase() ?? ''
+    const mimeType = ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : 'image/png'
+    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: mimeType })
   }
   navigator.mediaSession.metadata = new MediaMetadata({
     title: station.name,
@@ -237,7 +240,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     })
     const isNewStation = prev?.id !== station.id
     const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-    localStorage.setItem('webradio_last_station_id', station.id)
+    try { localStorage.setItem('webradio_last_station_id', station.id) } catch {}
     set({ currentStation: station, isPlaying: true, isBuffering: true, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
   },
@@ -264,6 +267,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         }
       }, 10)
     } else {
+      // Cancel any in-progress fade before resuming
+      if (fadeIntervalId) {
+        clearInterval(fadeIntervalId)
+        fadeIntervalId = null
+        try { a.volume = get().volume } catch {}
+      }
       // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
       a.play().catch(() => {})
@@ -307,6 +316,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       sleepTimerInterval = null
       const state = useRadioStore.getState()
       if (state.isPlaying) state.togglePlay()
+      if (isIOS) stopKeepalive()
       set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       toast('Sov godt', { icon: '🌙' })
     }, end - Date.now())

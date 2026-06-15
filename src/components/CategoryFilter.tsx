@@ -36,7 +36,7 @@ export function CategoryFilter() {
 
   useEffect(() => {
     if (selectedCategory === 'Jul' && !isJulSeason()) setCategory('All')
-  }, [selectedCategory])
+  }, [selectedCategory, setCategory])
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
