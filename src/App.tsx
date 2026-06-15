@@ -18,6 +18,14 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data === 'close-guide') setShowGuide(false)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
   const { isDark, toggle } = useTheme()
 
   useEffect(() => {
