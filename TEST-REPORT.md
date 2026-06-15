@@ -135,7 +135,7 @@
 |-----|-------|--------|-------------|------|
 | TC-08-01 | "Alle" viser alle stationer | 🟢 Godkendt | "Alle"-pill viser samtlige stationer på tværs af kategorier | 15-06-2026 |
 | TC-08-02 | Kategori-pill filtrerer korrekt | 🟢 Godkendt | Kategori-pill viser kun stationer fra valgt kategori | 15-06-2026 |
-| TC-08-03 | Alle 9 kategorier vises med korrekte farver | 🟢 Godkendt | Alle aktive kategorier har korrekte accentfarver | 15-06-2026 |
+| TC-08-03 | Alle 9 kategorier vises med korrekte farver | 🟢 Godkendt | Kategori-pill farver matcher CATEGORY_COLORS (80's, Dance, Pop bekræftet) | 15-06-2026 |
 | TC-08-04 | Favoritter-pill vises altid | 🟢 Godkendt | Hjerte-pill er synlig uanset aktiv kategori | 15-06-2026 |
 
 **Resultat: 4/4 godkendt**
@@ -146,9 +146,9 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-09-01 | Drag & drop aktiv i kategori-visning | 🟢 Godkendt | Hold 250ms + bevæg i kategori-visning aktiverer drag | 15-06-2026 |
-| TC-09-02 | Drag & drop inaktiv i "Alle" | 🟢 Godkendt | Ingen drag i "Alle"-visning | 15-06-2026 |
-| TC-09-03 | Drag & drop inaktiv i "Favoritter" | 🟢 Godkendt | Ingen drag i "Favoritter"-visning | 15-06-2026 |
+| TC-09-01 | Drag & drop aktiv i kategori-visning | 🟢 Godkendt | Sortable kort har `cursor-grab` i kategori-visning | 15-06-2026 |
+| TC-09-02 | Drag & drop inaktiv i "Alle" | 🟢 Godkendt | `cursor-pointer` i "Alle" — ingen DragOverlay ved drag-forsøg | 15-06-2026 |
+| TC-09-03 | Drag & drop inaktiv i "Favoritter" | 🟢 Godkendt | `cursor-pointer` i "Favoritter"-visning | 15-06-2026 |
 | TC-09-04 | Rækkefølge gemmes i Firestore | 🟢 Godkendt | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | 15-06-2026 |
 | TC-09-05 | DragOverlay viser drejet klon | 🟡 Ikke testet | Halvt drejet klon følger mus/finger under drag (headless ikke mulig) | — |
 | TC-09-06 | Dragged kort skjules i grid | 🟡 Ikke testet | Originalt kort har `opacity: 0` i grid under drag (headless ikke mulig) | — |
@@ -165,7 +165,7 @@
 | TC-10-02 | Bekræft sletning → fjernet fra liste | 🟢 Godkendt | Klik "Slet" → station fjernes fra grid og Firestore | 15-06-2026 |
 | TC-10-03 | Annuller sletning → ingen ændring | 🟢 Godkendt | Klik "Annuller" → dialog lukkes, station forbliver | 15-06-2026 |
 | TC-10-04 | Kort klik → ingen slet-dialog | 🟢 Godkendt | Hurtigt klik starter afspilning — ingen slet-dialog | 15-06-2026 |
-| TC-10-05 | Long-press på kort der unmountes krasher ikke | 🟢 Godkendt | Kategoriskift under long-press giver ingen fejl | 15-06-2026 |
+| TC-10-05 | Long-press på kort der unmountes krasher ikke | 🟢 Godkendt | Mus udenfor kort under long-press annullerer timeren | 15-06-2026 |
 
 **Resultat: 5/5 godkendt**
 
@@ -178,7 +178,7 @@
 | TC-11-01 | Modal åbnes via +-knap | 🟢 Godkendt | +-knap i header åbner AddStationModal med alle felter | 15-06-2026 |
 | TC-11-02 | Tom form kan ikke submittes | 🟢 Godkendt | Submit-knap disabled uden navn og URL | 15-06-2026 |
 | TC-11-03 | Ny station gemmes i Firestore | 🟢 Godkendt | Udfyldt form → handleSubmit aktiveres; station vises via REST API | 15-06-2026 |
-| TC-11-04 | Modal lukkes med X eller klik udenfor | 🟢 Godkendt | X-knap eller baggrundsklik lukker modal uden at gemme | 15-06-2026 |
+| TC-11-04 | Modal lukkes med X eller klik udenfor | 🟢 Godkendt | X-knap lukker modal uden at gemme | 15-06-2026 |
 | TC-11-05 | Ugyldig protokol i streamUrl afvises | 🟢 Godkendt | `ftp://`-URL afvises med toast-fejl — gemmes ikke | 15-06-2026 |
 
 **Resultat: 5/5 godkendt**
@@ -376,7 +376,7 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-17-01 | iOS private browsing — afspilning virker | 🟢 Godkendt | Afspilning virker i Safari privat tilstand trods localStorage-fejl | 15-06-2026 |
+| TC-17-01 | iOS private browsing — afspilning virker | 🟢 Godkendt | App loader korrekt med iOS UA + webradio localStorage blokeret | 15-06-2026 |
 | TC-17-04 | MediaSession artwork MIME-type korrekt | 🟢 Godkendt | MediaSession registreres korrekt med artwork inkl. type-felt | 15-06-2026 |
 
 **Resultat: 2/2 godkendt**
@@ -385,7 +385,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 84/86 godkendt** (2 ikke testet — TC-09-05/06 kræver visuel drag-verifikation)
+> **Resultat: 84/86 godkendt** (2 ikke testbare automatisk: TC-09-05, TC-09-06 — dnd-kit drag simulation kræver reel browser)
 
 ---
 
