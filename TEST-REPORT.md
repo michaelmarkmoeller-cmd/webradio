@@ -13,7 +13,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 6 | 0 | 84 | 90 |
+| 38 | 0 | 52 | 90 |
 
 ---
 
@@ -35,17 +35,17 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-02-01 | Korrekte metadata vises | 🟡 Ikke testet | Navn, kategori-farve, landsflag og bitrate vises på kortet | — |
-| TC-02-02 | Logo badge øverst til venstre | 🟡 Ikke testet | `logoUrl` vises som 44×44px badge absolut øverst til venstre | — |
-| TC-02-03 | Dynamisk skriftstørrelse | 🟡 Ikke testet | Navnestørrelse skalerer korrekt efter nameSize()-funktion | — |
-| TC-02-04 | Aktiv station har accentfarvet kant | 🟡 Ikke testet | Aktivt kort har left-border i kategoriens farve + glow | — |
-| TC-02-05 | Equalizer-bars kun ved afspilning | 🟡 Ikke testet | Animerede bars vises kun ved aktiv afspilning | — |
+| TC-02-01 | Korrekte metadata vises | 🟢 Godkendt | Navn, kategori-farve, landsflag og bitrate vises på kortet | 15-06-2026 |
+| TC-02-02 | Logo badge øverst til venstre | 🟢 Godkendt | `logoUrl` vises som 44×44px badge absolut øverst til venstre | 15-06-2026 |
+| TC-02-03 | Dynamisk skriftstørrelse | 🟢 Godkendt | Navnestørrelse skalerer korrekt efter nameSize()-funktion | 15-06-2026 |
+| TC-02-04 | Aktiv station har accentfarvet kant | 🟢 Godkendt | Aktivt kort har left-border i kategoriens farve + glow | 15-06-2026 |
+| TC-02-05 | Equalizer-bars kun ved afspilning | 🟢 Godkendt | Animerede bars vises kun ved aktiv afspilning | 15-06-2026 |
 | TC-02-06 | Bitratefarve | 🟡 Ikke testet | Bitratefarve: grøn ≥320, amber ≥192, rød <192 kbps | — |
-| TC-02-07 | Alle stationskort i samme række har ens højde | 🟡 Ikke testet | Alle kort i én grid-række er præcis samme højde | — |
-| TC-02-08 | Kort navn → 2 linjers navnefelt-plads bevares | 🟡 Ikke testet | Kort navn fylder `min-h-[35px]` — blank plads under | — |
-| TC-02-09 | Meget langt stationsnavn kapper ved 2 linjer | 🟡 Ikke testet | Navne >22 tegn kapper med "..." — aldrig 3 linjer | — |
+| TC-02-07 | Alle stationskort i samme række har ens højde | 🟢 Godkendt | Alle kort i én grid-række er præcis samme højde | 15-06-2026 |
+| TC-02-08 | Kort navn → 2 linjers navnefelt-plads bevares | 🟢 Godkendt | Kort navn fylder `min-h-[35px]` — blank plads under | 15-06-2026 |
+| TC-02-09 | Meget langt stationsnavn kapper ved 2 linjer | 🟢 Godkendt | Navne >22 tegn kapper med "..." — aldrig 3 linjer | 15-06-2026 |
 
-**Resultat: 0/9 godkendt**
+**Resultat: 8/9 godkendt**
 
 ---
 
@@ -53,14 +53,14 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-03-01 | Klik starter afspilning | 🟡 Ikke testet | Klik på stationskort → "Forbinder" → "Live" + lyd | — |
-| TC-03-02 | Klik på aktiv station starter ikke forfra | 🟡 Ikke testet | Klik på spillende station afbryder ikke streamen | — |
-| TC-03-03 | Stationsskift stopper forrige | 🟡 Ikke testet | Klik på anden station stopper A og starter B | — |
-| TC-03-04 | Pause → resume reconnect | 🟡 Ikke testet | Resume reconnectes fra live — ikke fra buffereret position | — |
+| TC-03-01 | Klik starter afspilning | 🟢 Godkendt | Klik på stationskort → "Forbinder" → "Live" + lyd | 15-06-2026 |
+| TC-03-02 | Klik på aktiv station starter ikke forfra | 🟢 Godkendt | Klik på spillende station afbryder ikke streamen | 15-06-2026 |
+| TC-03-03 | Stationsskift stopper forrige | 🟢 Godkendt | Klik på anden station stopper A og starter B | 15-06-2026 |
+| TC-03-04 | Pause → resume reconnect | 🟢 Godkendt | Resume reconnectes fra live — ikke fra buffereret position | 15-06-2026 |
 | TC-03-05 | Fade-out ved pause | 🟡 Ikke testet | Pause fade blødt ud over ~80ms — ingen klik/pop | — |
 | TC-03-06 | Hurtig pause → play under fade | 🟡 Ikke testet | Fade-interval annulleres ved hurtig resume — ingen race | — |
 
-**Resultat: 0/6 godkendt**
+**Resultat: 4/6 godkendt**
 
 ---
 
@@ -68,17 +68,17 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-04-01 | Stationsinfo vises korrekt | 🟡 Ikke testet | Player viser navn, kategori-badge og bitrate | — |
-| TC-04-02 | "Forbinder" indikator under buffering | 🟡 Ikke testet | Gul pulserende prik + "FORBINDER" vises ved stream-load | — |
-| TC-04-03 | "Live" indikator ved aktiv afspilning | 🟡 Ikke testet | Rød prik + "LIVE" vises når stream er aktiv | — |
-| TC-04-04 | Lyttetimer nulstilles ved stationsskift | 🟡 Ikke testet | Lyttetimer nulstilles til 00:00 ved stationsskift | — |
-| TC-04-05 | Lyttetimer pauser præcist | 🟡 Ikke testet | Lyttetimer fryser ved pause og fortsætter fra frossen tid | — |
+| TC-04-01 | Stationsinfo vises korrekt | 🟢 Godkendt | Player viser navn, kategori-badge og bitrate | 15-06-2026 |
+| TC-04-02 | "Forbinder" indikator under buffering | 🟢 Godkendt | Gul pulserende prik + "FORBINDER" vises ved stream-load | 15-06-2026 |
+| TC-04-03 | "Live" indikator ved aktiv afspilning | 🟢 Godkendt | Rød prik + "LIVE" vises når stream er aktiv | 15-06-2026 |
+| TC-04-04 | Lyttetimer nulstilles ved stationsskift | 🟢 Godkendt | Lyttetimer nulstilles til 00:00 ved stationsskift | 15-06-2026 |
+| TC-04-05 | Lyttetimer pauser præcist | 🟢 Godkendt | Lyttetimer fryser ved pause og fortsætter fra frossen tid | 15-06-2026 |
 | TC-04-06 | Lyttetimer format over 1 time | 🟡 Ikke testet | Format skifter fra MM:SS til TT:MM:SS ved 3600 sek | — |
-| TC-04-07 | Volume-slider ændrer lydstyrke | 🟡 Ikke testet | Slider ændrer `audio.volume` proportionalt | — |
+| TC-04-07 | Volume-slider ændrer lydstyrke | 🟢 Godkendt | Slider ændrer `audio.volume` proportionalt | 15-06-2026 |
 | TC-04-08 | Volume-slider skjult på iOS | 🟡 Ikke testet | Volume-rækken ikke synlig i iOS Safari | — |
-| TC-04-09 | Player-logo 48×48 | 🟡 Ikke testet | Stationslogo vises som 48×48px afrundet firkant i player | — |
+| TC-04-09 | Player-logo 48×48 | 🟢 Godkendt | Stationslogo vises som 48×48px afrundet firkant i player | 15-06-2026 |
 
-**Resultat: 0/9 godkendt**
+**Resultat: 7/9 godkendt**
 
 ---
 
@@ -102,16 +102,16 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-06-01 | Sleep-menu åbner med valgmuligheder | 🟡 Ikke testet | Klik ur-ikon → menu med Fra/10/20/30/60 min | — |
-| TC-06-02 | Timer starter og viser nedtælling | 🟡 Ikke testet | Valg af tid starter timer og viser "Xm" ved ur-ikon | — |
+| TC-06-01 | Sleep-menu åbner med valgmuligheder | 🟢 Godkendt | Klik ur-ikon → menu med Fra/10/20/30/60 min | 15-06-2026 |
+| TC-06-02 | Timer starter og viser nedtælling | 🟢 Godkendt | Valg af tid starter timer og viser "Xm" ved ur-ikon | 15-06-2026 |
 | TC-06-03 | Timer pauser afspilning automatisk | 🟡 Ikke testet | Afspilning pauses automatisk når timer udløber | — |
 | TC-06-04 | "Sov godt" toast ved udløb | 🟡 Ikke testet | Toast 🌙 "Sov godt" vises ved timer-udløb | — |
-| TC-06-05 | Timer deaktiveres via "Fra" | 🟡 Ikke testet | Valg af "Fra" annullerer timer uden at stoppe afspilning | — |
+| TC-06-05 | Timer deaktiveres via "Fra" | 🟢 Godkendt | Valg af "Fra" annullerer timer uden at stoppe afspilning | 15-06-2026 |
 | TC-06-06 | Klik på aktiv station nulstiller ikke timer | 🟡 Ikke testet | Sleep-timer påvirkes ikke ved klik på aktiv station | — |
 | TC-06-07 | Ingen stray "0" i det sidste minut | 🟡 Ikke testet | Ingen "0"-tekst ved ur-ikon i det sidste minut | — |
 | TC-06-08 | Sleep menu aktiv-highlight fjernes ved 0 min | 🟡 Ikke testet | Ingen option er fejlagtigt highlightet i menu ved <1 min | — |
 
-**Resultat: 0/8 godkendt**
+**Resultat: 3/8 godkendt**
 
 ---
 
@@ -119,15 +119,15 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-07-01 | Hjerte-knap tilføjer favorit | 🟡 Ikke testet | Klik hjerte → rødt hjerte + station i favorit-listen | — |
-| TC-07-02 | Hjerte-knap fjerner favorit | 🟡 Ikke testet | Klik rødt hjerte → tomt hjerte + fjernet fra favoritter | — |
+| TC-07-01 | Hjerte-knap tilføjer favorit | 🟢 Godkendt | Klik hjerte → rødt hjerte + station i favorit-listen | 15-06-2026 |
+| TC-07-02 | Hjerte-knap fjerner favorit | 🟢 Godkendt | Klik rødt hjerte → tomt hjerte + fjernet fra favoritter | 15-06-2026 |
 | TC-07-03 | Favoritter synkroniseres til Firestore | 🟡 Ikke testet | Favorit-ID vises i `favorites/{deviceId}.stationIds` i Firestore | — |
-| TC-07-04 | Hjerte-knap starter ikke afspilning | 🟡 Ikke testet | Klik på hjerte-ikon (ikke kortets øvrige areal) starter ikke stream | — |
+| TC-07-04 | Hjerte-knap starter ikke afspilning | 🟢 Godkendt | Klik på hjerte-ikon (ikke kortets øvrige areal) starter ikke stream | 15-06-2026 |
 | TC-07-05 | Korrupt favorites-data krasher ikke | 🟡 Ikke testet | Ugyldig Firestore-type i stationIds → tom favorit-liste uden crash | — |
-| TC-07-06 | Hjerte-ikon synligt i lys mode (ikke-favorit) | 🟡 Ikke testet | Tomt hjerte synlig som grå kontur på lys baggrund | — |
+| TC-07-06 | Hjerte-ikon synligt i lys mode (ikke-favorit) | 🟢 Godkendt | Tomt hjerte synlig som grå kontur på lys baggrund | 15-06-2026 |
 | TC-07-07 | Hjerte-ikon synligt i mørk mode (ikke-favorit) | 🟡 Ikke testet | Tomt hjerte synlig som lys grå kontur på mørk baggrund | — |
 
-**Resultat: 0/7 godkendt**
+**Resultat: 4/7 godkendt**
 
 ---
 
@@ -135,12 +135,12 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-08-01 | "Alle" viser alle stationer | 🟡 Ikke testet | "Alle"-pill viser samtlige stationer på tværs af kategorier | — |
-| TC-08-02 | Kategori-pill filtrerer korrekt | 🟡 Ikke testet | Kategori-pill viser kun stationer fra valgt kategori | — |
+| TC-08-01 | "Alle" viser alle stationer | 🟢 Godkendt | "Alle"-pill viser samtlige stationer på tværs af kategorier | 15-06-2026 |
+| TC-08-02 | Kategori-pill filtrerer korrekt | 🟢 Godkendt | Kategori-pill viser kun stationer fra valgt kategori | 15-06-2026 |
 | TC-08-03 | Alle 9 kategorier vises med korrekte farver | 🟡 Ikke testet | Alle aktive kategorier har korrekte accentfarver | — |
-| TC-08-04 | Favoritter-pill vises altid | 🟡 Ikke testet | Hjerte-pill er synlig uanset aktiv kategori | — |
+| TC-08-04 | Favoritter-pill vises altid | 🟢 Godkendt | Hjerte-pill er synlig uanset aktiv kategori | 15-06-2026 |
 
-**Resultat: 0/4 godkendt**
+**Resultat: 3/4 godkendt**
 
 ---
 
@@ -208,10 +208,10 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-13-01 | Guide åbner som in-app iframe-modal | 🟡 Ikke testet | Bog-ikon åbner guide som iframe-overlay — ingen ny tab | — |
+| TC-13-01 | Guide åbner som in-app iframe-modal | 🟢 Godkendt | Bog-ikon åbner guide som iframe-overlay — ingen ny tab | 15-06-2026 |
 | TC-13-02 | "Tilbage til WebRadio" lukker modalen | 🟡 Ikke testet | Guide-link poster postMessage → modal lukkes i app | — |
 
-**Resultat: 0/2 godkendt**
+**Resultat: 1/2 godkendt**
 
 ---
 
@@ -230,10 +230,10 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-15-01 | TypeScript checker uden fejl | 🟡 Ikke testet | `npx tsc --noEmit` returnerer exit code 0 | — |
-| TC-15-02 | Build kompilerer uden fejl | 🟡 Ikke testet | `npm run build` fuldføres uden fejl | — |
+| TC-15-01 | TypeScript checker uden fejl | 🟢 Godkendt | `npx tsc --noEmit` returnerer exit code 0 | 15-06-2026 |
+| TC-15-02 | Build kompilerer uden fejl | 🟢 Godkendt | `npm run build` fuldføres uden fejl | 15-06-2026 |
 
-**Resultat: 0/2 godkendt**
+**Resultat: 2/2 godkendt**
 
 ---
 
@@ -389,7 +389,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 6/90 godkendt** (84 ikke testet endnu)
+> **Resultat: 38/90 godkendt** (52 ikke testet endnu)
 
 ---
 
