@@ -70,11 +70,13 @@ function audio() {
     a.addEventListener('pause', () => {
       const { isPlaying } = useRadioStore.getState()
       if (!isPlaying) return
-      // Restart keepalive immediately to race against iOS deactivating the session
-      // (needed for AirPods ear detection — must happen before session goes inactive).
+      // Always restart keepalive immediately — must race against iOS deactivating
+      // the audio session (AirPods ear detection).
       if (isIOS) startKeepalive()
-      // Delay state update to filter transient browser pauses (tab switch, focus change).
-      // If audio resumed on its own within 150ms it was not a real external pause.
+      // Only sync UI when the page is visible. If the tab is in the background
+      // (user opened guide, switched app, etc.) we reconcile on visibilitychange
+      // instead — otherwise a tab-switch pause would falsely show the PLAY icon.
+      if (document.visibilityState !== 'visible') return
       setTimeout(() => {
         if (!a.paused) return
         const { isPlaying: stillPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
@@ -83,6 +85,18 @@ function audio() {
         useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
         if (currentStation) syncMediaSession(currentStation, false)
       }, 150)
+    })
+
+    // When the tab becomes visible again, reconcile store vs actual audio state.
+    // Covers the case where iOS paused audio while the tab was in the background.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return
+      const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+      if (isPlaying && a.paused) {
+        const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+        if (currentStation) syncMediaSession(currentStation, false)
+      }
     })
     // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
     // Guard: togglePlay() and playStation() both set isPlaying:true before the 'play' event
