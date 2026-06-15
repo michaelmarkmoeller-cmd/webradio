@@ -68,22 +68,9 @@ export default function App() {
       }
     }
 
-    // When ear detection pauses audio externally, open a reconnect window so that
-    // a subsequent devicechange (AirPods re-inserted) can trigger auto-resume.
-    const onExternalPause = () => {
-      wasPlayingAtDisconnect = true
-      if (!pendingReconnect) {
-        pendingReconnect = true
-        if (timer) clearTimeout(timer)
-        timer = setTimeout(() => { pendingReconnect = false }, 10_000)
-      }
-    }
-
     md.addEventListener('devicechange', onDeviceChange)
-    window.addEventListener('webradio:external-pause', onExternalPause)
     return () => {
       md.removeEventListener('devicechange', onDeviceChange)
-      window.removeEventListener('webradio:external-pause', onExternalPause)
       if (timer) clearTimeout(timer)
     }
   }, [])
