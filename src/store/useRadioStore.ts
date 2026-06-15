@@ -73,6 +73,10 @@ function audio() {
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
       if (currentStation) syncMediaSession(currentStation, false)
+      // Attempt to re-activate the iOS audio session before it goes fully inactive.
+      // If the keepalive restarts within the interruption window, MediaSession stays
+      // routable and the next AirPods squeeze will work.
+      if (isIOS) startKeepalive()
     })
     // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
     // Guard: togglePlay() and playStation() both set isPlaying:true before the 'play' event
