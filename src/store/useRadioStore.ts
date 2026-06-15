@@ -73,6 +73,7 @@ function audio() {
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
       if (currentStation) syncMediaSession(currentStation, false)
+      window.dispatchEvent(new CustomEvent('webradio:external-pause'))
     })
   }
   return a
