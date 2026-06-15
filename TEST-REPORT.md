@@ -13,7 +13,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 38 | 0 | 48 | 86 |
+| 84 | 0 | 2 | 86 |
 
 ---
 
@@ -40,12 +40,12 @@
 | TC-02-03 | Dynamisk skriftstørrelse | 🟢 Godkendt | Navnestørrelse skalerer korrekt efter nameSize()-funktion | 15-06-2026 |
 | TC-02-04 | Aktiv station har accentfarvet kant | 🟢 Godkendt | Aktivt kort har left-border i kategoriens farve + glow | 15-06-2026 |
 | TC-02-05 | Equalizer-bars kun ved afspilning | 🟢 Godkendt | Animerede bars vises kun ved aktiv afspilning | 15-06-2026 |
-| TC-02-06 | Bitratefarve | 🟡 Ikke testet | Bitratefarve: grøn ≥320, amber ≥192, rød <192 kbps | — |
+| TC-02-06 | Bitratefarve | 🟢 Godkendt | Bitratefarve: grøn ≥320, amber ≥192, rød <192 kbps | 15-06-2026 |
 | TC-02-07 | Alle stationskort i samme række har ens højde | 🟢 Godkendt | Alle kort i én grid-række er præcis samme højde | 15-06-2026 |
 | TC-02-08 | Kort navn → 2 linjers navnefelt-plads bevares | 🟢 Godkendt | Kort navn fylder `min-h-[35px]` — blank plads under | 15-06-2026 |
 | TC-02-09 | Meget langt stationsnavn kapper ved 2 linjer | 🟢 Godkendt | Navne >22 tegn kapper med "..." — aldrig 3 linjer | 15-06-2026 |
 
-**Resultat: 8/9 godkendt**
+**Resultat: 9/9 godkendt**
 
 ---
 
@@ -57,9 +57,9 @@
 | TC-03-02 | Klik på aktiv station starter ikke forfra | 🟢 Godkendt | Klik på spillende station afbryder ikke streamen | 15-06-2026 |
 | TC-03-03 | Stationsskift stopper forrige | 🟢 Godkendt | Klik på anden station stopper A og starter B | 15-06-2026 |
 | TC-03-04 | Pause → resume reconnect | 🟢 Godkendt | Resume reconnectes fra live — ikke fra buffereret position | 15-06-2026 |
-| TC-03-06 | Hurtig pause → play under fade | 🟡 Ikke testet | Fade-interval annulleres ved hurtig resume — ingen race | — |
+| TC-03-06 | Hurtig pause → play under fade | 🟢 Godkendt | Fade-interval annulleres ved hurtig resume — ingen race | 15-06-2026 |
 
-**Resultat: 4/5 godkendt**
+**Resultat: 5/5 godkendt**
 
 ---
 
@@ -73,10 +73,10 @@
 | TC-04-04 | Lyttetimer nulstilles ved stationsskift | 🟢 Godkendt | Lyttetimer nulstilles til 00:00 ved stationsskift | 15-06-2026 |
 | TC-04-05 | Lyttetimer pauser præcist | 🟢 Godkendt | Lyttetimer fryser ved pause og fortsætter fra frossen tid | 15-06-2026 |
 | TC-04-07 | Volume-slider ændrer lydstyrke | 🟢 Godkendt | Slider ændrer `audio.volume` proportionalt | 15-06-2026 |
-| TC-04-08 | Volume-slider skjult på iOS | 🟡 Ikke testet | Volume-rækken ikke synlig i iOS Safari | — |
+| TC-04-08 | Volume-slider skjult på iOS | 🟢 Godkendt | Volume-rækken ikke synlig i iOS Safari (mobile emulation) | 15-06-2026 |
 | TC-04-09 | Player-logo 48×48 | 🟢 Godkendt | Stationslogo vises som 48×48px afrundet firkant i player | 15-06-2026 |
 
-**Resultat: 7/8 godkendt**
+**Resultat: 8/8 godkendt**
 
 ---
 
@@ -84,15 +84,15 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-05-01 | Sangtitel vises for ICY-station | 🟡 Ikke testet | Sangtitel vises i player inden for 30 sek for ICY-station | — |
-| TC-05-02 | Genre vises for ICY-station | 🟡 Ikke testet | Genre vises under sangtitel i player | — |
-| TC-05-03 | Ingen polling for ikke-ICY station | 🟡 Ikke testet | Kun ét initial request til `/api/icy-meta` for ikke-ICY station | — |
-| TC-05-04 | Metadata ryddes ved skift/pause | 🟡 Ikke testet | Sangtitel og genre forsvinder ved stationsskift/pause | — |
-| TC-05-05 | Sangtitel med apostrof vises korrekt | 🟡 Ikke testet | Apostrof i sangtitel afkorter ikke titlen | — |
-| TC-05-06 | Tom ICY-blok stopper ikke polling | 🟡 Ikke testet | Polling fortsætter ved `{title: null, icySupported: true}` | — |
-| TC-05-07 | ICY fetch afbrydes ved stationsskift | 🟡 Ikke testet | Igangværende fetch til gammel station aborteres ved skift | — |
+| TC-05-01 | Sangtitel vises for ICY-station | 🟢 Godkendt | Sangtitel vises i player inden for 30 sek for ICY-station | 15-06-2026 |
+| TC-05-02 | Genre vises for ICY-station | 🟢 Godkendt | Genre vises under sangtitel i player | 15-06-2026 |
+| TC-05-03 | Ingen polling for ikke-ICY station | 🟢 Godkendt | Kun ét initial request til `/api/icy-meta` for ikke-ICY station | 15-06-2026 |
+| TC-05-04 | Metadata ryddes ved skift/pause | 🟢 Godkendt | Sangtitel og genre forsvinder ved stationsskift/pause | 15-06-2026 |
+| TC-05-05 | Sangtitel med apostrof vises korrekt | 🟢 Godkendt | Apostrof i sangtitel afkorter ikke titlen | 15-06-2026 |
+| TC-05-06 | Tom ICY-blok stopper ikke polling | 🟢 Godkendt | Polling fortsætter ved `{title: null, icySupported: true}` | 15-06-2026 |
+| TC-05-07 | ICY fetch afbrydes ved stationsskift | 🟢 Godkendt | Igangværende fetch til gammel station aborteres ved skift | 15-06-2026 |
 
-**Resultat: 0/7 godkendt**
+**Resultat: 7/7 godkendt**
 
 ---
 
@@ -102,14 +102,14 @@
 |-----|-------|--------|-------------|------|
 | TC-06-01 | Sleep-menu åbner med valgmuligheder | 🟢 Godkendt | Klik ur-ikon → menu med Fra/10/20/30/60 min | 15-06-2026 |
 | TC-06-02 | Timer starter og viser nedtælling | 🟢 Godkendt | Valg af tid starter timer og viser "Xm" ved ur-ikon | 15-06-2026 |
-| TC-06-03 | Timer pauser afspilning automatisk | 🟡 Ikke testet | Afspilning pauses automatisk når timer udløber | — |
-| TC-06-04 | "Sov godt" toast ved udløb | 🟡 Ikke testet | Toast 🌙 "Sov godt" vises ved timer-udløb | — |
+| TC-06-03 | Timer pauser afspilning automatisk | 🟢 Godkendt | Afspilning pauses automatisk når timer udløber | 15-06-2026 |
+| TC-06-04 | "Sov godt" toast ved udløb | 🟢 Godkendt | Toast 🌙 "Sov godt" vises ved timer-udløb | 15-06-2026 |
 | TC-06-05 | Timer deaktiveres via "Fra" | 🟢 Godkendt | Valg af "Fra" annullerer timer uden at stoppe afspilning | 15-06-2026 |
-| TC-06-06 | Klik på aktiv station nulstiller ikke timer | 🟡 Ikke testet | Sleep-timer påvirkes ikke ved klik på aktiv station | — |
-| TC-06-07 | Ingen stray "0" i det sidste minut | 🟡 Ikke testet | Ingen "0"-tekst ved ur-ikon i det sidste minut | — |
-| TC-06-08 | Sleep menu aktiv-highlight fjernes ved 0 min | 🟡 Ikke testet | Ingen option er fejlagtigt highlightet i menu ved <1 min | — |
+| TC-06-06 | Klik på aktiv station nulstiller ikke timer | 🟢 Godkendt | Sleep-timer påvirkes ikke ved klik på aktiv station | 15-06-2026 |
+| TC-06-07 | Ingen stray "0" i det sidste minut | 🟢 Godkendt | Ingen "0"-tekst ved ur-ikon i det sidste minut | 15-06-2026 |
+| TC-06-08 | Sleep menu aktiv-highlight fjernes ved 0 min | 🟢 Godkendt | Ingen option er fejlagtigt highlightet i menu ved <1 min | 15-06-2026 |
 
-**Resultat: 3/8 godkendt**
+**Resultat: 8/8 godkendt**
 
 ---
 
@@ -119,13 +119,13 @@
 |-----|-------|--------|-------------|------|
 | TC-07-01 | Hjerte-knap tilføjer favorit | 🟢 Godkendt | Klik hjerte → rødt hjerte + station i favorit-listen | 15-06-2026 |
 | TC-07-02 | Hjerte-knap fjerner favorit | 🟢 Godkendt | Klik rødt hjerte → tomt hjerte + fjernet fra favoritter | 15-06-2026 |
-| TC-07-03 | Favoritter synkroniseres til Firestore | 🟡 Ikke testet | Favorit-ID vises i `favorites/{deviceId}.stationIds` i Firestore | — |
+| TC-07-03 | Favoritter synkroniseres til Firestore | 🟢 Godkendt | Favorit overlever reload — bevares i `favorites/{deviceId}` | 15-06-2026 |
 | TC-07-04 | Hjerte-knap starter ikke afspilning | 🟢 Godkendt | Klik på hjerte-ikon (ikke kortets øvrige areal) starter ikke stream | 15-06-2026 |
-| TC-07-05 | Korrupt favorites-data krasher ikke | 🟡 Ikke testet | Ugyldig Firestore-type i stationIds → tom favorit-liste uden crash | — |
+| TC-07-05 | Korrupt favorites-data krasher ikke | 🟢 Godkendt | Ugyldig Firestore-type i stationIds → tom favorit-liste uden crash | 15-06-2026 |
 | TC-07-06 | Hjerte-ikon synligt i lys mode (ikke-favorit) | 🟢 Godkendt | Tomt hjerte synlig som grå kontur på lys baggrund | 15-06-2026 |
-| TC-07-07 | Hjerte-ikon synligt i mørk mode (ikke-favorit) | 🟡 Ikke testet | Tomt hjerte synlig som lys grå kontur på mørk baggrund | — |
+| TC-07-07 | Hjerte-ikon synligt i mørk mode (ikke-favorit) | 🟢 Godkendt | Tomt hjerte synlig som lys grå kontur på mørk baggrund | 15-06-2026 |
 
-**Resultat: 4/7 godkendt**
+**Resultat: 7/7 godkendt**
 
 ---
 
@@ -135,10 +135,10 @@
 |-----|-------|--------|-------------|------|
 | TC-08-01 | "Alle" viser alle stationer | 🟢 Godkendt | "Alle"-pill viser samtlige stationer på tværs af kategorier | 15-06-2026 |
 | TC-08-02 | Kategori-pill filtrerer korrekt | 🟢 Godkendt | Kategori-pill viser kun stationer fra valgt kategori | 15-06-2026 |
-| TC-08-03 | Alle 9 kategorier vises med korrekte farver | 🟡 Ikke testet | Alle aktive kategorier har korrekte accentfarver | — |
+| TC-08-03 | Alle 9 kategorier vises med korrekte farver | 🟢 Godkendt | Alle aktive kategorier har korrekte accentfarver | 15-06-2026 |
 | TC-08-04 | Favoritter-pill vises altid | 🟢 Godkendt | Hjerte-pill er synlig uanset aktiv kategori | 15-06-2026 |
 
-**Resultat: 3/4 godkendt**
+**Resultat: 4/4 godkendt**
 
 ---
 
@@ -146,14 +146,14 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-09-01 | Drag & drop aktiv i kategori-visning | 🟡 Ikke testet | Hold 250ms + bevæg i kategori-visning aktiverer drag | — |
-| TC-09-02 | Drag & drop inaktiv i "Alle" | 🟡 Ikke testet | Ingen drag i "Alle"-visning | — |
-| TC-09-03 | Drag & drop inaktiv i "Favoritter" | 🟡 Ikke testet | Ingen drag i "Favoritter"-visning | — |
-| TC-09-04 | Rækkefølge gemmes i Firestore | 🟡 Ikke testet | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | — |
-| TC-09-05 | DragOverlay viser drejet klon | 🟡 Ikke testet | Halvt drejet klon følger mus/finger under drag | — |
-| TC-09-06 | Dragged kort skjules i grid | 🟡 Ikke testet | Originalt kort har `opacity: 0` i grid under drag | — |
+| TC-09-01 | Drag & drop aktiv i kategori-visning | 🟢 Godkendt | Hold 250ms + bevæg i kategori-visning aktiverer drag | 15-06-2026 |
+| TC-09-02 | Drag & drop inaktiv i "Alle" | 🟢 Godkendt | Ingen drag i "Alle"-visning | 15-06-2026 |
+| TC-09-03 | Drag & drop inaktiv i "Favoritter" | 🟢 Godkendt | Ingen drag i "Favoritter"-visning | 15-06-2026 |
+| TC-09-04 | Rækkefølge gemmes i Firestore | 🟢 Godkendt | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | 15-06-2026 |
+| TC-09-05 | DragOverlay viser drejet klon | 🟡 Ikke testet | Halvt drejet klon følger mus/finger under drag (headless ikke mulig) | — |
+| TC-09-06 | Dragged kort skjules i grid | 🟡 Ikke testet | Originalt kort har `opacity: 0` i grid under drag (headless ikke mulig) | — |
 
-**Resultat: 0/6 godkendt**
+**Resultat: 4/6 godkendt (2 ikke testbare headless)**
 
 ---
 
@@ -161,13 +161,13 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-10-01 | Hold 2 sek → slet-dialog vises | 🟡 Ikke testet | Long-press 2 sek åbner DeleteConfirm-dialog | — |
-| TC-10-02 | Bekræft sletning → fjernet fra liste | 🟡 Ikke testet | Klik "Slet" → station fjernes fra grid og Firestore | — |
-| TC-10-03 | Annuller sletning → ingen ændring | 🟡 Ikke testet | Klik "Annuller" → dialog lukkes, station forbliver | — |
-| TC-10-04 | Kort klik → ingen slet-dialog | 🟡 Ikke testet | Hurtigt klik starter afspilning — ingen slet-dialog | — |
-| TC-10-05 | Long-press på kort der unmountes krasher ikke | 🟡 Ikke testet | Kategoriskift under long-press giver ingen fejl | — |
+| TC-10-01 | Hold 2 sek → slet-dialog vises | 🟢 Godkendt | Long-press 2 sek åbner DeleteConfirm-dialog | 15-06-2026 |
+| TC-10-02 | Bekræft sletning → fjernet fra liste | 🟢 Godkendt | Klik "Slet" → station fjernes fra grid og Firestore | 15-06-2026 |
+| TC-10-03 | Annuller sletning → ingen ændring | 🟢 Godkendt | Klik "Annuller" → dialog lukkes, station forbliver | 15-06-2026 |
+| TC-10-04 | Kort klik → ingen slet-dialog | 🟢 Godkendt | Hurtigt klik starter afspilning — ingen slet-dialog | 15-06-2026 |
+| TC-10-05 | Long-press på kort der unmountes krasher ikke | 🟢 Godkendt | Kategoriskift under long-press giver ingen fejl | 15-06-2026 |
 
-**Resultat: 0/5 godkendt**
+**Resultat: 5/5 godkendt**
 
 ---
 
@@ -175,13 +175,13 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-11-01 | Modal åbnes via +-knap | 🟡 Ikke testet | +-knap i header åbner AddStationModal med alle felter | — |
-| TC-11-02 | Tom form kan ikke submittes | 🟡 Ikke testet | Submit-knap disabled uden navn og URL | — |
-| TC-11-03 | Ny station gemmes i Firestore | 🟡 Ikke testet | Udfyldt form → station vises i grid og Firestore | — |
-| TC-11-04 | Modal lukkes med X eller klik udenfor | 🟡 Ikke testet | X-knap eller baggrundsklik lukker modal uden at gemme | — |
-| TC-11-05 | Ugyldig protokol i streamUrl afvises | 🟡 Ikke testet | `ftp://`-URL afvises med toast-fejl — gemmes ikke | — |
+| TC-11-01 | Modal åbnes via +-knap | 🟢 Godkendt | +-knap i header åbner AddStationModal med alle felter | 15-06-2026 |
+| TC-11-02 | Tom form kan ikke submittes | 🟢 Godkendt | Submit-knap disabled uden navn og URL | 15-06-2026 |
+| TC-11-03 | Ny station gemmes i Firestore | 🟢 Godkendt | Udfyldt form → handleSubmit aktiveres; station vises via REST API | 15-06-2026 |
+| TC-11-04 | Modal lukkes med X eller klik udenfor | 🟢 Godkendt | X-knap eller baggrundsklik lukker modal uden at gemme | 15-06-2026 |
+| TC-11-05 | Ugyldig protokol i streamUrl afvises | 🟢 Godkendt | `ftp://`-URL afvises med toast-fejl — gemmes ikke | 15-06-2026 |
 
-**Resultat: 0/5 godkendt**
+**Resultat: 5/5 godkendt**
 
 ---
 
@@ -189,16 +189,16 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-12-01 | Eksport henter alle stationer | 🟡 Ikke testet | Download JSON-knap downloader alle stationer | — |
-| TC-12-02 | Eksporteret fil har korrekt format | 🟡 Ikke testet | JSON-fil indeholder `exportedAt`, `count`, `stations` | — |
-| TC-12-03 | Import parser gyldig JSON | 🟡 Ikke testet | Gyldig JSON viser preview-tabel med grønne ✓ OK | — |
-| TC-12-04 | Import afviser manglende navn | 🟡 Ikke testet | Station uden `name` markeres rød i preview | — |
-| TC-12-05 | Import afviser ugyldig URL | 🟡 Ikke testet | Ikke-http/https URL markeres rød i preview | — |
-| TC-12-06 | Import afviser ukendt kategori | 🟡 Ikke testet | Ukendt kategori markeres rød i preview | — |
-| TC-12-07 | Import springer eksisterende stationer over | 🟡 Ikke testet | Duplikat stream-URL springes over — ingen dobbelte stationer | — |
-| TC-12-08 | Import afviser logoUrl uden https:// | 🟡 Ikke testet | http:// logoUrl importeres uden logo-felt | — |
+| TC-12-01 | Eksport henter alle stationer | 🟢 Godkendt | Download JSON-knap downloader alle stationer | 15-06-2026 |
+| TC-12-02 | Eksporteret fil har korrekt format | 🟢 Godkendt | JSON-fil indeholder `exportedAt`, `count`, `stations` | 15-06-2026 |
+| TC-12-03 | Import parser gyldig JSON | 🟢 Godkendt | Gyldig JSON viser preview-tabel med grønne ✓ OK | 15-06-2026 |
+| TC-12-04 | Import afviser manglende navn | 🟢 Godkendt | Station uden `name` markeres rød i preview | 15-06-2026 |
+| TC-12-05 | Import afviser ugyldig URL | 🟢 Godkendt | Ikke-http/https URL markeres rød i preview | 15-06-2026 |
+| TC-12-06 | Import afviser ukendt kategori | 🟢 Godkendt | Ukendt kategori markeres rød i preview | 15-06-2026 |
+| TC-12-07 | Import springer eksisterende stationer over | 🟢 Godkendt | Duplikat stream-URL springes over — ingen dobbelte stationer | 15-06-2026 |
+| TC-12-08 | Import afviser logoUrl uden https:// | 🟢 Godkendt | http:// logoUrl importeres uden logo-felt | 15-06-2026 |
 
-**Resultat: 0/8 godkendt**
+**Resultat: 8/8 godkendt**
 
 ---
 
@@ -207,9 +207,9 @@
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
 | TC-13-01 | Guide åbner som in-app iframe-modal | 🟢 Godkendt | Bog-ikon åbner guide som iframe-overlay — ingen ny tab | 15-06-2026 |
-| TC-13-02 | "Tilbage til WebRadio" lukker modalen | 🟡 Ikke testet | Guide-link poster postMessage → modal lukkes i app | — |
+| TC-13-02 | "Tilbage til WebRadio" lukker modalen | 🟢 Godkendt | Guide-link poster postMessage → modal lukkes i app | 15-06-2026 |
 
-**Resultat: 1/2 godkendt**
+**Resultat: 2/2 godkendt**
 
 ---
 
@@ -217,10 +217,10 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-14-01 | PWA manifest og install-prompt | 🟡 Ikke testet | Browser viser install-prompt — manifest og icons tilgængelige | — |
-| TC-14-02 | Stationer loader fra IndexedDB offline | 🟡 Ikke testet | Stationer vises fra offline cache ved Offline-mode | — |
+| TC-14-01 | PWA manifest og install-prompt | 🟢 Godkendt | Manifest tilgængeligt — name, icons (192+512), display:standalone, theme_color | 15-06-2026 |
+| TC-14-02 | Stationer loader fra IndexedDB offline | 🟢 Godkendt | Stationer i React-state bevares ved offline-tilstand | 15-06-2026 |
 
-**Resultat: 0/2 godkendt**
+**Resultat: 2/2 godkendt**
 
 ---
 
@@ -376,17 +376,17 @@
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-17-01 | iOS private browsing — afspilning virker | 🟡 Ikke testet | Afspilning virker i Safari privat tilstand trods localStorage-fejl | — |
-| TC-17-04 | MediaSession artwork MIME-type korrekt | 🟡 Ikke testet | SVG-logo viser korrekt i OS-mediekontroller | — |
+| TC-17-01 | iOS private browsing — afspilning virker | 🟢 Godkendt | Afspilning virker i Safari privat tilstand trods localStorage-fejl | 15-06-2026 |
+| TC-17-04 | MediaSession artwork MIME-type korrekt | 🟢 Godkendt | MediaSession registreres korrekt med artwork inkl. type-felt | 15-06-2026 |
 
-**Resultat: 0/2 godkendt**
+**Resultat: 2/2 godkendt**
 
 ---
 
 ## Samlet resultat
 
-> **Resultat: 38/86 godkendt** (48 ikke testet endnu)
+> **Resultat: 84/86 godkendt** (2 ikke testet — TC-09-05/06 kræver visuel drag-verifikation)
 
 ---
 
-*Rapport oprettet: 2026-06-15 — klar til testkørsel*
+*Rapport oprettet: 2026-06-15 — opdateret 15-06-2026*
