@@ -204,6 +204,37 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
 - **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
+## Kendte fejl (kodegennemgang 2026-06-15 — ikke rettet)
+
+### 🔴 Kritiske
+- **SSRF** `api/icy-meta.ts:7` — ingen beskyttelse mod interne IP-ranges (169.254.x.x, 10.x.x.x). Fix: valider `url`-parameter og bloker private IP-ranges inden fetch.
+- **Stale rollback** `useRadioStore.ts:195` — `reorderCategory` fanger `stationOrder`+`stations` snapshot ved kaldstidspunkt; rollback kan overskrive nyere drag-drops. Fix: brug `get()` inde i `.catch()` i stedet for closurens snapshot.
+
+### 🟠 Høje
+- **Fade-race** `useRadioStore.ts:184` — 80ms fade-interval kører videre hvis `playStation()` kaldes inden fade er færdig; `a.pause()` dræber ny stations buffering. Fix: gem interval-ID i en ref og `clearInterval` ved start af `playStation()`.
+- **OOM via craftet `icy-metaint`** `api/icy-meta.ts:37` — ingen øvre grænse. Fix: `if (metaint > 65536) return null`.
+- **Firestore batch > 500** `stationsService.ts:93` — `writeBatch` fejler ved > 500 stationer. Fix: chunk imports i batches af 499.
+- **`streamUrl` ingen protokolvalidering** `ImportExportModal.tsx:31` — `javascript:`/`file://` skrives til Firestore. Fix: `if (!/^https?:\/\//i.test(s.streamUrl)) skip`.
+
+### 🟡 Medium
+- **Blob URL revokeres for tidligt** `ImportExportModal.tsx:73` — Safari downloader asynkront. Fix: `setTimeout(() => URL.revokeObjectURL(url), 1000)`.
+- **TCP socket lækker** `api/icy-meta.ts:28` — `response.body` annulleres ikke ved `!response.ok`. Fix: kald `reader.cancel()` i alle fejlstier.
+- **`logoUrl` ingen URL-validering** `ImportExportModal.tsx:41` — tracking-pixel-URLs gemmes i Firestore. Fix: tillad kun `https://`-URLs.
+- **`seeded` nulstilles ved remount** `stationsService.ts:36` — React 18 StrictMode kan double-seed. Fix: flyt `seeded` til module-scope uden for funktionen.
+- **Jul-kategori `selectedCategory` nulstilles ikke** `CategoryFilter.tsx` — `selectedCategory='Jul'` efter sæson → tom grid. Fix: reset til `'All'` i `CategoryFilter` hvis Jul-pill er skjult og valgt.
+- **`touchstart`+`mousedown` double-fire** `StationCard.tsx:121` — `startPress()` kaldes to gange på touch-enheder. Fix: brug `onPointerDown` i stedet for separate `onMouseDown`/`onTouchStart`.
+
+### 🟢 Lave
+- **MediaSession `stop`: `a.pause()` før `isPlaying:false`** — pause-listener misfortolker stop som ear detection. Fix: sæt `isPlaying:false` inden `audio().pause()`.
+- **`postMessage` uden origin-tjek** `App.tsx:23` — Fix: `if (e.origin !== location.origin) return`.
+- **Keepalive Blob URL lækkes** `audio.ts:28` — `createObjectURL()` revokeres aldrig. Fix: gem URL og `revokeObjectURL` ved reload/beforeunload.
+- **Ukontrolleret cast** `stationOrderService.ts:9` — `snap.data()` castes uden validering. Fix: tjek `Array.isArray()` på hvert felt.
+- **Sleep-timer negativt tal** `Player.tsx:71` — Fix: `Math.max(0, Math.ceil(...))`.
+- **`reorderCategory` fejler lydløst** `useRadioStore.ts:198` — ingen toast. Fix: `toast.error('Kunne ikke gemme rækkefølge')` i catch-blokken.
+- **Sleep-timer nulstilles ved klik på aktiv station** `useRadioStore.ts:208` — Fix: `if (prev?.id === station.id) return` inden timer-reset.
+- **ICY poller stationer uden ICY-support** `Player.tsx:31` — Fix: sæt `icySupported: false` på station efter første `null`-svar og skip fremtidige polls.
+- **`visibilitychange` forkert `listenStartedAt`** `useRadioStore.ts:~94` — lyttetid i baggrunden tælles ikke. Fix: brug `listenStartedAt` fra state i stedet for `Date.now()`.
+
 ## Hjælpescripts (rod-mappen)
 - `check-streams.mjs` — checker bitrate og tilgængelighed på alle streams
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
