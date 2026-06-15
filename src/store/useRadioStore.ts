@@ -70,25 +70,27 @@ function audio() {
     a.addEventListener('pause', () => {
       const { isPlaying } = useRadioStore.getState()
       if (!isPlaying) return
-      // Always restart keepalive immediately — must race against iOS deactivating
-      // the audio session (AirPods ear detection).
+      // Always restart keepalive immediately — races against iOS deactivating
+      // the audio session (required for AirPods ear detection).
       if (isIOS) startKeepalive()
-      // Only sync UI when the page is visible. If the tab is in the background
-      // (user opened guide, switched app, etc.) we reconcile on visibilitychange
-      // instead — otherwise a tab-switch pause would falsely show the PLAY icon.
-      if (document.visibilityState !== 'visible') return
+      // On iOS, 'pause' can fire before visibilityState changes to 'hidden' when
+      // opening a new tab. Delay and double-check both audio state and visibility
+      // before updating the store — visibilitychange handles background reconcile.
       setTimeout(() => {
-        if (!a.paused) return
+        if (!a.paused) return                              // Audio resumed — transient pause
+        if (document.visibilityState !== 'visible') return // Tab hidden — reconcile on return
         const { isPlaying: stillPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
         if (!stillPlaying) return
         const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
         useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
         if (currentStation) syncMediaSession(currentStation, false)
-      }, 150)
+      }, 300)
     })
 
-    // When the tab becomes visible again, reconcile store vs actual audio state.
-    // Covers the case where iOS paused audio while the tab was in the background.
+    // Reconcile store vs actual audio state when tab becomes visible again.
+    // Handles both directions:
+    //   isPlaying:true  + a.paused:true  → iOS paused audio in background → show paused
+    //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
       const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
@@ -96,6 +98,9 @@ function audio() {
         const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
         useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
         if (currentStation) syncMediaSession(currentStation, false)
+      } else if (!isPlaying && !a.paused) {
+        useRadioStore.setState({ isPlaying: true, isBuffering: false, listenStartedAt: Date.now(), listenAccumulatedMs })
+        if (currentStation) syncMediaSession(currentStation, true)
       }
     })
     // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
