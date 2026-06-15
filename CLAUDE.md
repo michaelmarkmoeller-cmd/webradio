@@ -204,20 +204,11 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
 - **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
-## Kendte fejl (kodegennemgang 2026-06-15 — ikke rettet)
+## Kendte fejl (kodegennemgang 2026-06-15 — 2 kritiske + 5 høje rettet 2026-06-15)
 
-### 🔴 Kritiske
-- **SSRF** `api/icy-meta.ts:7` — ingen beskyttelse mod interne IP-ranges (169.254.x.x, 10.x.x.x). Fix: valider `url`-parameter og bloker private IP-ranges inden fetch.
-- **Stale rollback** `useRadioStore.ts:195` — `reorderCategory` fanger `stationOrder`+`stations` snapshot ved kaldstidspunkt; rollback kan overskrive nyere drag-drops. Fix: brug `get()` inde i `.catch()` i stedet for closurens snapshot.
-
-### 🟠 Høje
-- **Fade-race** `useRadioStore.ts:184` — 80ms fade-interval kører videre hvis `playStation()` kaldes inden fade er færdig; `a.pause()` dræber ny stations buffering. Fix: gem interval-ID i en ref og `clearInterval` ved start af `playStation()`.
-- **OOM via craftet `icy-metaint`** `api/icy-meta.ts:37` — ingen øvre grænse. Fix: `if (metaint > 65536) return null`.
-- **Firestore batch > 500** `stationsService.ts:93` — `writeBatch` fejler ved > 500 stationer. Fix: chunk imports i batches af 499.
-- **`streamUrl` ingen protokolvalidering** `ImportExportModal.tsx:31` — `javascript:`/`file://` skrives til Firestore. Fix: `if (!/^https?:\/\//i.test(s.streamUrl)) skip`.
+Rettet i commit `38e5e28`: SSRF, stale rollback, fade-race, OOM metaint, Firestore batch, streamUrl protokol, blob URL revoke.
 
 ### 🟡 Medium
-- **Blob URL revokeres for tidligt** `ImportExportModal.tsx:73` — Safari downloader asynkront. Fix: `setTimeout(() => URL.revokeObjectURL(url), 1000)`.
 - **TCP socket lækker** `api/icy-meta.ts:28` — `response.body` annulleres ikke ved `!response.ok`. Fix: kald `reader.cancel()` i alle fejlstier.
 - **`logoUrl` ingen URL-validering** `ImportExportModal.tsx:41` — tracking-pixel-URLs gemmes i Firestore. Fix: tillad kun `https://`-URLs.
 - **`seeded` nulstilles ved remount** `stationsService.ts:36` — React 18 StrictMode kan double-seed. Fix: flyt `seeded` til module-scope uden for funktionen.
