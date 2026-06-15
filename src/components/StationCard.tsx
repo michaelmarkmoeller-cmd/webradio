@@ -179,25 +179,27 @@ export function StationCard({ station, sortable = false }: Props) {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bitrateColor(station.bitrate) }} />
               <span className="text-xs text-text-muted">{station.bitrate} kbps</span>
-              {isCurrentlyPlaying && (
-                <div className="flex items-end gap-0.5 h-3 ml-0.5">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="w-0.5 rounded-sm animate-pulse"
-                      style={{
-                        height: `${40 + i * 15}%`,
-                        backgroundColor: accentColor,
-                        animationDelay: `${i * 0.15}s`,
-                        animationDuration: `${0.8 + i * 0.1}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {/* Equalizer — bottom-right, only when playing */}
+        {isCurrentlyPlaying && (
+          <div className="absolute bottom-2 right-2 flex items-end gap-0.5 h-3 pointer-events-none">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-0.5 rounded-sm animate-pulse"
+                style={{
+                  height: `${40 + i * 15}%`,
+                  backgroundColor: accentColor,
+                  animationDelay: `${i * 0.15}s`,
+                  animationDuration: `${0.8 + i * 0.1}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {showDelete && (
