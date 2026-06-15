@@ -68,15 +68,21 @@ function audio() {
     // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
     // before its internal a.pause() — so isPlaying:true here always means external pause.
     a.addEventListener('pause', () => {
-      const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+      const { isPlaying } = useRadioStore.getState()
       if (!isPlaying) return
-      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-      useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
-      if (currentStation) syncMediaSession(currentStation, false)
-      // Attempt to re-activate the iOS audio session before it goes fully inactive.
-      // If the keepalive restarts within the interruption window, MediaSession stays
-      // routable and the next AirPods squeeze will work.
+      // Restart keepalive immediately to race against iOS deactivating the session
+      // (needed for AirPods ear detection — must happen before session goes inactive).
       if (isIOS) startKeepalive()
+      // Delay state update to filter transient browser pauses (tab switch, focus change).
+      // If audio resumed on its own within 150ms it was not a real external pause.
+      setTimeout(() => {
+        if (!a.paused) return
+        const { isPlaying: stillPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+        if (!stillPlaying) return
+        const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+        if (currentStation) syncMediaSession(currentStation, false)
+      }, 150)
     })
     // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
     // Guard: togglePlay() and playStation() both set isPlaying:true before the 'play' event
