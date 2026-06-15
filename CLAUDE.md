@@ -207,13 +207,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 ## Kendte fejl (kodegennemgang 2026-06-15 — 2 kritiske + 5 høje rettet 2026-06-15)
 
 Rettet i commit `38e5e28`: SSRF, stale rollback, fade-race, OOM metaint, Firestore batch, streamUrl protokol, blob URL revoke.
-
-### 🟡 Medium
-- **TCP socket lækker** `api/icy-meta.ts:28` — `response.body` annulleres ikke ved `!response.ok`. Fix: kald `reader.cancel()` i alle fejlstier.
-- **`logoUrl` ingen URL-validering** `ImportExportModal.tsx:41` — tracking-pixel-URLs gemmes i Firestore. Fix: tillad kun `https://`-URLs.
-- **`seeded` nulstilles ved remount** `stationsService.ts:36` — React 18 StrictMode kan double-seed. Fix: flyt `seeded` til module-scope uden for funktionen.
-- **Jul-kategori `selectedCategory` nulstilles ikke** `CategoryFilter.tsx` — `selectedCategory='Jul'` efter sæson → tom grid. Fix: reset til `'All'` i `CategoryFilter` hvis Jul-pill er skjult og valgt.
-- **`touchstart`+`mousedown` double-fire** `StationCard.tsx:121` — `startPress()` kaldes to gange på touch-enheder. Fix: brug `onPointerDown` i stedet for separate `onMouseDown`/`onTouchStart`.
+Rettet i commit `667b890`: TCP socket, logoUrl validering, seeded remount, Jul-kategori reset, double-fire pointer events.
 
 ### 🟢 Lave
 - **MediaSession `stop`: `a.pause()` før `isPlaying:false`** — pause-listener misfortolker stop som ear detection. Fix: sæt `isPlaying:false` inden `audio().pause()`.
