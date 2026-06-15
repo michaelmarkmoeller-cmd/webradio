@@ -129,7 +129,7 @@ export function StationCard({ station, sortable = false }: Props) {
       >
         {/* Favorite heart */}
         <button
-          className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90"
+          className="absolute top-2 right-2 z-10 p-0.5 transition-transform active:scale-90 text-text-secondary"
           onClick={(e) => { e.stopPropagation(); toggleFavorite(station.id) }}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
@@ -138,7 +138,7 @@ export function StationCard({ station, sortable = false }: Props) {
           <svg
             className="w-4 h-4 drop-shadow-sm"
             fill={isFavorite ? '#ef4444' : 'none'}
-            stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.4)'}
+            stroke={isFavorite ? '#ef4444' : 'currentColor'}
             strokeWidth={2}
             viewBox="0 0 24 24"
           >
