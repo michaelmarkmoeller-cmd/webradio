@@ -1,3 +1,19 @@
+function isPrivateHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  if (h === 'localhost' || h === '::1') return true
+  const ipv4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (ipv4) {
+    const a = Number(ipv4[1]), b = Number(ipv4[2])
+    return (
+      a === 10 || a === 127 || a === 0 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254)
+    )
+  }
+  return false
+}
+
 export default async function handler(req: any, res: any) {
   const { url } = req.query
 
@@ -5,6 +21,12 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ title: null })
   }
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return res.status(400).json({ title: null })
+  }
+  try {
+    const { hostname } = new URL(url)
+    if (isPrivateHost(hostname)) return res.status(400).json({ title: null })
+  } catch {
     return res.status(400).json({ title: null })
   }
 
@@ -35,7 +57,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const metaint = parseInt(metaintHeader, 10)
-    if (!metaint || metaint <= 0) {
+    if (!metaint || metaint <= 0 || metaint > 65536) {
       return res.json({ title: null })
     }
 

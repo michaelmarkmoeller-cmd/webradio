@@ -90,11 +90,15 @@ export async function importStations(stations: StationFormData[]): Promise<{ imp
   const skipped = stations.length - fresh.length
 
   if (fresh.length > 0) {
-    const batch = writeBatch(db)
-    for (const station of fresh) {
-      batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })
+    const BATCH_SIZE = 499
+    for (let i = 0; i < fresh.length; i += BATCH_SIZE) {
+      const chunk = fresh.slice(i, i + BATCH_SIZE)
+      const batch = writeBatch(db)
+      for (const station of chunk) {
+        batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })
+      }
+      await batch.commit()
     }
-    await batch.commit()
   }
 
   return { imported: fresh.length, skipped }

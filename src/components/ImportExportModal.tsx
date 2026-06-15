@@ -30,6 +30,8 @@ function parseFile(raw: unknown): ParsedStation[] {
       return { name: '', streamUrl: '', category: CATEGORIES[0], valid: false, error: 'Mangler navn' }
     if (typeof s.streamUrl !== 'string' || !s.streamUrl.trim())
       return { name: s.name as string, streamUrl: '', category: CATEGORIES[0], valid: false, error: 'Mangler streamUrl' }
+    if (!/^https?:\/\//i.test(s.streamUrl.trim()))
+      return { name: s.name as string, streamUrl: s.streamUrl as string, category: CATEGORIES[0], valid: false, error: 'Ugyldig URL (kun http/https)' }
     if (!CATEGORIES.includes(s.category as Category))
       return { name: s.name as string, streamUrl: s.streamUrl as string, category: CATEGORIES[0], valid: false, error: `Ukendt kategori: "${s.category}"` }
 
@@ -71,7 +73,7 @@ export function ImportExportModal({ onClose }: Props) {
     a.href = url
     a.download = `webradio-stationer-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
     toast.success(`${stations.length} stationer eksporteret`)
   }
 

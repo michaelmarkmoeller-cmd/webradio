@@ -51,6 +51,7 @@ interface RadioStore {
 }
 
 let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
+let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
 
 // Returns the singleton Audio element.
@@ -192,18 +193,30 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   })),
 
   reorderCategory: (category, orderedIds) => {
-    const { stationOrder, stations } = get()
+    const { stationOrder } = get()
+    const prevCategoryOrder = stationOrder[category]
     const newOrder = { ...stationOrder, [category]: orderedIds }
-    set({ stationOrder: newOrder, stations: sortWithOrder(stations, newOrder) })
+    set({ stationOrder: newOrder, stations: sortWithOrder(get().stations, newOrder) })
     saveStationOrder(getDeviceId(), category, orderedIds).catch(() => {
-      // Revert on failure
-      set({ stationOrder, stations: sortWithOrder(stations, stationOrder) })
+      const { stationOrder: curOrder, stations: curStations } = get()
+      const revertedOrder = { ...curOrder }
+      if (prevCategoryOrder !== undefined) {
+        revertedOrder[category] = prevCategoryOrder
+      } else {
+        delete revertedOrder[category]
+      }
+      set({ stationOrder: revertedOrder, stations: sortWithOrder(curStations, revertedOrder) })
     })
   },
 
   playStation: (station) => {
     if (isIOS) startKeepalive() // iOS only — keeps audio session alive while stream is paused
     const a = audio()
+    if (fadeIntervalId) {
+      clearInterval(fadeIntervalId)
+      fadeIntervalId = null
+      try { a.volume = get().volume } catch {}
+    }
     const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
     // Reset sleep timer on station change so the full duration applies to the new station
     if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
@@ -238,11 +251,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       // Fade volume to zero before pause to avoid audio click artifact
       const fromVol = a.volume
       let step = 0
-      const id = setInterval(() => {
+      fadeIntervalId = setInterval(() => {
         step++
         try { a.volume = Math.max(0, fromVol * (1 - step / 8)) } catch { /* iOS: volume read-only */ }
         if (step >= 8) {
-          clearInterval(id)
+          clearInterval(fadeIntervalId!)
+          fadeIntervalId = null
           a.pause()
           try { a.volume = volume } catch {}
         }
