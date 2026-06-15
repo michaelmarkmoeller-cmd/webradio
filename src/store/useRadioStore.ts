@@ -75,6 +75,15 @@ function audio() {
       if (currentStation) syncMediaSession(currentStation, false)
       window.dispatchEvent(new CustomEvent('webradio:external-pause'))
     })
+    // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
+    // Guard: togglePlay() and playStation() both set isPlaying:true before the 'play' event
+    // fires (it's a queued macrotask), so isPlaying:false here always means external resume.
+    a.addEventListener('play', () => {
+      const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
+      if (isPlaying) return
+      useRadioStore.setState({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now(), listenAccumulatedMs })
+      if (currentStation) syncMediaSession(currentStation, true)
+    })
   }
   return a
 }
