@@ -69,21 +69,22 @@ function audio() {
     // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
     // before its internal a.pause() — so isPlaying:true here always means external pause.
     a.addEventListener('pause', () => {
-      const { isPlaying } = useRadioStore.getState()
+      const { isPlaying, listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       if (!isPlaying) return
-      // Always restart keepalive immediately — races against iOS deactivating
-      // the audio session (required for AirPods ear detection).
       if (isIOS) startKeepalive()
-      // On iOS, 'pause' can fire before visibilityState changes to 'hidden' when
-      // opening a new tab. Delay and double-check both audio state and visibility
-      // before updating the store — visibilitychange handles background reconcile.
+      // Snapshot accumulated time at the instant of pause so visibilitychange
+      // does not double-count time spent with audio paused in background.
+      const snapshotMs = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       setTimeout(() => {
         if (!a.paused) return                              // Audio resumed — transient pause
-        if (document.visibilityState !== 'visible') return // Tab hidden — reconcile on return
-        const { isPlaying: stillPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+        if (document.visibilityState !== 'visible') {
+          // Background pause: record elapsed time without flickering isPlaying in UI
+          useRadioStore.setState({ listenAccumulatedMs: snapshotMs, listenStartedAt: null })
+          return
+        }
+        const { isPlaying: stillPlaying, currentStation } = useRadioStore.getState()
         if (!stillPlaying) return
-        const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: snapshotMs })
         if (currentStation) syncMediaSession(currentStation, false)
       }, 300)
     })
@@ -133,8 +134,8 @@ function syncMediaSession(station: Station, playing: boolean) {
     navigator.mediaSession.setActionHandler('stop', () => {
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-      audio().pause()
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+      audio().pause()
     })
     mediaSessionReady = true
   }
@@ -206,6 +207,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         delete revertedOrder[category]
       }
       set({ stationOrder: revertedOrder, stations: sortWithOrder(curStations, revertedOrder) })
+      toast.error('Kunne ikke gemme rækkefølge')
     })
   },
 
@@ -218,8 +220,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       try { a.volume = get().volume } catch {}
     }
     const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
-    // Reset sleep timer on station change so the full duration applies to the new station
-    if (sleepTimerMinutes !== null) get().setSleepTimer(sleepTimerMinutes)
+    // Reset sleep timer only when switching to a different station
+    if (sleepTimerMinutes !== null && prev?.id !== station.id) get().setSleepTimer(sleepTimerMinutes)
     // Only change src if station is different — avoids aborting in-progress buffering.
     // Set isPlaying:false before a.pause() so the external-pause listener doesn't misfire.
     if (a.src !== station.streamUrl) {

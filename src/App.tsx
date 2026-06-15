@@ -21,6 +21,7 @@ export default function App() {
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
       if (e.data === 'close-guide') setShowGuide(false)
     }
     window.addEventListener('message', onMessage)

@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
     const metaintHeader = response.headers.get('icy-metaint')
     if (!metaintHeader) {
       response.body.cancel().catch(() => {})
-      return res.json({ title: null })
+      return res.json({ title: null, icySupported: false })
     }
 
     const metaint = parseInt(metaintHeader, 10)
@@ -103,7 +103,7 @@ export default async function handler(req: any, res: any) {
     const title = match?.[1]?.trim() || null
     const genre = response.headers.get('icy-genre') || null
 
-    return res.json({ title, genre })
+    return res.json({ title, genre, icySupported: true })
   } catch {
     return res.json({ title: null })
   }

@@ -19,24 +19,28 @@ export function Player() {
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
   const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
   const sleepMenuRef = useRef<HTMLDivElement>(null)
+  const icySupportedRef = useRef<boolean | null>(null)
   const [, setTick] = useState(0)
   const [, setListenTick] = useState(0)
 
   useEffect(() => {
+    icySupportedRef.current = null
     if (!currentStation || !isPlaying) {
       setMeta({ title: null, genre: null })
       return
     }
     let cancelled = false
     async function fetchMeta() {
+      if (icySupportedRef.current === false) return
       try {
         const res = await fetch(`/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`)
         if (!res.ok) return
         const data = await res.json()
-        if (!cancelled) setMeta({ title: data.title ?? null, genre: data.genre ?? null })
-      } catch {
-        // stream doesn't support ICY metadata — ignore silently
-      }
+        if (cancelled) return
+        if (data.icySupported === false) { icySupportedRef.current = false; return }
+        icySupportedRef.current = true
+        setMeta({ title: data.title ?? null, genre: data.genre ?? null })
+      } catch { }
     }
     fetchMeta()
     const interval = setInterval(fetchMeta, 30000)
@@ -69,7 +73,7 @@ export function Player() {
   }, [sleepMenuOpen])
 
   const remainingMinutes = sleepTimerEnd
-    ? Math.ceil((sleepTimerEnd - Date.now()) / 60_000)
+    ? Math.max(0, Math.ceil((sleepTimerEnd - Date.now()) / 60_000))
     : null
 
   if (!currentStation) return null

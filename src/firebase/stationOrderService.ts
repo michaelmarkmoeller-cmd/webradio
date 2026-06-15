@@ -6,7 +6,13 @@ export function subscribeToStationOrder(
   onData: (order: Record<string, string[]>) => void
 ) {
   return onSnapshot(doc(db, 'stationOrders', deviceId), (snap) => {
-    onData(snap.exists() ? (snap.data() as Record<string, string[]>) : {})
+    if (!snap.exists()) { onData({}); return }
+    const raw = snap.data()!
+    const order: Record<string, string[]> = {}
+    for (const [k, v] of Object.entries(raw)) {
+      if (Array.isArray(v)) order[k] = v as string[]
+    }
+    onData(order)
   })
 }
 

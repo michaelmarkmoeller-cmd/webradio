@@ -42,6 +42,10 @@ export function startKeepalive(): void {
   if (_keepalive.paused) _keepalive.play().catch(() => {})
 }
 
+window.addEventListener('beforeunload', () => {
+  if (_silentUrl) URL.revokeObjectURL(_silentUrl)
+})
+
 // Lazy: creates the Audio element the first time it's called.
 // On iOS Safari, Audio must be created within a user gesture to be playable.
 export function getOrCreateAudio(callbacks?: AudioCallbacks): HTMLAudioElement {
