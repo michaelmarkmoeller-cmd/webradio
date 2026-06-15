@@ -20,7 +20,7 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 - Firebase Firestore — real-time sync via `onSnapshot`
 - @dnd-kit/core + @dnd-kit/sortable — drag & drop rækkefølge
 - react-hot-toast — notifikationer
-- @playwright/test — dev-dep til screenshot-generering af brugervejledning
+- @playwright/test — dev-dep til screenshot-generering af brugervejledning + automatiserede tests (`tests/`)
 
 ## Projektstruktur
 ```
@@ -89,8 +89,8 @@ public/
 - `favorites/{deviceId}` — felter: `stationIds: string[]`
 - `stationOrders/{deviceId}` — felter: `{ [category]: string[] }` — ordnet liste af station-IDs per kategori
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato) på `/{document=**}`
-- Auto-seed: 10 stationer indsættes automatisk hvis databasen er tom
-- **72 stationer** i databasen pr. juni 2026 — alle har logoer
+- Auto-seed: 9 stationer indsættes automatisk hvis databasen er tom
+- **80 stationer** i databasen pr. juni 2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (9)
@@ -115,7 +115,8 @@ Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og imp
 - **Hold 250ms + bevæg** i kategori-visning → drag & drop reorder
 - Play/pause styres kun fra player-baren nederst
 - Player viser gul "Forbinder"-indikator mens stream buffererer, rød "Live" + lyttetimer når den spiller
-- Stationsnavne bruger dynamisk skriftstørrelse (ingen "..."-afskæring): ≤12 tegn → text-sm, ≤18 → text-xs, længere → 11px
+- Stationsnavne bruger dynamisk skriftstørrelse med `line-clamp-2` sikkerhedsnet: ≤12 tegn → `text-sm`, ≤15 → `text-xs`, ≤22 → `text-[11px]`, længere → `text-[10px]`
+- **Stationskort-navnehøjde**: `min-h-[35px]` (fast px, ikke em) sikrer at alle kort i samme række har ens højde uanset navnelængde
 - Stationer vises i device-specifik rækkefølge (drag & drop), fallback til alfabetisk
 - Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
 - **`pointer-events: none`** på tekst-container i StationCard — forhindrer iOS 16+ "Kopier/Oversæt/Læs op" callout ved long-press
@@ -170,7 +171,7 @@ Bog-ikonet i app-headeren (`App.tsx`) linker til `/guide/` i samme fane.
 - Forbinder til stream-URL med `Icy-MetaData: 1` header
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
-- **32 ud af 72 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
+- **32 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
 - 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
 - Player poller hvert 30. sek når der spiller
 
@@ -192,7 +193,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 72 stationer har `logoUrl` i Firestore
+- Alle 80 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
@@ -204,24 +205,25 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
 - **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
-## Kendte fejl (kodegennemgang 2026-06-15 — 2 kritiske + 5 høje rettet 2026-06-15)
+## Kendte fejl
 
-Rettet i commit `38e5e28`: SSRF, stale rollback, fade-race, OOM metaint, Firestore batch, streamUrl protokol, blob URL revoke.
-Rettet i commit `667b890`: TCP socket, logoUrl validering, seeded remount, Jul-kategori reset, double-fire pointer events.
+Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
+- Commit `38e5e28`: SSRF, stale rollback, fade-race, OOM metaint, Firestore batch, streamUrl protokol, blob URL revoke.
+- Commit `667b890`: TCP socket, logoUrl validering, seeded remount, Jul-kategori reset, double-fire pointer events.
+- Commit `d958adf`: MediaSession stop-rækkefølge, postMessage origin-tjek, keepalive blob URL revoke, stationOrder cast-validering, sleep-timer negativt tal, reorderCategory silent fail, sleep-timer reset ved aktiv station, ICY polling uden support, visibilitychange listenStartedAt, fade-race resume, localStorage try/catch, ICY AbortController, devicechange 150ms guard, stopKeepalive eksport, MediaSession MIME-type, stationsService fejl-håndtering, deviceId private browsing fallback.
+- Commit `3ff0822`: Uniform kortstørrelse (`min-h-[35px]` + `line-clamp-2`), nameSize-tærskelværdier strammet, hjerte-ikon synlighed i lys mode (`currentColor` stroke).
 
-### 🟢 Lave
-- **MediaSession `stop`: `a.pause()` før `isPlaying:false`** — pause-listener misfortolker stop som ear detection. Fix: sæt `isPlaying:false` inden `audio().pause()`.
-- **`postMessage` uden origin-tjek** `App.tsx:23` — Fix: `if (e.origin !== location.origin) return`.
-- **Keepalive Blob URL lækkes** `audio.ts:28` — `createObjectURL()` revokeres aldrig. Fix: gem URL og `revokeObjectURL` ved reload/beforeunload.
-- **Ukontrolleret cast** `stationOrderService.ts:9` — `snap.data()` castes uden validering. Fix: tjek `Array.isArray()` på hvert felt.
-- **Sleep-timer negativt tal** `Player.tsx:71` — Fix: `Math.max(0, Math.ceil(...))`.
-- **`reorderCategory` fejler lydløst** `useRadioStore.ts:198` — ingen toast. Fix: `toast.error('Kunne ikke gemme rækkefølge')` i catch-blokken.
-- **Sleep-timer nulstilles ved klik på aktiv station** `useRadioStore.ts:208` — Fix: `if (prev?.id === station.id) return` inden timer-reset.
-- **ICY poller stationer uden ICY-support** `Player.tsx:31` — Fix: sæt `icySupported: false` på station efter første `null`-svar og skip fremtidige polls.
-- **`visibilitychange` forkert `listenStartedAt`** `useRadioStore.ts:~94` — lyttetid i baggrunden tælles ikke. Fix: brug `listenStartedAt` fra state i stedet for `Date.now()`.
+**Ingen kendte fejl pr. juni 2026.**
+
+## Test-infrastruktur
+- `playwright.config.ts` — Playwright-konfiguration (Chromium, headless, target: live-app)
+- `tests/tc-01.spec.ts` — automatiserede Playwright-tests for TC-01 (app-start + state restore)
+- `TEST-CASES.md` — fuld testspecifikation: 90 test cases fordelt på 17 grupper
+- `TEST-REPORT.md` — testrapport med status pr. TC (opdateres løbende)
+- Kør: `npx playwright test` (kræver netværk til live-appen)
 
 ## Hjælpescripts (rod-mappen)
-- `check-streams.mjs` — checker bitrate og tilgængelighed på alle streams
+- `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers)
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
