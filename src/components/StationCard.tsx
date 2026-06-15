@@ -22,8 +22,9 @@ function bitrateColor(bitrate: number): string {
 
 function nameSize(name: string): string {
   if (name.length <= 12) return 'text-sm'
-  if (name.length <= 18) return 'text-xs'
-  return 'text-[11px]'
+  if (name.length <= 15) return 'text-xs'
+  if (name.length <= 22) return 'text-[11px]'
+  return 'text-[10px]'
 }
 
 const LONG_PRESS_MS = 2000
@@ -159,7 +160,7 @@ export function StationCard({ station, sortable = false }: Props) {
 
         {/* Name + category + flag/bitrate */}
         <div className={`pointer-events-none pr-7 ${station.logoUrl ? 'ml-14' : ''}`}>
-          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words min-h-[35px] ${nameSize(station.name)}`}>
+          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words min-h-[35px] line-clamp-2 ${nameSize(station.name)}`}>
             {station.name}
           </h3>
           <div className="flex items-center gap-1.5 mt-0.5">
