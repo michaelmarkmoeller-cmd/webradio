@@ -77,9 +77,9 @@ public/
 
 **Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). `wasPlayingAtDisconnect` gemmes ved frakobling — auto-resume ved reconnect inden **10 sekunder** sker kun hvis APPEN selv pausede (ikke hvis brugeren manuelt pausede inden frakobling). Forhindrer at musik uventet starter ved tilfældig enhedsændring.
 
-**CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
+**AirPods ear detection**: `useRadioStore.ts` lytter på `pause`-eventet på audio-elementet. Når iOS pauser via ear detection (ikke via vores egen kode), opdateres UI til pauset og `startKeepalive()` kaldes øjeblikkeligt — genstarter keepalive-WAV'en inden iOS fuldt deaktiverer sessionen, så MediaSession forbliver aktiv og næste AirPods-klem virker. `play`-eventet håndterer iOS auto-resume. Guard: `togglePlay()` og `playStation()` sætter begge `isPlaying:false` inden `a.pause()` → interne pauser ignoreres af listeneren.
 
-**Kendt iOS-begrænsning**: AirPods ear detection (automatisk ørengenkendelse) styres på native iOS-niveau via AVAudioSession — web apps kan ikke fuldt ud intercepte dette.
+**CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
 
 ## Firestore collections
 - `stations` — felter: `name`, `streamUrl`, `category`, `createdAt`, `logoUrl`, `bitrate`, `country`
