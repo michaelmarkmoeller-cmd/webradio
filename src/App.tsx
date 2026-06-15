@@ -17,6 +17,7 @@ export default function App() {
   const { setStations, setLoading, setFavorites, setStationOrder, currentStation } = useRadioStore()
   const [showAdd, setShowAdd] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
   const { isDark, toggle } = useTheme()
 
   useEffect(() => {
@@ -96,17 +97,15 @@ export default function App() {
             </span>
           </h1>
           <div className="flex items-center gap-2">
-            <a
-              href="/guide/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setShowGuide(true)}
               title="Brugervejledning"
               className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332-.477-4.5-1.253" />
               </svg>
-            </a>
+            </button>
             <button
               onClick={() => setShowImportExport(true)}
               title="Import / Eksport stationer"
@@ -155,6 +154,28 @@ export default function App() {
 
       {showAdd && <AddStationModal onClose={() => setShowAdd(false)} />}
       {showImportExport && <ImportExportModal onClose={() => setShowImportExport(false)} />}
+
+      {showGuide && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-bg-primary">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-secondary shrink-0">
+            <span className="font-semibold text-text-primary">Brugervejledning</span>
+            <button
+              onClick={() => setShowGuide(false)}
+              className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-card transition-colors"
+              aria-label="Luk"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <iframe
+            src="/guide/"
+            className="flex-1 w-full border-0"
+            title="Brugervejledning"
+          />
+        </div>
+      )}
 
       <Toaster
         position="top-right"
