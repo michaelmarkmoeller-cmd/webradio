@@ -159,7 +159,7 @@ export function StationCard({ station, sortable = false }: Props) {
 
         {/* Name + category + flag/bitrate */}
         <div className={`pointer-events-none pr-7 ${station.logoUrl ? 'ml-14' : ''}`}>
-          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words min-h-[2.5em] ${nameSize(station.name)}`}>
+          <h3 className={`font-display font-semibold text-text-primary leading-tight break-words min-h-[35px] ${nameSize(station.name)}`}>
             {station.name}
           </h3>
           <div className="flex items-center gap-1.5 mt-0.5">
