@@ -98,6 +98,8 @@ export default function App() {
           <div className="flex items-center gap-2">
             <a
               href="/guide/"
+              target="_blank"
+              rel="noopener noreferrer"
               title="Brugervejledning"
               className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors"
             >
