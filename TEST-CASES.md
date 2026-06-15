@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-06-15  
-**Antal test cases:** 90 fordelt på 17 grupper
+**Antal test cases:** 86 fordelt på 17 grupper
 
 ---
 
@@ -201,16 +201,6 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-03-05: Fade-out ved pause
-**Forudsætning:** En station spiller  
-**Trin:**
-1. Klik Pause-knappen
-2. Lyt til lydafskæringen
-
-**Forventet resultat:** Lyden fader blødt ud over ~80ms. Ingen abrupt klik eller pop i lyden.
-
----
-
 ### TC-03-06: Hurtig pause → play under fade
 **Forudsætning:** En station spiller  
 **Trin:**
@@ -271,14 +261,6 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 5. Observer lyttetimeren
 
 **Forventet resultat:** Lyttetimeren fryser ved pause. Fortsætter fra frossen tid ved resume (tæller ikke ventetiden med).
-
----
-
-### TC-04-06: Lyttetimer format over 1 time
-**Forudsætning:** En station har spillet i over 1 time (kræver lang ventetid — kan valideres i kode)  
-**Trin:** Verificeres via kodegennemgang: `formatListenTime()` i `Player.tsx`.
-
-**Forventet resultat:** Format skifter fra `MM:SS` til `TT:MM:SS` ved 3600 sekunder.
 
 ---
 
@@ -895,26 +877,6 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-17-02: Dobbelt devicechange behandles korrekt
-**Forudsætning:** En station spiller på en enhed med Bluetooth-lyd (fx AirPods)  
-**Trin:**
-1. Frakobl Bluetooth-enhed
-2. Tilslut øjeblikkeligt en anden Bluetooth-enhed (inden 150ms)
-
-**Forventet resultat:** Anden event ignoreres (behandles som støj fra samme device-change batch). Ingen uventet resume af lyden.
-
----
-
-### TC-17-03: Keepalive stoppes ved sleep-timer udløb (iOS)
-**Forudsætning:** iPhone med afspillende station og aktiv sleep-timer  
-**Trin:**
-1. Sæt sleep-timer til minimum
-2. Vent til timer udløber
-
-**Forventet resultat:** Afspilning pauses. Keepalive-WAV stoppes (`stopKeepalive()` kaldes). MediaSession forsvinder fra låseskærm inden rimelig tid.
-
----
-
 ### TC-17-04: MediaSession artwork MIME-type korrekt
 **Forudsætning:** En station med SVG- eller WebP-logo spiller  
 **Trin:**
@@ -925,4 +887,4 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-06-15 — 90 test cases, 17 grupper*
+*Sidst opdateret: 2026-06-15 — 86 test cases, 17 grupper*

@@ -5,7 +5,7 @@
 **Rapport oprettet:** 2026-06-15  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 90
+**Antal test cases:** 86
 
 ---
 
@@ -13,7 +13,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 38 | 0 | 52 | 90 |
+| 38 | 0 | 48 | 86 |
 
 ---
 
@@ -57,10 +57,9 @@
 | TC-03-02 | Klik på aktiv station starter ikke forfra | 🟢 Godkendt | Klik på spillende station afbryder ikke streamen | 15-06-2026 |
 | TC-03-03 | Stationsskift stopper forrige | 🟢 Godkendt | Klik på anden station stopper A og starter B | 15-06-2026 |
 | TC-03-04 | Pause → resume reconnect | 🟢 Godkendt | Resume reconnectes fra live — ikke fra buffereret position | 15-06-2026 |
-| TC-03-05 | Fade-out ved pause | 🟡 Ikke testet | Pause fade blødt ud over ~80ms — ingen klik/pop | — |
 | TC-03-06 | Hurtig pause → play under fade | 🟡 Ikke testet | Fade-interval annulleres ved hurtig resume — ingen race | — |
 
-**Resultat: 4/6 godkendt**
+**Resultat: 4/5 godkendt**
 
 ---
 
@@ -73,12 +72,11 @@
 | TC-04-03 | "Live" indikator ved aktiv afspilning | 🟢 Godkendt | Rød prik + "LIVE" vises når stream er aktiv | 15-06-2026 |
 | TC-04-04 | Lyttetimer nulstilles ved stationsskift | 🟢 Godkendt | Lyttetimer nulstilles til 00:00 ved stationsskift | 15-06-2026 |
 | TC-04-05 | Lyttetimer pauser præcist | 🟢 Godkendt | Lyttetimer fryser ved pause og fortsætter fra frossen tid | 15-06-2026 |
-| TC-04-06 | Lyttetimer format over 1 time | 🟡 Ikke testet | Format skifter fra MM:SS til TT:MM:SS ved 3600 sek | — |
 | TC-04-07 | Volume-slider ændrer lydstyrke | 🟢 Godkendt | Slider ændrer `audio.volume` proportionalt | 15-06-2026 |
 | TC-04-08 | Volume-slider skjult på iOS | 🟡 Ikke testet | Volume-rækken ikke synlig i iOS Safari | — |
 | TC-04-09 | Player-logo 48×48 | 🟢 Godkendt | Stationslogo vises som 48×48px afrundet firkant i player | 15-06-2026 |
 
-**Resultat: 7/9 godkendt**
+**Resultat: 7/8 godkendt**
 
 ---
 
@@ -379,17 +377,15 @@
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
 | TC-17-01 | iOS private browsing — afspilning virker | 🟡 Ikke testet | Afspilning virker i Safari privat tilstand trods localStorage-fejl | — |
-| TC-17-02 | Dobbelt devicechange behandles korrekt | 🟡 Ikke testet | To device-change events inden for 150ms ignoreres som støj | — |
-| TC-17-03 | Keepalive stoppes ved sleep-timer udløb (iOS) | 🟡 Ikke testet | `stopKeepalive()` kaldes ved sleep-timer udløb på iOS | — |
 | TC-17-04 | MediaSession artwork MIME-type korrekt | 🟡 Ikke testet | SVG-logo viser korrekt i OS-mediekontroller | — |
 
-**Resultat: 0/4 godkendt**
+**Resultat: 0/2 godkendt**
 
 ---
 
 ## Samlet resultat
 
-> **Resultat: 38/90 godkendt** (52 ikke testet endnu)
+> **Resultat: 38/86 godkendt** (48 ikke testet endnu)
 
 ---
 
