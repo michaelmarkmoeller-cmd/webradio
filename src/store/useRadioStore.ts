@@ -91,15 +91,28 @@ function audio() {
 
     // Reconcile store vs actual audio state when tab becomes visible again.
     // Handles both directions:
-    //   isPlaying:true  + a.paused:true  → iOS paused audio in background → show paused
+    //   isPlaying:true  + a.paused:true  → iOS killed audio in background → auto-resume, fallback to paused
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
-      const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
+      const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
       if (isPlaying && a.paused) {
-        const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
-        if (currentStation) syncMediaSession(currentStation, false)
+        if (currentStation) {
+          // Audio was killed by iOS (shared WebKit process management) while backgrounded.
+          // Attempt silent auto-resume; fall back to paused UI + toast if iOS requires fresh gesture.
+          a.src = currentStation.streamUrl
+          a.play()
+            .then(() => {
+              useRadioStore.setState({ listenStartedAt: Date.now() })
+            })
+            .catch(() => {
+              useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+              syncMediaSession(currentStation, false)
+              toast('Musik stoppet — tryk play for at fortsætte', { icon: '📻' })
+            })
+        } else {
+          useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+        }
       } else if (!isPlaying && !a.paused) {
         useRadioStore.setState({ isPlaying: true, isBuffering: false, listenStartedAt: Date.now(), listenAccumulatedMs })
         if (currentStation) syncMediaSession(currentStation, true)
