@@ -96,8 +96,10 @@ function audio() {
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
+      _shouldResume = false  // Clear any stale flag on every foreground; only re-arm if needed
       const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
       if (isPlaying && a.paused) {
+        // listenAccumulatedMs is already correct — background pause handler snapshotted it
         useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
         if (currentStation) syncMediaSession(currentStation, false)
         // visibilitychange and touchstart are NOT valid iOS user-gestures for audio.play().
