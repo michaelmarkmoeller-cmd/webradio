@@ -53,7 +53,7 @@ interface RadioStore {
 let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
 let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
-let _pendingResume: (() => void) | null = null
+let _shouldResume = false
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -92,42 +92,41 @@ function audio() {
 
     // Reconcile store vs actual audio state when tab becomes visible again.
     // Handles both directions:
-    //   isPlaying:true  + a.paused:true  → iOS killed audio in background → touchstart resume
+    //   isPlaying:true  + a.paused:true  → iOS killed audio in background → arm click-resume
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
       const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
       if (isPlaying && a.paused) {
-        if (currentStation) {
-          // iOS rejects audio.play() outside a user-gesture (visibilitychange is not one).
-          // Show "Forbinder..." and register a one-time touchstart so the first tap anywhere
-          // in the app resumes playback — touchstart IS a valid iOS user-gesture context.
-          useRadioStore.setState({ isBuffering: true })
-          if (_pendingResume) document.removeEventListener('touchstart', _pendingResume, { capture: true })
-          _pendingResume = () => {
-            _pendingResume = null
-            const { isPlaying: stillPlaying, currentStation: station } = useRadioStore.getState()
-            if (!stillPlaying || !a.paused || !station) return
-            a.src = station.streamUrl
-            a.play()
-              .then(() => {
-                if (useRadioStore.getState().isPlaying) {
-                  useRadioStore.setState({ listenStartedAt: Date.now() })
-                }
-              })
-              .catch(() => {
-                useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
-                syncMediaSession(station, false)
-              })
-          }
-          document.addEventListener('touchstart', _pendingResume, { once: true, passive: true, capture: true })
-        } else {
-          useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
-        }
+        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+        if (currentStation) syncMediaSession(currentStation, false)
+        // visibilitychange and touchstart are NOT valid iOS user-gestures for audio.play().
+        // 'click' IS. Arm a flag so the next click anywhere in the app resumes playback.
+        // The listener runs in bubble phase — after element handlers (togglePlay, playStation)
+        // — so it only acts if those haven't already resumed audio themselves.
+        _shouldResume = true
       } else if (!isPlaying && !a.paused) {
         useRadioStore.setState({ isPlaying: true, isBuffering: false, listenStartedAt: Date.now(), listenAccumulatedMs })
         if (currentStation) syncMediaSession(currentStation, true)
       }
+    })
+
+    // Permanent click listener for iOS post-kill resume. Bubble phase is intentional:
+    // element handlers (togglePlay, playStation) fire first; we check state afterwards
+    // and only resume if they haven't already done so. The click context is a valid
+    // iOS user-gesture, so a.play() succeeds here where visibilitychange cannot.
+    document.addEventListener('click', () => {
+      if (!_shouldResume) return
+      _shouldResume = false
+      const { isPlaying, currentStation: station } = useRadioStore.getState()
+      if (isPlaying || !station || !a.paused) return  // element handler already resumed
+      a.src = station.streamUrl
+      a.play()
+        .then(() => {
+          useRadioStore.setState({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })
+          syncMediaSession(station, true)
+        })
+        .catch(() => {})
     })
     // Sync UI when iOS auto-resumes audio after ear detection (fires 'play' on the element).
     // Guard: togglePlay() and playStation() both set isPlaying:true before the 'play' event
