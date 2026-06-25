@@ -53,6 +53,7 @@ interface RadioStore {
 let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
 let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
+let _pendingResume: (() => void) | null = null
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -91,25 +92,35 @@ function audio() {
 
     // Reconcile store vs actual audio state when tab becomes visible again.
     // Handles both directions:
-    //   isPlaying:true  + a.paused:true  → iOS killed audio in background → auto-resume, fallback to paused
+    //   isPlaying:true  + a.paused:true  → iOS killed audio in background → touchstart resume
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
       const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
       if (isPlaying && a.paused) {
         if (currentStation) {
-          // Audio was killed by iOS (shared WebKit process management) while backgrounded.
-          // Attempt silent auto-resume; fall back to paused UI + toast if iOS requires fresh gesture.
-          a.src = currentStation.streamUrl
-          a.play()
-            .then(() => {
-              useRadioStore.setState({ listenStartedAt: Date.now() })
-            })
-            .catch(() => {
-              useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
-              syncMediaSession(currentStation, false)
-              toast('Musik stoppet — tryk play for at fortsætte', { icon: '📻' })
-            })
+          // iOS rejects audio.play() outside a user-gesture (visibilitychange is not one).
+          // Show "Forbinder..." and register a one-time touchstart so the first tap anywhere
+          // in the app resumes playback — touchstart IS a valid iOS user-gesture context.
+          useRadioStore.setState({ isBuffering: true })
+          if (_pendingResume) document.removeEventListener('touchstart', _pendingResume, { capture: true })
+          _pendingResume = () => {
+            _pendingResume = null
+            const { isPlaying: stillPlaying, currentStation: station } = useRadioStore.getState()
+            if (!stillPlaying || !a.paused || !station) return
+            a.src = station.streamUrl
+            a.play()
+              .then(() => {
+                if (useRadioStore.getState().isPlaying) {
+                  useRadioStore.setState({ listenStartedAt: Date.now() })
+                }
+              })
+              .catch(() => {
+                useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+                syncMediaSession(station, false)
+              })
+          }
+          document.addEventListener('touchstart', _pendingResume, { once: true, passive: true, capture: true })
         } else {
           useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
         }
