@@ -152,11 +152,11 @@ export function Player() {
               )}
             </button>
             {sleepMenuOpen && (
-              <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a24] border border-white/10 rounded-xl py-1 min-w-[90px] shadow-xl z-50">
+              <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[90px] shadow-xl z-50">
                 <button
                   onClick={() => { setSleepTimer(null); setSleepMenuOpen(false) }}
                   className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                    !sleepTimerEnd ? 'text-text-primary bg-white/5' : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+                    !sleepTimerEnd ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
                   }`}
                 >
                   Fra
@@ -167,8 +167,8 @@ export function Player() {
                     onClick={() => { setSleepTimer(mins); setSleepMenuOpen(false) }}
                     className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
                       !!remainingMinutes && Math.abs(remainingMinutes - mins) <= 1 && sleepTimerEnd
-                        ? 'text-text-primary bg-white/5'
-                        : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+                        ? 'text-text-primary bg-bg-hover'
+                        : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
                     }`}
                   >
                     {mins} min
