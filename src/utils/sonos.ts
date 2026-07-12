@@ -24,3 +24,9 @@ export async function setVolumeOnSonos(room: SonosRoom, mode: 'set' | 'adjust', 
   const url = `${base}/setvolume?tag=${encodeURIComponent(tag)}`
   await fetch(url, { mode: 'no-cors' })
 }
+
+export async function stopSonos(room: SonosRoom): Promise<void> {
+  const base = import.meta.env.VITE_HOMEY_WEBHOOK_BASE
+  const url = `${base}/stopcast?tag=${encodeURIComponent(room)}`
+  await fetch(url, { mode: 'no-cors' })
+}

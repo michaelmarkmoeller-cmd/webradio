@@ -3,7 +3,7 @@ import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import toast from 'react-hot-toast'
-import { playOnSonos, setVolumeOnSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
+import { playOnSonos, setVolumeOnSonos, stopSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
 
 const SONOS_VOLUME_STEP = 5
 
@@ -121,6 +121,16 @@ export function Player() {
       await setVolumeOnSonos(room, 'adjust', delta)
     } catch {
       toast.error(`Kunne ikke justere volumen for Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
+    }
+  }
+
+  async function handleSonosStop(e: MouseEvent, room: SonosRoom) {
+    e.stopPropagation()
+    try {
+      await stopSonos(room)
+      toast.success(`Stoppet Sonos ${SONOS_ROOM_LABELS[room]}`)
+    } catch {
+      toast.error(`Kunne ikke stoppe Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
     }
   }
 
@@ -318,7 +328,7 @@ export function Player() {
             </svg>
           </button>
           {sonosMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[220px] shadow-xl z-50">
+            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[260px] shadow-xl z-50">
               {(['bad', 'koekken', 'stue'] as const).map(room => (
                 <div key={room} className="flex items-center gap-1 px-2">
                   <button
@@ -326,6 +336,14 @@ export function Player() {
                     className="flex-1 text-left px-2 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
                   >
                     {SONOS_ROOM_LABELS[room]}
+                  </button>
+                  <button
+                    onClick={(e) => handleSonosStop(e, room)}
+                    aria-label={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
+                    title={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+                  >
+                    <span className="w-2.5 h-2.5 bg-current rounded-[1px]" />
                   </button>
                   <button
                     onClick={(e) => handleSonosVolume(e, room, -SONOS_VOLUME_STEP)}
