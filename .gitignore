@@ -27,3 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Homey-side scripts (kører på Homey, ikke en del af webapp'en, indeholder lokal netværksinfo)
+homey-scripts/

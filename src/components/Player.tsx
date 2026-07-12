@@ -263,7 +263,7 @@ export function Player() {
 
         {/* TEST: Spil på Sonos (midlertidig — fjernes/erstattes i Fase 2) */}
         <button
-          onClick={() => playOnSonos(currentStation.name, currentStation.streamUrl)}
+          onClick={() => playOnSonos(currentStation.name, currentStation.streamUrl, currentStation.logoUrl)}
           className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border border-white/15 text-text-muted hover:text-text-primary shrink-0"
         >
           Sonos
