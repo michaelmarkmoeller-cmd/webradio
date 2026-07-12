@@ -20,6 +20,8 @@ export function Player() {
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
   const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
   const sleepMenuRef = useRef<HTMLDivElement>(null)
+  const [sonosMenuOpen, setSonosMenuOpen] = useState(false)
+  const sonosMenuRef = useRef<HTMLDivElement>(null)
   const icySupportedRef = useRef<boolean | null>(null)
   const [, setTick] = useState(0)
   const [, setListenTick] = useState(0)
@@ -76,6 +78,17 @@ export function Player() {
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [sleepMenuOpen])
+
+  // Close Sonos menu on outside click
+  useEffect(() => {
+    if (!sonosMenuOpen) return
+    function onPointerDown(e: PointerEvent) {
+      if (sonosMenuRef.current && !sonosMenuRef.current.contains(e.target as Node))
+        setSonosMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [sonosMenuOpen])
 
   const remainingMinutes = sleepTimerEnd
     ? Math.max(0, Math.ceil((sleepTimerEnd - Date.now()) / 60_000))
@@ -262,16 +275,43 @@ export function Player() {
         </div>
 
         {/* Sonos cast */}
-        <button
-          onClick={() => playOnSonos(currentStation.name, currentStation.streamUrl, currentStation.logoUrl)}
-          className="w-10 h-10 rounded-full flex items-center justify-center border border-white/15 text-text-muted hover:text-text-primary hover:border-white/30 transition-colors shrink-0"
-          aria-label="Afspil på Sonos"
-          title="Afspil på Sonos"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zM21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
-          </svg>
-        </button>
+        <div ref={sonosMenuRef} className="relative shrink-0">
+          <button
+            onClick={() => setSonosMenuOpen(v => !v)}
+            className="w-10 h-10 rounded-full flex items-center justify-center border border-white/15 text-text-muted hover:text-text-primary hover:border-white/30 transition-colors"
+            aria-label="Afspil på Sonos"
+            title="Afspil på Sonos"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zM21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
+            </svg>
+          </button>
+          {sonosMenuOpen && (
+            <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a24] border border-white/10 rounded-xl py-1 min-w-[120px] shadow-xl z-50">
+              <button
+                onClick={() => {
+                  playOnSonos(currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
+                  setSonosMenuOpen(false)
+                }}
+                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+              >
+                Bad
+              </button>
+              <button
+                disabled
+                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted/30 cursor-not-allowed"
+              >
+                Køkken
+              </button>
+              <button
+                disabled
+                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted/30 cursor-not-allowed"
+              >
+                Stue
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Play / Pause */}
         <button
