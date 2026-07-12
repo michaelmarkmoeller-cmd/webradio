@@ -290,7 +290,7 @@ export function Player() {
             <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[160px] shadow-xl z-50">
               <button
                 onClick={() => {
-                  playOnSonos(currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
+                  playOnSonos('bad', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
                   setSonosMenuOpen(false)
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
@@ -298,8 +298,11 @@ export function Player() {
                 Bad
               </button>
               <button
-                disabled
-                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted/30 cursor-not-allowed"
+                onClick={() => {
+                  playOnSonos('koekken', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
+                  setSonosMenuOpen(false)
+                }}
+                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Køkken
               </button>
