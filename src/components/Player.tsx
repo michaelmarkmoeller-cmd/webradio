@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
-import { playOnSonos, type SonosRoom } from '../utils/sonos'
+import toast from 'react-hot-toast'
+import { playOnSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
@@ -98,11 +99,18 @@ export function Player() {
 
   const accent = CATEGORY_COLORS[currentStation.category] ?? '#F5A623'
 
-  function handleSonosSelect(room: SonosRoom) {
+  const sonosUnsupported = isHlsStream(currentStation?.streamUrl ?? '')
+
+  async function handleSonosSelect(room: SonosRoom) {
     // Undgå at samme station spiller både lokalt og på Sonos samtidig
     if (isPlaying) togglePlay()
-    playOnSonos(room, currentStation!.name, currentStation!.streamUrl, currentStation!.logoUrl)
     setSonosMenuOpen(false)
+    try {
+      await playOnSonos(room, currentStation!.name, currentStation!.streamUrl, currentStation!.logoUrl)
+      toast.success(`Sendt til Sonos ${SONOS_ROOM_LABELS[room]} — kan tage 5-10 sek.`)
+    } catch {
+      toast.error(`Kunne ikke sende til Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
+    }
   }
 
   return (
@@ -284,10 +292,15 @@ export function Player() {
         {/* Sonos cast */}
         <div ref={sonosMenuRef} className="relative shrink-0">
           <button
-            onClick={() => setSonosMenuOpen(v => !v)}
-            className="w-10 h-10 rounded-full flex items-center justify-center border border-white/15 text-text-muted hover:text-text-primary hover:border-white/30 transition-colors"
+            onClick={() => !sonosUnsupported && setSonosMenuOpen(v => !v)}
+            disabled={sonosUnsupported}
+            className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${
+              sonosUnsupported
+                ? 'border-white/10 text-text-muted/30 cursor-not-allowed'
+                : 'border-white/15 text-text-muted hover:text-text-primary hover:border-white/30'
+            }`}
             aria-label="Afspil på Sonos"
-            title="Afspil på Sonos"
+            title={sonosUnsupported ? 'Ikke understøttet på Sonos (HLS-stream)' : 'Afspil på Sonos'}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zM21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
