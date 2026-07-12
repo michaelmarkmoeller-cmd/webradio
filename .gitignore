@@ -30,3 +30,6 @@ dist-ssr
 
 # Homey-side scripts (kører på Homey, ikke en del af webapp'en, indeholder lokal netværksinfo)
 homey-scripts/
+
+# Playwright test-output (artefakter, ikke kildekode)
+test-results/
