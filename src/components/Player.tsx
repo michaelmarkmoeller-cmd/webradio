@@ -287,25 +287,25 @@ export function Player() {
             </svg>
           </button>
           {sonosMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a24] border border-white/10 rounded-xl py-1 min-w-[120px] shadow-xl z-50">
+            <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a24] border border-white/10 rounded-xl py-1 min-w-[160px] shadow-xl z-50">
               <button
                 onClick={() => {
                   playOnSonos(currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
                   setSonosMenuOpen(false)
                 }}
-                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
               >
                 Bad
               </button>
               <button
                 disabled
-                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted/30 cursor-not-allowed"
+                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted/30 cursor-not-allowed"
               >
                 Køkken
               </button>
               <button
                 disabled
-                className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-text-muted/30 cursor-not-allowed"
+                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted/30 cursor-not-allowed"
               >
                 Stue
               </button>
