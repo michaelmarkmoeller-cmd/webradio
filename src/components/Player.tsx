@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
-import { playOnSonos } from '../utils/sonos'
+import { playOnSonos, type SonosRoom } from '../utils/sonos'
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
@@ -97,6 +97,13 @@ export function Player() {
   if (!currentStation) return null
 
   const accent = CATEGORY_COLORS[currentStation.category] ?? '#F5A623'
+
+  function handleSonosSelect(room: SonosRoom) {
+    // Undgå at samme station spiller både lokalt og på Sonos samtidig
+    if (isPlaying) togglePlay()
+    playOnSonos(room, currentStation!.name, currentStation!.streamUrl, currentStation!.logoUrl)
+    setSonosMenuOpen(false)
+  }
 
   return (
     <div
@@ -289,28 +296,19 @@ export function Player() {
           {sonosMenuOpen && (
             <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[160px] shadow-xl z-50">
               <button
-                onClick={() => {
-                  playOnSonos('bad', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
-                  setSonosMenuOpen(false)
-                }}
+                onClick={() => handleSonosSelect('bad')}
                 className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Bad
               </button>
               <button
-                onClick={() => {
-                  playOnSonos('koekken', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
-                  setSonosMenuOpen(false)
-                }}
+                onClick={() => handleSonosSelect('koekken')}
                 className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Køkken
               </button>
               <button
-                onClick={() => {
-                  playOnSonos('stue', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
-                  setSonosMenuOpen(false)
-                }}
+                onClick={() => handleSonosSelect('stue')}
                 className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Stue
