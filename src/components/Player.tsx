@@ -307,8 +307,11 @@ export function Player() {
                 Køkken
               </button>
               <button
-                disabled
-                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted/30 cursor-not-allowed"
+                onClick={() => {
+                  playOnSonos('stue', currentStation.name, currentStation.streamUrl, currentStation.logoUrl)
+                  setSonosMenuOpen(false)
+                }}
+                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Stue
               </button>
