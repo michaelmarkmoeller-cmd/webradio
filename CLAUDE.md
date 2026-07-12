@@ -180,6 +180,39 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - **80s80s- og radio SAW-familierne** blokerer server-til-server forbindelser (ingen ICY metadata)
 - **Big 70s Radio**: stream ændret fra `stream.laut.fm/big-70s` (404) til `stream.laut.fm/radio70`
 
+## Sonos-integration
+WebRadio kan sende den valgte kanal til en Sonos-højtaler ("Bad", "Køkken", "Stue") via en Homey Pro-webhook. Arkitektur:
+
+```
+Webapp → GET https://webhook.homey.app/<HOMEY_ID>/<event>?tag=<url-encoded tag>
+  → Homey-flow (Logic webhook-trigger, event: playradio | setvolume | stopcast)
+  → HomeyScript (på Homey, IKKE en del af webapp'en, gitignored i homey-scripts/)
+  → Lokal UPnP SOAP-kald til Sonos-enhedens IP (port 1400)
+```
+
+- `src/utils/sonos.ts` — `playOnSonos()`, `setVolumeOnSonos()`, `stopSonos()`, `isHlsStream()`
+- Sonos-knap + dropdown-menu i `Player.tsx` (player-bar række 3): vælg rum for at caste, `−`/`+` for volumen, firkantet ikon for stop — alle tre altid synlige pr. rum (webappen kan ikke vide om et rum allerede spiller noget uafhængigt, fx via en fysisk kontakt)
+- `homey-scripts/*.js` — reference-kopier af HomeyScripts (gitignored, kører kun på Homey, redigeres ikke af build/deploy)
+- `VITE_HOMEY_WEBHOOK_BASE` — Homey webhook-ID er en adgangsnøgle, må ALDRIG committes (kun `.env.local` + Vercel env vars)
+
+**Webhook-events og tag-kontrakter:**
+
+| Event | Script | Tag-format | Eksempel |
+|---|---|---|---|
+| `playradio` | `playSonosUrl.js` | `<rum>\|<navn>\|<stream-URL>\|<logo-URL>` | `bad\|DR P4\|https://...\|https://...` |
+| `setvolume` | `setSonosVolume.js` | `<rum>\|<mode>\|<værdi>` — mode: `set` (0-100) eller `adjust` (-100..100) | `koekken\|adjust\|-5` |
+| `stopcast` | `stopSonos.js` | `<rum>` (ingen pipes) | `stue` |
+
+Rum: `bad` (192.168.0.122) \| `koekken` (192.168.0.154, stereopar) \| `stue` (192.168.0.131, home theater-gruppe). Coordinator-IP'en for grupperede/parrede enheder findes via UPnP ZoneGroupTopology — bonded satellitter er `Invisible="1"` og må ikke tiltales direkte.
+
+**Vigtige begrænsninger:**
+- Homeys native "Afspil URL"-flowkort må ALDRIG bruges til afspilning (dobbeltlyd, ingen volumenkontrol) — al afspilning/stop går via rene UPnP SOAP-kald i HomeyScripts
+- Homeys native "Pause"-flowkort fejler for live broadcast-streams (kun `Stop` er en gyldig UPnP-operation) — derfor har både Køkken (`stopKokkenSonos.js`, fysisk-kontakt-flow) og webappen (`stopSonos.js`, alle rum) dedikerede Stop-scripts i stedet
+- HLS-streams (`.m3u8`) understøttes ikke af `x-rincon-mp3radio://` — `isHlsStream()` deaktiverer Sonos-knappen for disse kanaler
+- HTTPS-only streams på ikke-standard port (fx Radio Nord) kan ikke castes — `x-rincon-mp3radio://` fjerner `https://`-prefixet og Sonos forsøger ren HTTP, som sådanne streams ikke svarer på
+- Sonos gentager altid `dc:title` to gange på "Nu spiller"-linjen for et ikke-registreret UPnP-push — `dc:creator` og et separat brandet servicenavn kan ikke vises (kræver officiel Sonos-partnerregistrering)
+- Fetch-kald mod webhooken bruger `mode: 'no-cors'` — HTTP 200 bekræfter kun at webhooken modtog kaldet, ikke at Sonos rent faktisk afspiller/stopper (forvent 5-10 sek. forsinkelse)
+
 ## Miljøvariabler
 Ligger i `.env` (ikke i Git). Skabelon i `.env.example`.
 Samme variabler skal sættes i Vercel under Environment Variables.

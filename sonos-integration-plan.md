@@ -1,3 +1,5 @@
+> **Status (2026-07-12): Denne plan er forældet/historisk.** Sonos-integrationen er fuldt færdig og udvidet ud over Fase 1/2 herunder — multi-rum (Bad/Køkken/Stue), volumen-styring og stop-funktion er tilføjet efterfølgende. Se `CLAUDE.md` → afsnittet "Sonos-integration" for den aktuelle, gældende arkitektur og tag-kontrakter. Denne fil bevares kun som historisk baggrund for Fase 1/2-beslutningerne.
+
 # Opgave: "Spil på Sonos"-knap i webradio-app via Homey Pro (VERIFICERET arkitektur)
 
 ## Rolle og arbejdsform
