@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type MouseEvent } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import toast from 'react-hot-toast'
-import { playOnSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
+import { playOnSonos, setVolumeOnSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
+
+const SONOS_VOLUME_STEP = 5
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
@@ -110,6 +112,15 @@ export function Player() {
       toast.success(`Sendt til Sonos ${SONOS_ROOM_LABELS[room]} — kan tage 5-10 sek.`)
     } catch {
       toast.error(`Kunne ikke sende til Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
+    }
+  }
+
+  async function handleSonosVolume(e: MouseEvent, room: SonosRoom, delta: number) {
+    e.stopPropagation()
+    try {
+      await setVolumeOnSonos(room, 'adjust', delta)
+    } catch {
+      toast.error(`Kunne ikke justere volumen for Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
     }
   }
 
@@ -307,25 +318,33 @@ export function Player() {
             </svg>
           </button>
           {sonosMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[160px] shadow-xl z-50">
-              <button
-                onClick={() => handleSonosSelect('bad')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-              >
-                Bad
-              </button>
-              <button
-                onClick={() => handleSonosSelect('koekken')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-              >
-                Køkken
-              </button>
-              <button
-                onClick={() => handleSonosSelect('stue')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-              >
-                Stue
-              </button>
+            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[220px] shadow-xl z-50">
+              {(['bad', 'koekken', 'stue'] as const).map(room => (
+                <div key={room} className="flex items-center gap-1 px-2">
+                  <button
+                    onClick={() => handleSonosSelect(room)}
+                    className="flex-1 text-left px-2 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+                  >
+                    {SONOS_ROOM_LABELS[room]}
+                  </button>
+                  <button
+                    onClick={(e) => handleSonosVolume(e, room, -SONOS_VOLUME_STEP)}
+                    aria-label={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
+                    title={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors text-lg"
+                  >
+                    −
+                  </button>
+                  <button
+                    onClick={(e) => handleSonosVolume(e, room, SONOS_VOLUME_STEP)}
+                    aria-label={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
+                    title={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors text-lg"
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

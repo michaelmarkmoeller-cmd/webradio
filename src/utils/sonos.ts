@@ -17,3 +17,10 @@ export async function playOnSonos(room: SonosRoom, stationName: string, streamUr
   const url = `${base}/playradio?tag=${encodeURIComponent(tag)}`
   await fetch(url, { mode: 'no-cors' })
 }
+
+export async function setVolumeOnSonos(room: SonosRoom, mode: 'set' | 'adjust', value: number): Promise<void> {
+  const base = import.meta.env.VITE_HOMEY_WEBHOOK_BASE
+  const tag = `${room}|${mode}|${value}`
+  const url = `${base}/setvolume?tag=${encodeURIComponent(tag)}`
+  await fetch(url, { mode: 'no-cors' })
+}
