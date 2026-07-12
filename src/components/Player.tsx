@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
+import { playOnSonos } from '../utils/sonos'
 
 const SLEEP_OPTIONS = [10, 20, 30, 60] as const
 
@@ -259,6 +260,14 @@ export function Player() {
             </div>
           )}
         </div>
+
+        {/* TEST: Spil på Sonos (midlertidig — fjernes/erstattes i Fase 2) */}
+        <button
+          onClick={() => playOnSonos(currentStation.streamUrl)}
+          className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border border-white/15 text-text-muted hover:text-text-primary shrink-0"
+        >
+          Sonos
+        </button>
 
         {/* Play / Pause */}
         <button
