@@ -341,9 +341,9 @@ export function Player() {
                     onClick={() => handleSonosSelect(room)}
                     aria-label={`Afspil på Sonos ${SONOS_ROOM_LABELS[room]}`}
                     title={`Afspil på Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors"
                   >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </button>
@@ -351,15 +351,15 @@ export function Player() {
                     onClick={(e) => handleSonosStop(e, room)}
                     aria-label={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
                     title={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors"
                   >
-                    <span className="w-2.5 h-2.5 bg-current rounded-[1px]" />
+                    <span className="w-3 h-3 bg-current rounded-[1px]" />
                   </button>
                   <button
                     onClick={(e) => handleSonosVolume(e, room, SONOS_VOLUME_STEP)}
                     aria-label={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
                     title={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors text-lg"
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors text-lg font-semibold"
                   >
                     +
                   </button>
@@ -367,7 +367,7 @@ export function Player() {
                     onClick={(e) => handleSonosVolume(e, room, -SONOS_VOLUME_STEP)}
                     aria-label={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
                     title={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors text-lg"
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors text-lg font-semibold"
                   >
                     −
                   </button>
