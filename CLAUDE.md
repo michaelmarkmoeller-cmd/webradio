@@ -159,11 +159,12 @@ Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate 
 `setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Viser nedtæller i `Player.tsx` via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
 
 ## Brugervejledning
-Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html`. Opdateres ved at:
-1. Køre screenshot-script (kræver `@playwright/test`): `node take-screenshots.mjs`
-2. Redigere `public/guide/index.html` direkte (eller via `guide-assets/webradio-guide.html` + copy)
-3. Kopiere screenshots: `Copy-Item guide-assets/*.png public/guide/`
-4. Genere PDF: `node export-guide-pdf.mjs` → `guide-assets/WebRadio-Brugervejledning.pdf`
+Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 14 kapitler, ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
+
+**Bemærk (rettet 13-07-2026):** `take-screenshots.mjs`, `guide-assets/` og `export-guide-pdf.mjs` — som tidligere var beskrevet her — findes IKKE i repoet og har aldrig været committet. Der er ingen PDF-eksport-pipeline i praksis. Sådan opdateres guiden reelt:
+1. Redigér `public/guide/index.html` direkte for tekstændringer
+2. Nye screenshots tages ad-hoc med et lille Playwright-script (se `capture-sonos-screenshot.mjs` som eksempel — navigerer til produktions-URL'en, interagerer med UI'et, gemmer PNG direkte i `public/guide/`)
+3. Ved indsættelse af et nyt kapitel: opdatér TOC-sidetal ved at rendere filen lokalt og tælle `.page`-divs (`document.querySelectorAll('.page')`) — sidetal følger simpel akkumulering, men lange kapitler kan spilde over på en ekstra printet side, så verificér visuelt efter ændringer
 Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lukkes med "Luk ✕" i App.tsx-headeren (ikke en knap i guide-HTML'en). Guide-HTML har ingen sticky nav. Guide bruger "Michaels WebRadio"-branding med regnbue-gradient på "Michaels" (identisk med App.tsx). Guide er responsiv (max-width: 820px → `width: 100%`).
 
 ## ICY stream-metadata
