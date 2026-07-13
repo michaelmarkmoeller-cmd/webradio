@@ -191,7 +191,7 @@ Webapp → GET https://webhook.homey.app/<HOMEY_ID>/<event>?tag=<url-encoded tag
 ```
 
 - `src/utils/sonos.ts` — `playOnSonos()`, `setVolumeOnSonos()`, `stopSonos()`, `isHlsStream()`
-- Sonos-knap + dropdown-menu i `Player.tsx` (player-bar række 3): vælg rum for at caste, `−`/`+` for volumen, firkantet ikon for stop — alle tre altid synlige pr. rum (webappen kan ikke vide om et rum allerede spiller noget uafhængigt, fx via en fysisk kontakt)
+- Sonos-knap + dropdown-menu i `Player.tsx` (player-bar række 3), pr. rum-række: **rumnavn → PLAY-ikon → STOP-ikon → + → −** (rumnavn og PLAY gør begge det samme: caster aktuel station). Alle tre rum altid synlige (webappen kan ikke vide om et rum allerede spiller noget uafhængigt, fx via en fysisk kontakt) — bevidst fravalgt at bygge et online/tændt-tjek (browser-mixed-content + Chromes Private Network Access udelukker direkte ping af Sonos-IP'erne fra webappen, selv på samme lokale netværk — analyseret 13-07-2026). Ikon-knapper har synlig kant + høj kontrast som standard (ikke kun ved hover).
 - `homey-scripts/*.js` — reference-kopier af HomeyScripts (gitignored, kører kun på Homey, redigeres ikke af build/deploy)
 - `VITE_HOMEY_WEBHOOK_BASE` — Homey webhook-ID er en adgangsnøgle, må ALDRIG committes (kun `.env.local` + Vercel env vars)
 
