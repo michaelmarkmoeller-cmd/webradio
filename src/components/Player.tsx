@@ -328,9 +328,9 @@ export function Player() {
             </svg>
           </button>
           {sonosMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[300px] shadow-xl z-50">
+            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[320px] shadow-xl z-50">
               {(['bad', 'koekken', 'stue'] as const).map(room => (
-                <div key={room} className="flex items-center gap-1 px-2">
+                <div key={room} className="flex items-center gap-2 px-2">
                   <button
                     onClick={() => handleSonosSelect(room)}
                     className="flex-1 text-left px-2 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
