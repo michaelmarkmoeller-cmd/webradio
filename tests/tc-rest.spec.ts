@@ -189,21 +189,22 @@ test.describe('TC-08: Kategori farver', () => {
 })
 
 // ─────────────────────────────────────────────
-// TC-13-02: postMessage lukker guide
+// TC-13-02: "Luk ✕"-knap lukker guide
 // ─────────────────────────────────────────────
+// Omlagt 14-07-2026 (BUG-11, se BUGS.md): guide-HTML har ikke sendt postMessage siden den
+// sticky nav blev fjernet, og App.tsx's tilsvarende (uopnåelige) postMessage-lytter er nu
+// fjernet som dead code. Modalen lukkes udelukkende via "Luk ✕"-knappens onClick i App.tsx.
 test.describe('TC-13: Brugervejledning (resterende)', () => {
 
-  test('TC-13-02: postMessage "close-guide" lukker guiden', async ({ page }) => {
+  test('TC-13-02: "Luk ✕"-knap lukker guiden', async ({ page }) => {
     await loadApp(page)
     // Open guide
     await page.locator('button[title="Brugervejledning"]').click()
     await expect(page.locator('iframe')).toBeVisible({ timeout: 5000 })
 
-    // Post close-guide message (simulates guide's "Tilbage" button)
-    await page.evaluate(() => {
-      window.postMessage('close-guide', window.location.origin)
-    })
-    await page.waitForTimeout(500)
+    // Click the "Luk ✕" button in App.tsx's modal header
+    await page.getByRole('button', { name: 'Luk' }).click()
+    await page.waitForTimeout(300)
 
     // Guide iframe should be gone
     await expect(page.locator('iframe')).not.toBeVisible()

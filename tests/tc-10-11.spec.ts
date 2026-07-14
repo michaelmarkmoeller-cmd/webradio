@@ -224,17 +224,15 @@ test.describe('TC-11: Tilføj station', () => {
       const submitBtn = page.locator('button[type="submit"]')
       await expect(submitBtn).toBeEnabled({ timeout: 5000 })
       await submitBtn.click()
-      // handleSubmit was triggered: modal either closes (success) or shows error toast
-      // Either way the save attempt happened — test accepts both outcomes
+      // BUG-02 (rettet 14-07-2026): tomme valgfrie felter (bitrate/land) sendte tidligere
+      // `undefined` til Firestore, som addDoc afviste — modalen fejlede stille med en
+      // generisk toast i stedet for at gemme. sanitizeStationData() strippede nu problemet,
+      // så submit skal lykkes og lukke modalen.
       await page.waitForTimeout(800)
       const hasErrorToast = await page.locator('text=Kunne ikke tilføje stationen').isVisible()
       const modalClosed = !(await page.locator('input[placeholder="f.eks. Radio Nova"]').isVisible())
-      expect(
-        hasErrorToast || modalClosed,
-        'submit click had no effect — handleSubmit was not called'
-      ).toBe(true)
-      // Close modal if still open
-      await page.locator('button:has-text("Annuller")').click().catch(() => {})
+      expect(hasErrorToast, 'BUG-02 regression — station med tomme valgfrie felter fejlede').toBe(false)
+      expect(modalClosed, 'modal lukkede ikke efter succesfuld submit').toBe(true)
 
       // Part B — Grid: station created via REST API appears via onSnapshot
       const id = await createTestStation(uniqueName + '_grid', TEST_STREAM, "80's")

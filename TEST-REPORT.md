@@ -3,9 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
+**Sidst opdateret:** 2026-07-14 (TC-09 omlagt efter BUG-01, TC-13-02 omlagt efter BUG-11, TC-11-03 skærpet efter BUG-02)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 86
+**Antal test cases:** 88
 
 ---
 
@@ -13,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 84 | 0 | 2 | 86 |
+| 88 | 0 | 0 | 88 |
 
 ---
 
@@ -142,18 +143,22 @@
 
 ---
 
-## TC-09: Drag & Drop Rækkefølge
+## TC-09: Rediger rækkefølge
+
+**Omlagt 14-07-2026 (BUG-01, se BUGS.md):** Whole-card dnd-kit-drag direkte i gridet er erstattet af en dedikeret "rediger rækkefølge"-liste (`ReorderListModal.tsx`). Alle 8 test cases nedenfor er nu automatiserbare headless (`tests/tc-09.spec.ts`) — modalens håndtag-drag bruger bevægelses-baseret aktivering (`distance: 4`), ikke den gamle forsinkelses-baserede (`delay: 250ms`) mekanisme, som var årsagen til at TC-09-05/06 tidligere ikke kunne testes headless.
 
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
-| TC-09-01 | Drag & drop aktiv i kategori-visning | 🟢 Godkendt | Sortable kort har `cursor-grab` i kategori-visning | 15-06-2026 |
-| TC-09-02 | Drag & drop inaktiv i "Alle" | 🟢 Godkendt | `cursor-pointer` i "Alle" — ingen DragOverlay ved drag-forsøg | 15-06-2026 |
-| TC-09-03 | Drag & drop inaktiv i "Favoritter" | 🟢 Godkendt | `cursor-pointer` i "Favoritter"-visning | 15-06-2026 |
-| TC-09-04 | Rækkefølge gemmes i Firestore | 🟢 Godkendt | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | 15-06-2026 |
-| TC-09-05 | DragOverlay viser drejet klon | 🟡 Ikke testet | Halvt drejet klon følger mus/finger under drag (headless ikke mulig) | — |
-| TC-09-06 | Dragged kort skjules i grid | 🟡 Ikke testet | Originalt kort har `opacity: 0` i grid under drag (headless ikke mulig) | — |
+| TC-09-01 | Kategori-visning har cursor-grab | 🟢 Godkendt | `cursor-grab` sat i kategori-visning (hold+bevæg-hint) | 14-07-2026 |
+| TC-09-02 | "Alle"-visning: hold+bevæg åbner ikke reorder-listen | 🟢 Godkendt | `cursor-pointer`, ingen modal ved hold+bevæg-forsøg | 14-07-2026 |
+| TC-09-03 | "Favoritter"-visning: hold+bevæg åbner ikke reorder-listen | 🟢 Godkendt | Samme som TC-09-02 for Favoritter | 14-07-2026 |
+| TC-09-04 | Stille hold (2 sek) viser slet-dialog, ikke reorder-listen | 🟢 Godkendt | Ingen bevægelse → slet-dialog, ikke reorder-modal | 14-07-2026 |
+| TC-09-05 | Hold + bevæg åbner reorder-listen, ikke slet-dialogen | 🟢 Godkendt | >8px bevægelse under hold åbner modalen i stedet | 14-07-2026 |
+| TC-09-06 | Klik afspiller stadig station | 🟢 Godkendt | Ingen gestus-konflikt — almindeligt klik afspiller uændret | 14-07-2026 |
+| TC-09-07 | Træk i håndtag ændrer rækkefølgen | 🟢 Godkendt | Håndtag-drag (`distance:4`) omarrangerer rækkerne i modalen | 14-07-2026 |
+| TC-09-08 | Ny rækkefølge persisteret efter reload | 🟢 Godkendt | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | 14-07-2026 |
 
-**Resultat: 4/6 godkendt (2 ikke testbare headless)**
+**Resultat: 8/8 godkendt** (0 ikke-testbare — den nye bevægelses-baserede drag lukker det tidligere headless-hul)
 
 ---
 
@@ -177,7 +182,7 @@
 |-----|-------|--------|-------------|------|
 | TC-11-01 | Modal åbnes via +-knap | 🟢 Godkendt | +-knap i header åbner AddStationModal med alle felter | 15-06-2026 |
 | TC-11-02 | Tom form kan ikke submittes | 🟢 Godkendt | Submit-knap disabled uden navn og URL | 15-06-2026 |
-| TC-11-03 | Ny station gemmes i Firestore | 🟢 Godkendt | Udfyldt form → handleSubmit aktiveres; station vises via REST API | 15-06-2026 |
+| TC-11-03 | Ny station gemmes i Firestore | 🟢 Godkendt | Skærpet 14-07-2026 (BUG-02 rettet): form med tomme valgfrie felter (bitrate/land) gemmer nu pålideligt uden fejl-toast, ikke længere kun "et af to udfald accepteret" | 14-07-2026 |
 | TC-11-04 | Modal lukkes med X eller klik udenfor | 🟢 Godkendt | X-knap lukker modal uden at gemme | 15-06-2026 |
 | TC-11-05 | Ugyldig protokol i streamUrl afvises | 🟢 Godkendt | `ftp://`-URL afvises med toast-fejl — gemmes ikke | 15-06-2026 |
 
@@ -207,7 +212,7 @@
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
 | TC-13-01 | Guide åbner som in-app iframe-modal | 🟢 Godkendt | Bog-ikon åbner guide som iframe-overlay — ingen ny tab | 15-06-2026 |
-| TC-13-02 | "Tilbage til WebRadio" lukker modalen | 🟢 Godkendt | Guide-link poster postMessage → modal lukkes i app | 15-06-2026 |
+| TC-13-02 | "Luk ✕"-knap lukker modalen | 🟢 Godkendt | Omlagt 14-07-2026 (BUG-11): postMessage-lytteren var dead code (fjernet), luk sker via App.tsx's egen "Luk ✕"-knap | 14-07-2026 |
 
 **Resultat: 2/2 godkendt**
 
@@ -385,7 +390,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 84/86 godkendt** (2 ikke testbare automatisk: TC-09-05, TC-09-06 — dnd-kit drag simulation kræver reel browser)
+> **Resultat: 88/88 godkendt** (0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01)
 
 ---
 

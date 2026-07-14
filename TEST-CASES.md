@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-06-15  
-**Antal test cases:** 86 fordelt på 17 grupper
+**Senest opdateret:** 2026-07-14 (TC-09 omlagt efter BUG-01, TC-13-02 efter BUG-11)  
+**Antal test cases:** 88 fordelt på 17 grupper
 
 ---
 
@@ -550,64 +550,83 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-## TC-09: Drag & Drop Rækkefølge
+## TC-09: Rediger rækkefølge
 
-### TC-09-01: Drag & drop aktiv i kategori-visning
+**Omlagt 14-07-2026 (BUG-01, se BUGS.md):** Whole-card dnd-kit-drag direkte i gridet blev erstattet af en dedikeret "rediger rækkefølge"-liste (`ReorderListModal.tsx`). Grid-kortet har ikke længere dnd-kit — kun klik (afspil), stille 2-sek. hold (slet), og hold+bevæg >8px (åbner reorder-listen). Selve trækket sker i listen via et håndtag-ikon med bevægelses-baseret aktivering (`distance: 4`), ikke den gamle forsinkelses-baserede (`delay: 250ms`) mekanisme.
+
+### TC-09-01: Kategori-visning har cursor-grab
 **Forudsætning:** En specifik kategori er valgt (ikke "Alle" eller "Favoritter")  
 **Trin:**
-1. Hold finger/mus nede på et stationskort i 250ms+
-2. Bevæg langsomt
+1. Observer et stationskort
 
-**Forventet resultat:** Drag aktiveres. DragOverlay-klon vises.
+**Forventet resultat:** Kortet har `cursor-grab` — visuelt hint om at hold+bevæg åbner reorder-listen.
 
 ---
 
-### TC-09-02: Drag & drop inaktiv i "Alle"
+### TC-09-02: "Alle"-visning: hold+bevæg åbner ikke reorder-listen
 **Forudsætning:** "Alle"-visning er aktiv  
 **Trin:**
-1. Hold finger/mus nede på et stationskort i 250ms+
-2. Bevæg
+1. Hold finger/mus nede på et stationskort
+2. Bevæg >8px mens pointeren er nede
 
-**Forventet resultat:** Ingen drag aktiveres. Long-press (2 sek) trigger stadig slet-dialog normalt.
+**Forventet resultat:** `cursor-pointer` (ikke `cursor-grab`). Ingen reorder-liste åbner.
 
 ---
 
-### TC-09-03: Drag & drop inaktiv i "Favoritter"
+### TC-09-03: "Favoritter"-visning: hold+bevæg åbner ikke reorder-listen
 **Forudsætning:** "Favoritter"-visning er aktiv  
 **Trin:**
-1. Hold finger/mus nede på et stationskort i 250ms+
-2. Bevæg
+1. Hold finger/mus nede på et stationskort
+2. Bevæg >8px mens pointeren er nede
 
-**Forventet resultat:** Ingen drag aktiveres.
-
----
-
-### TC-09-04: Rækkefølge gemmes i Firestore
-**Forudsætning:** En kategori er valgt med mindst 2 stationer  
-**Trin:**
-1. Drag en station til en ny position
-2. Slip stationen
-3. Genindlæs appen
-
-**Forventet resultat:** Den nye rækkefølge bevares efter reload. Rækkefølgen er gemt i `stationOrders/{deviceId}` i Firestore.
+**Forventet resultat:** Samme som TC-09-02.
 
 ---
 
-### TC-09-05: DragOverlay viser drejet klon
-**Forudsætning:** Drag er aktiveret (TC-09-01)  
+### TC-09-04: Stille hold (2 sek) viser slet-dialog, ikke reorder-listen
+**Forudsætning:** En specifik kategori er valgt  
 **Trin:**
-1. Observer det kortet der trækkes
+1. Hold finger/mus nede på et stationskort i 2 sekunder **uden at bevæge**
 
-**Forventet resultat:** En halvt drejet klon-version af kortet følger musen/fingeren som overlay. Det originale kort i grid er usynligt (`opacity: 0`).
+**Forventet resultat:** Slet-bekræftelses-dialog vises. Reorder-listen åbner ikke.
 
 ---
 
-### TC-09-06: Dragged kort skjules i grid
-**Forudsætning:** TC-09-05  
+### TC-09-05: Hold + bevæg åbner reorder-listen, ikke slet-dialogen
+**Forudsætning:** En specifik kategori er valgt  
 **Trin:**
-1. Observer det originale korts position i grid under drag
+1. Hold finger/mus nede på et stationskort
+2. Bevæg >8px mens pointeren er nede (før 2-sek.-grænsen nås)
 
-**Forventet resultat:** Det originale kort er skjult (`opacity: 0`) mens DragOverlay er aktiv.
+**Forventet resultat:** "Rediger rækkefølge"-modalen åbner for den aktuelle kategori. Slet-dialogen vises ikke.
+
+---
+
+### TC-09-06: Klik afspiller stadig station
+**Forudsætning:** En specifik kategori er valgt  
+**Trin:**
+1. Klik (uden bevægelse) på et stationskort
+
+**Forventet resultat:** Stationen begynder at spille — ingen gestus-konflikt med hold/hold+bevæg.
+
+---
+
+### TC-09-07: Træk i håndtag ændrer rækkefølgen
+**Forudsætning:** Reorder-listen er åben (via TC-09-05), mindst 3 stationer i kategorien  
+**Trin:**
+1. Træk håndtag-ikonet (⋮⋮) for én række til en anden position i listen
+
+**Forventet resultat:** Rækkernes rækkefølge i modalen opdateres til at matche den nye placering.
+
+---
+
+### TC-09-08: Ny rækkefølge persisteret efter reload
+**Forudsætning:** TC-09-07 udført, modal lukket via "Færdig"  
+**Trin:**
+1. Genindlæs appen
+2. Naviger til samme kategori
+
+**Forventet resultat:** Den nye rækkefølge er bevaret — gemt i `stationOrders/{deviceId}` i Firestore.
 
 ---
 
@@ -801,12 +820,14 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-13-02: "Tilbage til WebRadio" lukker modalen
+### TC-13-02: "Luk ✕"-knap lukker modalen
 **Forudsætning:** Guide-modal er åben  
 **Trin:**
-1. Klik "Tilbage til WebRadio"-linket i guide-sidens header
+1. Klik "Luk ✕"-knappen i App.tsx's modal-header (øverst i selve WebRadio-appen, ikke i guide-siden)
 
-**Forventet resultat:** Guide-modalen lukkes via `postMessage`. Appen vises igen. Ingen ny browsertab. Afspilning (hvis aktiv) forstyrres ikke.
+**Forventet resultat:** Guide-modalen lukkes. Appen vises igen. Ingen ny browsertab. Afspilning (hvis aktiv) forstyrres ikke.
+
+*(Rettet 14-07-2026, BUG-11: guide-HTML har ikke haft en "Tilbage til WebRadio"-postMessage-mekanisme siden den sticky nav blev fjernet — luk sker udelukkende via "Luk ✕"-knappen i selve appen.)*
 
 ---
 
