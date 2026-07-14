@@ -21,7 +21,7 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 
-> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy) + BUG-14 lukket (accepteret platformsbegrænsning)**
+> **Status: 1/13 rettet + bekræftet (BUG-01), 2/13 deployet afventer bekræftelse (BUG-04, BUG-05), 1 fund udenfor de 13 lukket (BUG-14 — accepteret platformsbegrænsning). 9/13 stadig åbne (BUG-02, 03, 06-13).**
 
 ---
 
