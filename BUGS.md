@@ -19,9 +19,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-11 | `src/App.tsx:23` | 🔴 Åben | Lav |
 | BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
-| BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟡 Keepalive fjernet helt, afventer bekræftelse på iPhone | Kritisk |
+| BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 
-> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy) + 1 ny fejl fundet og rettet (BUG-14)**
+> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy) + BUG-14 lukket (accepteret platformsbegrænsning)**
 
 ---
 
@@ -258,3 +258,11 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Konsekvens (accepteret, ikke en fejl):** WebRadio kan nu forsvinde fra låseskærmen, efter en pause og baggrundslægning af telefonen — iOS' standardopførsel uden en aktiv holdt-i-live-mekanisme. CLAUDE.md er opdateret til at dokumentere dette som et bevidst valg (batteri/lyd-renhed prioriteret over garanteret låseskærms-persistens).
 
 **Verifikation:** `npx tsc --noEmit` ren, `eslint` uændret (kun de 4 kendte, urelaterede `no-empty`-linjer), ingen resterende referencer til keepalive nogen steder i `src/` (grep-verificeret). **BUG-14 er lukket** — pending Michaels bekræftelse på iPhone af, at almindelig afspil/pause/resume og strømforbrug er tilfredsstillende uden keepalive.
+
+**Opfølgende research 14-07-2026 — sammenligning med dr.dk/lyd:** Michael testede DR's egen webafspiller (P3) med præcis samme scenarie (afspil → pause fra låseskærm → vent → tryk PLAY). Research bekræftede via faktisk netværksinspektion (Playwright, klik på DR's reelle "Spil P3"-knap, ikke gæt): DR's live-radio afspilles via **HLS** (`drliveradio2.akamaized.net/hls/live/.../p3/playlist-96000.m3u8` m.fl., adaptiv bitrate, `.ts`-segmenter) — en helt anden teknologi end WebRadios kontinuerlige MP3/Icecast-streams (inkl. WebRadios egen DR-station, som bruger `live-icy.gss.dr.dk/A/A29H.mp3`, IKKE DR's HLS-feed).
+
+**Efterfølgende test viste dog, at DR har samme grundlæggende begrænsning:** Ved længere baggrundslægning forsvinder DR's afspiller *også* fra låseskærmen, og direkte PLAY-tryk på låseskærmen virker heller ikke der — kun at genåbne Safari-appen får musikken til at fortsætte. Forskellen er, at DR's genoptagelse fortsætter **fra samme sted** (ikke "live nu"), fordi HLS-streamen har et tidsforskudt/DVR-vindue at spole i (heraf de synlige 10-sek. spol-ikoner på låseskærmen) — noget en almindelig Icecast/MP3-stream ikke har noget tilsvarende af.
+
+**Konklusion:** Låseskærm-begrænsningen (kan forsvinde og kræve genåbning af appen efter en pause) rammer tilsyneladende **både** DR's professionelle HLS-baserede afspiller og WebRadios MP3-baserede afspilning — det er ikke et tegn på, at WebRadio afspiller kanalerne forkert, men at Icecast/MP3 (som 80 ud af 80 stationer reelt leverer, inkl. DR via WebRadio) mangler den DVR-buffer, HLS kan tilbyde. At matche DR's fulde adfærd ville kræve at skifte til HLS, hvilket kun DR selv leverer blandt kilderne — ikke noget WebRadio kan løse generelt uden at bygge en dedikeret transskoderings-backend (vurderet uforholdsmæssigt stort, se ovenfor).
+
+**Endelig beslutning 14-07-2026:** Michael accepterer "genåbn appen efter hver pause, hvis den er forsvundet fra låseskærmen" som normal, forventet adfærd. Intet yderligere arbejde planlagt på dette punkt.
