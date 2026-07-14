@@ -1,14 +1,5 @@
-import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, getDocs, doc, updateDoc } from 'firebase/firestore'
-
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-}
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { db } from './firebase-init.mjs'
 
 const countryMap = {
   '1.FM 70s Best':               'ch',
@@ -73,23 +64,6 @@ const countryMap = {
   'SomaFM Metal Detector':       'us',
 }
 
-import { readFileSync } from 'fs'
-const env = readFileSync('.env', 'utf8')
-for (const line of env.split('\n')) {
-  const [key, ...rest] = line.split('=')
-  if (key && rest.length) process.env[key.trim()] = rest.join('=').trim()
-}
-
-const app = initializeApp({
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-})
-
-const db = getFirestore(app)
 const snap = await getDocs(collection(db, 'stations'))
 
 let updated = 0, skipped = 0, unknown = 0

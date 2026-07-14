@@ -53,6 +53,7 @@ let sleepTimerInterval: ReturnType<typeof setTimeout> | null = null
 let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
 let _shouldResume = false
+const reorderSeq: Record<string, number> = {}
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -95,10 +96,13 @@ function audio() {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return
       _shouldResume = false  // Clear any stale flag on every foreground; only re-arm if needed
-      const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
+      const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
       if (isPlaying && a.paused) {
-        // listenAccumulatedMs is already correct — background pause handler snapshotted it
-        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+        // Usually the background pause handler's 300ms timeout has already folded elapsed
+        // time into listenAccumulatedMs and nulled listenStartedAt — but if this fires first
+        // (fast foreground/background flip), listenStartedAt is still set, so fold it in here too.
+        const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+        useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
         if (currentStation) syncMediaSession(currentStation, false)
         // visibilitychange and touchstart are NOT valid iOS user-gestures for audio.play().
         // 'click' IS. Arm a flag so the next click anywhere in the app resumes playback.
@@ -222,7 +226,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const prevCategoryOrder = stationOrder[category]
     const newOrder = { ...stationOrder, [category]: orderedIds }
     set({ stationOrder: newOrder, stations: sortWithOrder(get().stations, newOrder) })
+    // Only the most recently started call for this category may revert on failure —
+    // otherwise an older call's late failure can clobber a newer call's already-saved order.
+    const mySeq = (reorderSeq[category] ?? 0) + 1
+    reorderSeq[category] = mySeq
     saveStationOrder(getDeviceId(), category, orderedIds).catch(() => {
+      if (reorderSeq[category] !== mySeq) return
       const { stationOrder: curOrder, stations: curStations } = get()
       const revertedOrder = { ...curOrder }
       if (prevCategoryOrder !== undefined) {

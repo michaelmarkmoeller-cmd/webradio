@@ -1,17 +1,43 @@
-function isPrivateHost(hostname: string): boolean {
-  const h = hostname.toLowerCase()
-  if (h === 'localhost' || h === '::1') return true
-  const ipv4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
-  if (ipv4) {
-    const a = Number(ipv4[1]), b = Number(ipv4[2])
-    return (
-      a === 10 || a === 127 || a === 0 ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 169 && b === 254)
-    )
+import dns from 'node:dns'
+
+function isPrivateIPv4(a: number, b: number): boolean {
+  return (
+    a === 10 || a === 127 || a === 0 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254)
+  )
+}
+
+function isPrivateAddress(address: string, family: number): boolean {
+  if (family === 4) {
+    const m = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+    if (!m) return true // unparsable — reject defensively
+    return isPrivateIPv4(Number(m[1]), Number(m[2]))
   }
+  const h = address.toLowerCase()
+  if (h === '::1' || h === '::') return true
+  if (h.startsWith('fc') || h.startsWith('fd')) return true // fc00::/7 unique local
+  if (h.startsWith('fe8') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb')) return true // fe80::/10 link-local
+  const mapped = h.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (mapped) return isPrivateIPv4(Number(mapped[1]), Number(mapped[2]))
   return false
+}
+
+// Resolves the hostname and checks the ACTUAL address(es), not just the hostname
+// string — closes bypasses via decimal/octal/hex IP encodings (which getaddrinfo
+// normalizes on resolution) and narrows the DNS-rebinding window to the gap between
+// this lookup and the fetch() below, rather than leaving it wide open entirely.
+async function isPrivateHost(hostname: string): Promise<boolean> {
+  const h = hostname.toLowerCase()
+  if (h === 'localhost') return true
+  try {
+    const results = await dns.promises.lookup(h, { all: true, verbatim: true })
+    if (results.length === 0) return true
+    return results.some((r) => isPrivateAddress(r.address, r.family))
+  } catch {
+    return true // unresolvable — reject defensively
+  }
 }
 
 export default async function handler(req: any, res: any) {
@@ -25,7 +51,7 @@ export default async function handler(req: any, res: any) {
   }
   try {
     const { hostname } = new URL(url)
-    if (isPrivateHost(hostname)) return res.status(400).json({ title: null })
+    if (await isPrivateHost(hostname)) return res.status(400).json({ title: null })
   } catch {
     return res.status(400).json({ title: null })
   }
@@ -49,7 +75,7 @@ export default async function handler(req: any, res: any) {
 
     if (!response.ok || !response.body) {
       if (response.body) response.body.cancel().catch(() => {})
-      return res.json({ title: null })
+      return res.json({ title: null, icySupported: false })
     }
 
     const metaintHeader = response.headers.get('icy-metaint')
@@ -61,7 +87,7 @@ export default async function handler(req: any, res: any) {
     const metaint = parseInt(metaintHeader, 10)
     if (!metaint || metaint <= 0 || metaint > 65536) {
       response.body.cancel().catch(() => {})
-      return res.json({ title: null })
+      return res.json({ title: null, icySupported: false })
     }
 
     // Read just enough bytes to reach the first metadata block
@@ -88,7 +114,7 @@ export default async function handler(req: any, res: any) {
       offset += chunk.length
     }
 
-    if (buffer.length <= metaint) return res.json({ title: null })
+    if (buffer.length <= metaint) return res.json({ title: null, icySupported: false })
 
     const metaLen = buffer[metaint] * 16
     if (metaLen === 0 || buffer.length < metaint + 1 + metaLen) {
@@ -113,6 +139,6 @@ export default async function handler(req: any, res: any) {
 
     return res.json({ title, genre, icySupported: true })
   } catch {
-    return res.json({ title: null })
+    return res.json({ title: null, icySupported: false })
   }
 }

@@ -1,28 +1,28 @@
 # Fejlliste — WebRadio
 
-Fundet ved kritisk kodegennemgang 14-07-2026 (høj-effort workflow-review: 4 uafhængige finder-agenter + 1 uafhængig verifikations-agent pr. fund, alle 13 kandidater blev bekræftet, 0 afvist). Denne fil indeholder den fulde rå information fra reviewet — finderens fejlscenarie OG verifikationsagentens uafhængige kode-bevis, ikke bare en opsummering. Ingen af fejlene er rettet endnu — de tages én ad gangen.
+Fundet ved kritisk kodegennemgang 14-07-2026 (høj-effort workflow-review: 4 uafhængige finder-agenter + 1 uafhængig verifikations-agent pr. fund, alle 13 kandidater blev bekræftet, 0 afvist). Denne fil indeholder den fulde rå information fra reviewet — finderens fejlscenarie OG verifikationsagentens uafhængige kode-bevis, ikke bare en opsummering. Fejlene tages én ad gangen; se status-tabellen for hvor langt hver er nået.
 
 Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 
 | BUG# | Fil | Status | Prioritet |
 |------|-----|--------|-----------|
 | BUG-01 | `src/components/StationCard.tsx:124` | 🟢 Rettet (deployet + bekræftet på iPhone) | Kritisk |
-| BUG-02 | `src/components/AddStationModal.tsx:30` | 🔴 Åben | Kritisk |
-| BUG-03 | `src/firebase/stationsService.ts:102` | 🔴 Åben | Kritisk |
+| BUG-02 | `src/components/AddStationModal.tsx:30` | 🟡 Rettet i kode, afventer test | Kritisk |
+| BUG-03 | `src/firebase/stationsService.ts:102` | 🟡 Rettet i kode, afventer test | Kritisk |
 | BUG-04 | `src/store/useRadioStore.ts:255` | 🟢 Rettet (bekræftet på iPhone) | Kritisk |
 | BUG-05 | `src/store/useRadioStore.ts:303` | 🟢 Rettet (bekræftet på iPhone, dog se BUG-15) | Kritisk |
-| BUG-06 | `src/App.tsx:65` | 🔴 Åben | Kritisk |
-| BUG-07 | `api/icy-meta.ts:1` | 🔴 Åben | Mellem |
-| BUG-08 | `src/store/useRadioStore.ts:224` | 🔴 Åben | Mellem |
-| BUG-09 | `api/icy-meta.ts:52` | 🔴 Åben | Mellem |
-| BUG-10 | `src/store/useRadioStore.ts:100` | 🔴 Åben | Mellem |
-| BUG-11 | `src/App.tsx:23` | 🔴 Åben | Lav |
-| BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
-| BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
+| BUG-06 | `src/App.tsx:65` | 🟡 Rettet i kode, afventer test | Kritisk |
+| BUG-07 | `api/icy-meta.ts:1` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-08 | `src/store/useRadioStore.ts:224` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-09 | `api/icy-meta.ts:52` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-10 | `src/store/useRadioStore.ts:100` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-11 | `src/App.tsx:23` | 🟢 Rettet (dead code fjernet) | Lav |
+| BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret) | Lav |
+| BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
-| BUG-15 | `src/store/useRadioStore.ts:298` | 🔴 Åben — fundet under BUG-04/05-test | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Delvis rettet — hakke-symptom løst, kerneproblem åbent | Kritisk |
 
-> **Status: 3/13 rettet + bekræftet (BUG-01, BUG-04, BUG-05), 1 fund udenfor de 13 lukket (BUG-14 — accepteret platformsbegrænsning). 9/13 stadig åbne (BUG-02, 03, 06-13). 1 nyt fund under manuel test, stadig åben (BUG-15).**
+> **Status: 6/13 rettet + bekræftet (BUG-01, 04, 05, 11, 12, 13), 6/13 rettet i kode og afventer test (BUG-02, 03, 06-10), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15).**
 
 ---
 
@@ -89,6 +89,8 @@ Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPres
 
 **Verifikations-bevis (uafhængig agent):** `AddStationModal.tsx:30` kalder `addStation({ name: name.trim(), streamUrl: trimmedUrl, category, bitrate, country: country.trim().toLowerCase() || undefined })`, hvor `bitrate`-state som standard er `undefined` (linje 15, kun sat af det valgfrie bitrate-`<select>`), og `country.trim().toLowerCase() || undefined` evaluerer til `undefined` når land-feltet forbliver tomt (dets standard). `stationsService.ts:78-83` `addStation()` sender dette objekt direkte ind i `addDoc(collection(db, COLLECTION), { ...data, createdAt: serverTimestamp() })` uden at stripning/default-sætning af undefined-felter. `config.ts:16-18` initialiserer Firestore via `initializeFirestore(app, { localCache: persistentLocalCache() })` uden `ignoreUndefinedProperties: true`, så SDK'ens standardadfærd (afvis undefined-feltværdier) gælder. Indsendelse af tilføj-station-formularen med bitrate på "Ukendt" og land tomt (standard-state for begge felter) får `addDoc` til at kaste på det undefined-felt, fanget af den generiske `catch { toast.error('Kunne ikke tilføje stationen') }` i `AddStationModal.tsx:33-34` — stationen fejler stille uden specifik diagnostik.
 
+**Rettet 14-07-2026:** Løst sammen med BUG-03 ved samme boundary-fix i `stationsService.ts` — se BUG-03's rettelsesnote for detaljer. `AddStationModal.tsx` er ikke ændret; problemet lå i skrive-laget, ikke i formularen. `npx tsc --noEmit` ren. Afventer test på iPhone (tilføj en station med bitrate="Ukendt" og land tomt).
+
 ---
 
 ## BUG-03 — Import kan fejle helt eller skrive fremmede felter
@@ -99,6 +101,8 @@ Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPres
 **Fejlscenarie (finder):** `ImportExportModal.parseFile()` sætter altid nøglerne `bitrate`, `logoUrl` og `country`, selv når de mangler i den uploadede JSON (`typeof s.bitrate === 'number' ? s.bitrate : undefined` osv.), og tilføjer altid en `valid: true`-markør. `handleImport()` sender denne `ParsedStation[]` direkte til `importStations(stations: StationFormData[])` — TypeScript tillader den bredere type gennem en variabel-tildeling (ingen excess-property-tjek), så objekterne ved runtime har `bitrate: undefined` / `country: undefined` for enhver station uden disse valgfrie felter. Firestores `batch.set` kaster på undefined-feltværdier, hvilket afbryder hele `batch.commit()` for den chunk (op til 499 stationer) — så import af en JSON-eksport, hvor de fleste stationer mangler bitrate/land (meget almindeligt), fejler helt med kun en generisk "Import fejlede"-toast, og enhver station der *lykkes* (i en chunk uden undefined-felter) skrives til Firestore med et fremmed `valid: true`-felt, der aldrig var en del af Station-skemaet.
 
 **Verifikations-bevis (uafhængig agent):** `ImportExportModal.tsx` `parseFile()` sætter altid `bitrate`/`logoUrl`/`country`-nøgler, med default `undefined` når fraværende (fx linje 42: `bitrate: typeof s.bitrate === 'number' ? s.bitrate : undefined`), og tilføjer altid `valid: true` (`ParsedStation` udvider `StationFormData` med `valid: boolean`). `handleImport()` gør `const valid = parsed.stations.filter((s) => s.valid)` og derefter `importStations(valid)` (`ImportExportModal.tsx:98,101`) — da TypeScripts excess-property-tjek kun gælder for friske objekt-literaler, ikke variabler, passerer `ParsedStation[]` (der stadig bærer `valid: true` og evt. `bitrate: undefined` osv.) som `StationFormData[]` uden stripning. I `stationsService.ts:102` spreder `batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })` disse ekstra/undefined-værdi-felter direkte ind i skrivningen. Firestores standardadfærd (ingen `ignoreUndefinedProperties` konfigureret) kaster synkront på ethvert felt med en `undefined`-værdi, og dette kast sker inde i for-løkken, før `batch.commit()` nås — så én station uden bitrate/logoUrl/land afbryder hele chunkens import (fanget generisk som "Import fejlede"). Enhver station der lykkes (alle valgfrie felter til stede) skrives med et fremmed `valid: true`-felt, aldrig en del af Station-skemaet (`types/index.ts:5-15` har intet `valid`-felt).
+
+**Rettet 14-07-2026:** Tilføjet en `sanitizeStationData()`-funktion i `stationsService.ts`, som eksplicit allowlister de kendte `Station`-felter (name, streamUrl, category, og kun bitrate/logoUrl/country hvis de rent faktisk er sat) — bruges nu af både `addStation()` og `importStations()`'s `batch.set()`, i stedet for en rå objekt-spread. Dette fjerner både `undefined`-feltværdier (retter BUG-02) og fremmede felter som `valid` (retter BUG-03) ved selve Firestore-skrive-grænsen, uden at røre `AddStationModal.tsx` eller `ImportExportModal.tsx`. `npx tsc --noEmit` ren. Afventer test på iPhone (import en JSON-fil med stationer der mangler bitrate/land).
 
 ---
 
@@ -153,6 +157,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `src/App.tsx` linje 65-84: `onDeviceChange` har kun to grene, styret af det interne `pendingReconnect`-flag, uden tjek af `navigator.mediaDevices.enumerateDevices()` eller andet signal om, hvorvidt en enhed blev tilføjet eller fjernet. Når `pendingReconnect` er false (steady-state mens musik spiller), falder enhver `devicechange`-event i else-grenen: `wasPlayingAtDisconnect = isPlaying; if (isPlaying) togglePlay()` (linje 78-80) — ubetinget behandlet som en frakobling og pauser. Media Devices API fyrer `devicechange` for enhver ændring i enhedslisten, inklusive tilføjelser (fx tilslutning af kabelhovedtelefoner mens en Bluetooth-højtaler forbliver tilsluttet), så det scenarie rammer præcis denne pause-gren uden mulighed for at undgå det.
 
+**Rettet 14-07-2026:** `onDeviceChange` tæller nu enheder via `navigator.mediaDevices.enumerateDevices()` før og efter hvert event, og sammenligner antal. Kun et **fald** i antal enheder udløser pause-grenen; en stigning (eller uændret antal) rører ikke afspilningen, medmindre appen allerede venter på en reconnect (i så fald tolkes det som den forventede genforbindelse, som før). `npx tsc --noEmit` ren. Afventer test på iPhone (tilslut høretelefoner mens Bluetooth-højtaler forbliver tilsluttet — musikken må ikke pause).
+
 ---
 
 ## BUG-07 — SSRF-beskyttelsen i ICY-metadata-proxyen kan omgås
@@ -163,6 +169,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Fejlscenarie (finder):** Firestore-reglerne tillader `allow read, write: if true`, og `AddStationModal`/`importStations` kræver kun, at URL'en starter med `http(s)://` — enhver besøgende kan tilføje en station, hvis streamUrl er `http://2130706433/` (decimal for 127.0.0.1), `http://017700000001/` (oktal), `http://[::ffff:169.254.169.254]/latest/meta-data/` (IPv6-mappet cloud metadata-adresse), eller et domæne der kun resolver til en privat IP ved fetch-tidspunktet (DNS-rebinding). Ingen af disse hostnavne matcher `isPrivateHost`'s punktum-decimal-regex eller den bogstavelige `::1`-tjek, så de passerer validering. `Player.tsx` poller derefter `/api/icy-meta?url=<den streamUrl>` hvert 30. sekund mens stationen spiller, hvilket får Vercel-serverless-funktionen til at udføre outbound requests mod interne/metadata-endpoints på angriberens vegne — SSRF-beskyttelsen tilføjet i commit `38e5e28` kan omgås via alternative adresse-encodings.
 
 **Verifikations-bevis (uafhængig agent):** `isPrivateHost` (`api/icy-meta.ts:1-15`) tjekker kun `h === 'localhost' || h === '::1'` og en punktum-decimal IPv4-regex `^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$`. Et hostnavn som `2130706433` (decimal for 127.0.0.1), `017700000001` (oktal), eller `[::ffff:169.254.169.254]` (IPv6-mappet) matcher ingen af grenene, så `isPrivateHost` returnerer false, og requesten fortsætter til `fetch(url, ...)` på linje 39. Derudover opererer tjekket kun på hostname-strengen, ikke den resolvede IP, så et DNS-navn der resolver til en privat/metadata-IP ved fetch-tidspunktet fanges slet ikke (klassisk DNS-rebinding-hul) — der er intet IP-efter-resolution-tjek nogen steder i filen. Da `Player.tsx` poller dette endpoint hvert 30. sek. for vilkårlige Firestore-lagrede streamUrl-værdier (station-streamUrl kræves kun at starte med `http(s)://` ifølge projektdokumentationen), er dette et reelt SSRF-bypass af den eksisterende beskyttelse.
+
+**Rettet 14-07-2026:** `isPrivateHost` er nu asynkron og bruger `dns.promises.lookup(hostname, { all: true })` til at resolve hostnavnet og validere den **faktiske** IP-adresse (alle returnerede adresser, ikke kun den første) — i stedet for kun at mønster-matche hostname-strengen. Dette normaliserer alternative encodings (decimal/oktal/hex forstås af Node's underliggende getaddrinfo og resolver til en almindelig dotted-quad, som så tjekkes), og indsnævrer (om end ikke eliminerer fuldstændigt) DNS-rebinding-vinduet til gabet mellem opslag og selve `fetch()`. Udvidet til også at dække IPv4-mappede IPv6-adresser (`::ffff:a.b.c.d`), unique-local (`fc00::/7`) og link-local (`fe80::/10`) IPv6-ranges. Uopløselige hostnavne afvises defensivt. Standalone type-check af `api/icy-meta.ts` (uden for hoved-tsconfig'en, som ikke inkluderer `api/`) er ren. Afventer test — bør prøves med en station der har en gyldig, offentlig stream-URL for at bekræfte ICY-metadata stadig virker efter ændringen.
 
 ---
 
@@ -175,6 +183,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:224-239`. `reorderCategory` fanger `prevCategoryOrder = stationOrder[category]` fra `get()` ved kaldets tidspunkt, gør derefter en optimistisk `set()` og affyrer `saveStationOrder(...).catch(...)`, der lukker over den forældede `prevCategoryOrder`. Hvis kald A's promise afvises, efter at kald B allerede har kørt (B's optimistiske `set()` overskrev storen, og B's egen save lykkedes), reverterer A's catch-handler på linje 232-236 stadig `revertedOrder[category] = prevCategoryOrder` (A's pre-update-snapshot, dvs. state før både A og B), hvilket overskriver B's succesfuldt gemte rækkefølge med en toast "Kunne ikke gemme rækkefølge", selvom B lykkedes. Der er ingen request-sekvensering/versions-token, der styrer hvilket kalds fejl der må revertere, så et langsommere-fejlende tidligere kald kan overtrampe et hurtigere-succesfuldt senere kalds resultat.
 
+**Rettet 14-07-2026:** Tilføjet et sekvensnummer pr. kategori (`reorderSeq`). Hvert `reorderCategory`-kald inkrementerer og fanger sit eget nummer; når et kalds Firestore-write fejler, tjekker catch-handleren først om dens nummer stadig er det seneste for kategorien — hvis et nyere kald allerede er startet, er det gamle kalds revert et no-op, så det ikke kan overskrive et senere (evt. allerede gemt) resultat. `npx tsc --noEmit` ren. Afventer test — kræver hurtig dobbelt-reorder i samme kategori for at udløse racen, svært at teste manuelt med sikkerhed; kodeanalysen bekræfter fixet, men er ikke afprøvet under faktisk netværksforsinkelse.
+
 ---
 
 ## BUG-09 — ICY-support caches forkert ved delvise stream-fejl
@@ -185,6 +195,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Fejlscenarie (finder):** `Player.tsx` stopper kun polling, når `data.icySupported === false`; enhver anden form (inkl. `{title:null}` uden `icySupported`-nøgle) falder i else-grenen, der sætter `icySupportedRef.current = true`. For en station, hvis upstream-stream lejlighedsvis svarer 200, men returnerer en fejlbehæftet/for stor `icy-metaint` eller en afkortet metadata-blok, lærer den 30-sekunders polling-løkke i `Player.tsx` aldrig, at stationen reelt er ikke-ICY, og fortsætter med at kalde `/api/icy-meta` hvert 30. sekund gennem hele afspilningen — modsat en ægte ikke-ICY-stream (intet `icy-metaint`-header), som korrekt stopper efter første request.
 
 **Verifikations-bevis (uafhængig agent):** `api/icy-meta.ts` har fire fejlstier, der returnerer `{title:null}` uden nogen `icySupported`-nøgle overhovedet: linje 52 `if (!response.ok || !response.body) { ... return res.json({ title: null }) }`, linje 64-65 (for stor/ugyldig metaint) `if (!metaint || metaint <= 0 || metaint > 65536) { ... return res.json({ title: null }) }`, linje 91 `if (buffer.length <= metaint) return res.json({ title: null })`, og catch-all'en på linje 115-117 `catch { return res.json({ title: null }) }`. Imens tjekker `Player.tsx` (linje 50-51) kun det eksplicitte-false-signal: `if (data.icySupported === false) { icySupportedRef.current = false; return } icySupportedRef.current = true`. Ethvert svar uden `icySupported`-nøglen (alle fire grene ovenfor) falder igennem til `icySupportedRef.current = true`, så en station, hvis stream returnerer fx en fejlbehæftet/for stor `icy-metaint` (deterministisk reproducerbar hver request, ikke bare transient), er permanent markeret ICY-understøttet og polles hvert 30. sekund for hele afspilningssessionen — modsat en ægte ikke-ICY-stream (manglende `icy-metaint`-header, linje 56-58), som korrekt sætter `icySupported:false` og stopper polling efter én request.
+
+**Rettet 14-07-2026:** Alle fire identificerede fejlgrene i `api/icy-meta.ts` returnerer nu eksplicit `icySupported: false` (ikke-OK svar, ugyldig/for stor metaint, for kort buffer, og catch-all). `Player.tsx` er ikke ændret — den korrekte gren (`icySupported === false`) fandtes allerede, den manglede blot at blive sat konsekvent. Bemærk: `icySupportedRef` nulstilles i forvejen ved hvert stations-/afspilningsskift (`Player.tsx:33`), så en enkelt fejlramt session stopper ikke metadata-forsøg permanent på tværs af fremtidige afspilninger. Standalone type-check af `api/icy-meta.ts` ren. Afventer test — bør bekræftes ved at afspille en station, der reelt understøtter ICY (fx en DR-station), og verificere at sangtitel stadig vises.
 
 ---
 
@@ -197,6 +209,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `visibilitychange`-handleren destrukturerer state UDEN `listenStartedAt`: `const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()` (linje 100), og gør derefter på `isPlaying && a.paused`-grenen kun `useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })` (linje 103) — den lægger aldrig `Date.now() - listenStartedAt` til `listenAccumulatedMs`, og stoler udelukkende på kommentarens antagelse om, at "baggrundens pause-handler snapshottede det" (linje 102). Men det snapshot sker kun inde i pause-lytterens `setTimeout(() => {...}, 300)` (linje 79-90), som skriver `listenAccumulatedMs: snapshotMs` kun når den fyrer. Ifølge projektets egen dokumenterede rækkefølge ("pause-event fires on iOS FØR visibilityState skifter til hidden") er sekvensen: pause fyrer og armerer 300ms-timeout'en (linje 79) → `visibilitychange` til "hidden" fyrer, men returnerer tidligt (linje 98, state !== "visible") → hvis brugeren vender tilbage til forgrunden inden for de 300ms, fyrer `visibilitychange` igen med "visible", rammer `isPlaying&&a.paused`-grenen (isPlaying er stadig true, og a.paused er allerede true fra den reelle eksterne pause) FØR `setTimeout`'en er eksekveret. På det tidspunkt er storens `listenAccumulatedMs` stadig den før-pause-værdi, så den forløbne tid mellem det oprindelige `listenStartedAt` og nu tabes stille, når `listenStartedAt` nulstilles på linje 103. Dette matcher præcis den påståede race og undertæller permanent lyttetid for den session.
 
+**Rettet 14-07-2026:** `visibilitychange`-handleren destrukturerer nu også `listenStartedAt`, og folder — ligesom de andre pause-grene i filen — selv `Date.now() - listenStartedAt` ind i `listenAccumulatedMs` (kun hvis `listenStartedAt` stadig er sat; er den allerede `null`, fordi pause-handlerens 300ms-timeout nåede at køre først, sker der ingen dobbelttælling). `npx tsc --noEmit` ren. Afventer test — racen kræver meget hurtigt app-skift (under 300ms) for at udløse, svært at ramme pålideligt manuelt; koderettelsen er dog en direkte, verificeret modgift mod det beskrevne mønster.
+
 ---
 
 ## BUG-11 — Dødt `postMessage`-lytter for lukning af brugervejledning
@@ -207,6 +221,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Fejlscenarie (finder):** CLAUDE.md dokumenterer: "App.tsx modal-header har 'Luk ✕'-knap som lukker modalen; guide-HTML sender ingen postMessage mere (den sticky nav er fjernet)." Bekræftet ved grep: `public/guide/index.html` indeholder nul `postMessage`-kald. `useEffect`'en på linje 22-29 i `App.tsx` registrerer stadig en `window.addEventListener('message', onMessage)`, der tjekker for `e.data === 'close-guide'` — denne gren kan aldrig eksekvere, da intet længere poster den besked, hvilket gør effekten til dead code, som en fremtidig vedligeholder fejlagtigt kan tro er guide-luk-mekanismen (det er den ikke — det er "Luk"-knappens onClick), når modalen fejlsøges.
 
 **Verifikations-bevis (uafhængig agent):** `src/App.tsx:23-26`: `const onMessage = (e: MessageEvent) => { if (e.origin !== window.location.origin) return; if (e.data === 'close-guide') setShowGuide(false) }` registreret via `window.addEventListener('message', onMessage)`. Grep af `public/guide/index.html` for "postMessage" returnerer ingen matches, hvilket bekræfter, at intet nogensinde sender "close-guide". Dette matcher CLAUDE.md's eksplicitte note om, at guide-HTML'en ikke sender postMessage mere, siden den sticky nav blev fjernet, og modalen reelt lukkes via "Luk ✕"-knappens onClick. Lytteren er uopnåelig dead code.
+
+**Rettet 14-07-2026:** `useEffect`-blokken med `onMessage`-lytteren er fjernet fra `App.tsx`. Guide-modalen lukkes fortsat udelukkende via "Luk ✕"-knappens `onClick={() => setShowGuide(false)}`, som var uændret upåvirket. `npx tsc --noEmit` ren.
 
 ---
 
@@ -219,6 +235,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `check-streams.mjs:122-123` `for (const station of stations) { const result = await checkStream(station.streamUrl) ... }` behandler stationer strengt én ad gangen. `checkStream` (linje 84-106) afventer selv sekventielt `checkStreamHttp` (8000ms timeout, linje 24/85), derefter ved 403 endnu et `checkStreamHttp` uden ICY-header (8000ms timeout, linje 90), derefter ved netværksfejl et `checkStreamTcp`-fallback (5000ms timeout, linje 99). Ingen `Promise.all`/`allSettled` eller concurrency-begrænser bruges nogen steder i filen, så en håndfuld langsomme/døde streams blandt de ca. 80 stationer hentet fra Firestore (linje 109-112) kan lægge minutter til wall-clock-tiden, som parallel batching ville undgå, da hver stations tjek er uafhængig I/O uden delt state.
 
+**Rettet 14-07-2026:** Tilføjet en lille hånd-rullet concurrency-pool (`runWithConcurrency`, ingen ny dependency) — kører stream-tjek med op til 8 samtidigt i stedet for én ad gangen. Resultater samles og logges i original (kategori/navn-sorteret) rækkefølge, uændret output-format. `node --check check-streams.mjs` — syntaks ren. Ikke kørt fuldt igennem mod alle 80 stationer (ville tage flere minutter og ramme skrive-mod-produktion-reglen unødigt, da scriptet kun læser) — logikken er dog simpel og velkendt (fast antal parallelle "runners" der trækker fra en delt kø).
+
 ---
 
 ## BUG-13 — Duplikeret Firebase-init-boilerplate i 17 hjælpescripts
@@ -229,6 +247,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Fejlscenarie (finder):** Alle 17 filer duplikerer de samme ca. 10-15 linjer, der læser og parser `.env` og kalder `initializeApp({...seks VITE_FIREBASE_*-nøgler...})` (nogle via `readFileSync`-linjesplitning, én via `process.env` direkte — `set-countries.mjs` gør faktisk begge dele, én gang for et config-objekt der straks kasseres). Hvis `.env`-formatet nogensinde ændres (fx quoted values, kommentarer, multiline secrets), eller en Firebase-config-nøgle omdøbes, skal hver af disse 17 filer have samme rettelse anvendt individuelt; et overset script bliver stille ved med at bruge forældet/ødelagt config, næste gang nogen kører det mod produktions-Firestore.
 
 **Verifikations-bevis (uafhængig agent):** Hver af de 17 filer duplikerer uafhængigt `.env`-parsing + `initializeApp`-boilerplate, fx `add-dance-stations-jun2026.mjs:7-19`: `const env = Object.fromEntries(readFileSync('.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>l.split('=').map(s=>s.trim()))); const app = initializeApp({apiKey: env.VITE_FIREBASE_API_KEY, ...})` — det identiske mønster gentages ordret i de øvrige 15 add-/fix-/set-/list-/check-/migrate-/test-scripts. `set-countries.mjs:3-10` læser i stedet direkte `apiKey: process.env.VITE_FIREBASE_API_KEY` uden nogen `.env`-parsing overhovedet — hvilket bekræfter divergens-risikoen nævnt i fundet (ét script afviger allerede fra resten og ville ikke modtage samme rettelse, hvis `.env`-formatet ændredes). Ingen af disse 17 filer importerer et delt config-hjælpemodul eller `src/firebase/config.ts`.
+
+**Rettet 14-07-2026:** Oprettet `firebase-init.mjs` i rodmappen — læser `.env` og eksporterer en færdig `db`-instans. Alle 17 scripts opdateret til `import { db } from './firebase-init.mjs'` i stedet for at duplikere init-koden; `set-countries.mjs`s afvigende dobbelte `process.env`-tilgang (inkl. det ubrugte, straks-kasserede `firebaseConfig`-objekt) er fjernet og erstattet med samme mønster som de øvrige 16. Alle 17 filer syntaks-tjekket med `node --check` — rene. `list-stations.mjs` kørt live mod produktions-Firestore (læs-kun, ingen skrivning) for at bekræfte den delte init reelt virker — output matcher det forventede.
 
 ---
 

@@ -2,23 +2,8 @@
 import https from 'https'
 import http from 'http'
 import net from 'net'
-import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, getDocs } from 'firebase/firestore'
-import { readFileSync } from 'fs'
-
-// Load Firebase config from .env
-const env = Object.fromEntries(
-  readFileSync('.env', 'utf8').split('\n').filter(l => l.includes('=')).map(l => l.split('=').map(s => s.trim()))
-)
-const app = initializeApp({
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID,
-})
-const db = getFirestore(app)
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from './firebase-init.mjs'
 
 // Full HTTP check — tries to get a valid audio response
 function checkStreamHttp(url, timeoutMs = 8000, withIcy = true) {
@@ -105,6 +90,21 @@ async function checkStream(url) {
   return { ...httpResult, method: 'http' }
 }
 
+// Runs `worker` over `items` with at most `limit` in flight at once — the checks are
+// independent I/O with no shared state, so a concurrency-capped pool is safe here.
+async function runWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length)
+  let next = 0
+  async function runner() {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await worker(items[i], i)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runner))
+  return results
+}
+
 // Fetch all stations from Firestore
 const snap = await getDocs(collection(db, 'stations'))
 const stations = snap.docs
@@ -119,8 +119,13 @@ const ok = []
 const tcpOnly = []
 const failed = []
 
-for (const station of stations) {
-  const result = await checkStream(station.streamUrl)
+const CONCURRENCY = 8
+const checked = await runWithConcurrency(stations, CONCURRENCY, async (station) => ({
+  station,
+  result: await checkStream(station.streamUrl),
+}))
+
+for (const { station, result } of checked) {
   const br = result.bitrate ? `${result.bitrate} kbps` : ''
   if (result.ok && result.method === 'tcp-only') {
     console.log(`  ~  ${station.name.padEnd(35)} TCP OK (HTTP blokeret af server)`)

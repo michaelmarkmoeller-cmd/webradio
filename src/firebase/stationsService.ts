@@ -75,9 +75,25 @@ async function seedStations() {
   }
 }
 
+// Firestore rejects any field with an `undefined` value, and callers (import,
+// add-station form) may carry extra properties (e.g. ImportExportModal's `valid`
+// marker) that don't belong in the stored document — so writes go through this
+// explicit allowlist instead of a raw object spread.
+function sanitizeStationData(data: StationFormData): Record<string, unknown> {
+  const clean: Record<string, unknown> = {
+    name: data.name,
+    streamUrl: data.streamUrl,
+    category: data.category,
+  }
+  if (data.bitrate !== undefined) clean.bitrate = data.bitrate
+  if (data.logoUrl !== undefined) clean.logoUrl = data.logoUrl
+  if (data.country !== undefined) clean.country = data.country
+  return clean
+}
+
 export async function addStation(data: StationFormData): Promise<void> {
   await addDoc(collection(db, COLLECTION), {
-    ...data,
+    ...sanitizeStationData(data),
     createdAt: serverTimestamp(),
   })
 }
@@ -99,7 +115,7 @@ export async function importStations(stations: StationFormData[]): Promise<{ imp
       const chunk = fresh.slice(i, i + BATCH_SIZE)
       const batch = writeBatch(db)
       for (const station of chunk) {
-        batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })
+        batch.set(doc(collection(db, COLLECTION)), { ...sanitizeStationData(station), createdAt: serverTimestamp() })
       }
       await batch.commit()
     }

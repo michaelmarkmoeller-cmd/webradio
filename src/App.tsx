@@ -19,14 +19,6 @@ export default function App() {
   const [showImportExport, setShowImportExport] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
 
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return
-      if (e.data === 'close-guide') setShowGuide(false)
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [])
   const { isDark, toggle } = useTheme()
 
   useEffect(() => {
@@ -53,38 +45,54 @@ export default function App() {
   // Pause on device disconnect (e.g. leaving CarPlay/car). If a reconnect arrives
   // within 10 sec (e.g. AirPods briefly disconnected), auto-resume. Otherwise the
   // stream stays paused and must be restarted manually.
+  // `devicechange` fires for ANY change to the device list, including additions
+  // (e.g. plugging in headphones while a Bluetooth speaker stays connected) — so
+  // the device count is compared before/after to tell disconnects from additions.
   useEffect(() => {
     const md = navigator.mediaDevices
-    if (!md?.addEventListener) return
+    if (!md?.addEventListener || !md.enumerateDevices) return
 
     let pendingReconnect = false
     let wasPlayingAtDisconnect = false
     let timer: ReturnType<typeof setTimeout> | null = null
     let disconnectAt = 0
+    let lastDeviceCount = 0
+    let cancelled = false
 
-    const onDeviceChange = () => {
-      if (pendingReconnect) {
+    md.enumerateDevices().then((devices) => {
+      if (!cancelled) lastDeviceCount = devices.length
+    })
+
+    const onDeviceChange = async () => {
+      const devices = await md.enumerateDevices()
+      const decreased = devices.length < lastDeviceCount
+      lastDeviceCount = devices.length
+
+      if (!decreased) {
+        // Device added (or count unchanged) — only relevant if we're waiting on a reconnect
+        if (!pendingReconnect) return
         // Events within 150ms of disconnect are noise from the same device-change batch,
         // not a genuine reconnect (guards against two rapid disconnects resuming audio).
         if (Date.now() - disconnectAt < 150) return
-        // Reconnect within window (e.g. AirPods) — resume only if we auto-paused
         if (timer) clearTimeout(timer)
         pendingReconnect = false
         const { isPlaying, currentStation, togglePlay } = useRadioStore.getState()
         if (!isPlaying && currentStation && wasPlayingAtDisconnect) togglePlay()
-      } else {
-        // Disconnect — pause immediately so music stops when leaving CarPlay/car
-        disconnectAt = Date.now()
-        const { isPlaying, togglePlay } = useRadioStore.getState()
-        wasPlayingAtDisconnect = isPlaying
-        if (isPlaying) togglePlay()
-        pendingReconnect = true
-        timer = setTimeout(() => { pendingReconnect = false }, 10_000)
+        return
       }
+
+      // Genuine drop in connected devices — pause immediately so music stops when leaving CarPlay/car
+      disconnectAt = Date.now()
+      const { isPlaying, togglePlay } = useRadioStore.getState()
+      wasPlayingAtDisconnect = isPlaying
+      if (isPlaying) togglePlay()
+      pendingReconnect = true
+      timer = setTimeout(() => { pendingReconnect = false }, 10_000)
     }
 
     md.addEventListener('devicechange', onDeviceChange)
     return () => {
+      cancelled = true
       md.removeEventListener('devicechange', onDeviceChange)
       if (timer) clearTimeout(timer)
     }
