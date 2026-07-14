@@ -20,10 +20,10 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
-| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Delvis rettet — hakke-symptom løst, kerneproblem åbent | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Lukket — hakke-symptom rettet, kerneproblem accepteret som platformsbegrænsning | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
-> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15 — kerneproblem åbent).**
+> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15).**
 
 ---
 
@@ -363,6 +363,12 @@ Dette retter formentlig den hakkende/skrattende genafspilning, Michael observere
 **Relateret observation 14-07-2026 (Michael) — samme grundproblem, anden udløser (app-skift/Safari, ikke låseskærm):** Michael afspillede en station, swipede til Safari (eb.dk), navigerede til en artikel og trykkede "tilbage" — lyden stoppede præcis samtidig med at siden skiftede (mens WebRadio stadig var baggrundslagt). Ved tilbagevenden til WebRadio hørtes ca. **1 sekunds lyd, derefter stilhed** — et efterfølgende manuelt tryk på samme station fik den til at spille normalt igen. Et tilsvarende forsøg lige forinden (kortere Safari-besøg, ingen artikel-navigation) resulterede i **ren automatisk genoptagelse** uden noget tryk overhovedet.
 
 **Sandsynlig mekanisme (kodeanalyse, ikke yderligere verificeret):** Når WebRadio baggrundslægges og iOS selv pauser lyden, opdaterer `pause`-lytteren (`useRadioStore.ts:71-89`) kun tidsbogføringen — ikke `isPlaying` — fordi appen er usynlig (bevidst designvalg mod UI-flicker). Ved tilbagevenden opdager `visibilitychange`-lytteren (linje 95-112) uoverensstemmelsen, sætter `isPlaying:false`, og arm'er `_shouldResume`. Næste tryk et sted i appen udløser en frisk genforbindelse via klik-lytteren (linje 118-130). I det ene tilfælde blev denne nye forbindelse stabil (ren auto-resume); i det andet blev den tilsyneladende afbrudt af iOS igen efter blot ca. 1 sekund — formentlig fordi appen lige var kommet i forgrunden og endnu ikke havde fuld baggrunds-lyd-tilladelse konsolideret. Appens egen eksterne-pause-detektion reagerede korrekt på denne nye afbrydelse (UI endte pauseret, ikke fastfrosset) — det er altså ikke en UI-desync-fejl, men en ægte, kortvarig forbindelsesustabilitet i selve genoptagelsen, sandsynligvis samme underliggende iOS-begrænsning som resten af BUG-15, blot udløst af app-skift/Safari-navigation i stedet for låseskærm-PLAY. Ikke yderligere undersøgt eller rettet — logget som kontekst for evt. fremtidig BUG-15-beslutning.
+
+**Endelig beslutning 14-07-2026:** Michael accepterer kerneproblemet (ingen lyd ved allerførste PLAY-tryk på låst skærm/efter app-skift, mens WebRadio er baggrundslagt) som en platformsbegrænsning for nu, i samme ånd som BUG-14 — samme underliggende årsag: iOS strupper baggrunds-netværksadgang for en Safari-fane/PWA så hårdt, at en frisk stream-genforbindelse ofte ikke når at levere lyd, før iOS selv dømmer sessionen død. De to konkrete, verificerede delrettelser forbliver i produktion:
+- Hakkende/skrattende genafspilning efter en mislykket baggrunds-resume er rettet og bekræftet (`a.pause()` før reconnect i `togglePlay()`).
+- Den eksisterende `_shouldResume`-mekanisme (arm'et via `visibilitychange`, udløst af næste klik i appen) fanger situationen korrekt, når man selv genåbner appen — det er ikke en fejl, blot en begrænsning i, hvad der kan opnås fra selve låseskærmen/baggrunden uden brugerens aktive tilstedeværelse i appen.
+
+Intet yderligere arbejde planlagt på BUG-15's kerneproblem, medmindre nye observationer dukker op. **BUG-15 er lukket.**
 
 ---
 
