@@ -30,8 +30,9 @@ api/
 src/
 ├── components/
 │   ├── Player.tsx               # Player (20vh) — Now Playing, lyttetimer, volume, ICY-metadata, sleep timer
-│   ├── StationCard.tsx          # Stationskort — klik spiller, 2-sek long-press sletter, useSortable DnD
-│   ├── StationGrid.tsx          # Grid + DndContext + SortableContext + DragOverlay
+│   ├── StationCard.tsx          # Stationskort — klik spiller, 2-sek stille-hold sletter, hold+bevæg åbner ReorderListModal
+│   ├── StationGrid.tsx          # Grid + reorder-modal state (intet dnd-kit i selve gridet)
+│   ├── ReorderListModal.tsx     # "Rediger rækkefølge"-liste — dnd-kit kun på håndtag-ikon pr. række
 │   ├── CategoryFilter.tsx       # Kategoripiller inkl. Favoritter
 │   ├── AddStationModal.tsx      # Modal til tilføjelse af station
 │   ├── ImportExportModal.tsx    # Modal til import/eksport af stationer som JSON
@@ -67,18 +68,20 @@ public/
 
 **Sidst afspillede station**: `playStation()` gemmer stationens Firestore-ID i `localStorage` (`webradio_last_station_id`). `setStations()` gendanner ved første load (når `currentStation === null`): sætter stationen som `currentStation` i pauset tilstand og navigerer til dens kategori.
 
-**Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden.
+**Resume-adfærd**: Ved pause → resume sættes `audio.src` igen i stedet for blot `audio.play()`. Live streams kan ikke buffere, så reconnect starter fra det aktuelle live-tidspunkt og undgår at en anden app overtager lyden. `togglePlay()` kalder desuden `a.pause()` eksplicit lige før `a.src`-nulstillingen (tilføjet 14-07-2026, BUG-15), så en evt. halvdød/stale forbindelse fra et tidligere mislykket resume-forsøg ikke kan give hakkende/skrattende lyd ved næste genstart. Samme reconnect-logik gælder `playStation()` ved genklik på en pauseret station (ikke kun ved stationsskift) — se `reconnect ... || !wasPlaying`-tjekket i `useRadioStore.ts`.
+
+**PLAY på låst skærm efter pause kan fejle stille (BUG-15, accepteret platformsbegrænsning 14-07-2026)**: Trykker man PLAY på låseskærmens medie-widget, mens telefonen er låst/baggrundslagt, strupper iOS baggrunds-netværksadgangen ofte så hårdt, at `a.play()`s promise hverken opfyldes eller afvises — efter ca. 5 sek. viser iOS selv "Afspiller ikke" og fjerner widget'en helt, uden at WebRadios egen fejl-håndtering nogensinde nåede at reagere. Går man derefter selv ind i appen, opdager `visibilitychange`-reconcileren uoverensstemmelsen og arm'er `_shouldResume` (se nedenfor) — næste tryk hvor som helst i appen genoptager typisk automatisk. Samme mønster kan opstå ved almindeligt app-skift/Safari-navigation (ikke kun låseskærm). Se `BUGS.md` (BUG-15) for fuld reproduktion og analyse — kun symptomet "hakkende lyd ved efterfølgende manuelt gentryk" er rettet (se ovenfor), selve "ingen lyd første gang" er accepteret, samme grundårsag som BUG-14.
 
 **Pause fade-out**: `togglePlay()` fader volume til 0 over 80ms (8 trin × 10ms) inden `audio.pause()` — eliminerer det waveform-klik der opstår ved abrupt afskæring.
 
 **iOS audio session keepalive — fjernet 14-07-2026**: Der var tidligere et separat `<audio>`-element (`src/audio.ts`, `startKeepalive()`/`stopKeepalive()`) der loopede en næsten-lydløs 18 Hz-tone for at forhindre iOS i at deaktivere audio-sessionen når streamen var pauset (så WebRadio blev stående som "Now Playing" på låseskærmen). Fjernet efter Michaels beslutning 14-07-2026: tonen kunne blive hørbar som brummen på tilsluttede subwoofere (fx Sonos hjemmebiograf-grupper), og holdt desuden telefonen unødigt aktiv/strømforbrugende selv under en pause. **Kendt konsekvens:** WebRadio kan nu forsvinde fra låseskærmen, efter streamen har været pauset et stykke tid og telefonen baggrundslægges — dette er en bevidst accepteret platformsbegrænsning, ikke en fejl at rette. Se `BUGS.md` (BUG-14) for hele forløbet (tidsbegrænset variant blev forsøgt først, derefter droppet helt).
 
-**Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). `wasPlayingAtDisconnect` gemmes ved frakobling — auto-resume ved reconnect inden **10 sekunder** sker kun hvis APPEN selv pausede (ikke hvis brugeren manuelt pausede inden frakobling). Forhindrer at musik uventet starter ved tilfældig enhedsændring.
+**Device disconnect → pause**: `devicechange`-eventet i `App.tsx` pauser streamen øjeblikkeligt ved frakobling (CarPlay, AirPods, Bluetooth). Fordi `devicechange` fyrer for enhver ændring i enhedslisten (inklusive **tilføjelser**, fx at tilslutte kabelhovedtelefoner mens en Bluetooth-højtaler forbliver tilsluttet), tæller handleren enheder via `navigator.mediaDevices.enumerateDevices()` før/efter hvert event (rettet 14-07-2026, BUG-06) — kun et **fald** i antal udløser pause-grenen, en stigning rører ikke afspilningen. `wasPlayingAtDisconnect` gemmes ved frakobling — auto-resume ved reconnect inden **10 sekunder** sker kun hvis APPEN selv pausede (ikke hvis brugeren manuelt pausede inden frakobling). Forhindrer at musik uventet starter ved tilfældig enhedsændring.
 
 **AirPods ear detection**: `useRadioStore.ts` lytter på `pause`-eventet på audio-elementet. Når iOS pauser via ear detection (ikke via vores egen kode), opdateres UI til pauset. `play`-eventet håndterer iOS auto-resume. Guard: `togglePlay()` og `playStation()` sætter begge `isPlaying:false` inden `a.pause()` → interne pauser ignoreres af listeneren.
 - **Tab-skift / baggrundsapp**: `pause`-event fyrer på iOS FØR `visibilityState` skifter til `hidden`. Løsning: tjek `visibilityState` igen efter 300ms; er siden stadig skjult springes state-opdatering over. `visibilitychange`-listener reconciler i begge retninger ved retur: `isPlaying:true + a.paused` → sæt `isPlaying:false` + arm `_shouldResume`-flag (se nedenfor); `isPlaying:false + !a.paused` → opdater til spillende (falsk positiv pause).
 - **iOS inter-app audio interruption (`_shouldResume`)**: Alle PWA'er på iPhone deler WebKits underliggende procesmodel. Når en anden PWA force-lukkes (swipe-up), kan iOS afbryde WebRadios audio-session. `visibilitychange` og `touchstart` er **ikke** gyldige iOS user-gestures for `audio.play()` — `click` er. Løsning: når `visibilitychange` opdager `isPlaying:true + a.paused`, sættes `_shouldResume = true` (nulstilles altid ved starten af hvert synligt visibilitychange). En permanent `click`-lytter i bubble-fasen tjekker flaget — fires EFTER element-handlere (togglePlay, playStation), så den kun genoptager hvis de ikke allerede har gjort det. Første tap på hvad som helst i appen (stationskort, kategorifil­ter, player-bar) genoptager musikken. Nul-tap auto-resume er ikke muligt på iOS PWA — Apple kræver eksplicit bruger-gesture.
-- **Brugervejledning**: linket i headeren åbner guiden som in-app iframe-modal (ikke ny tab). Ny tab ville tilføje WebRadio til back-historikken i den nye tab → brugeren lander på en frisk instans ved at trykke tilbage → to parallelle streams. App.tsx modal-header har "Luk ✕"-knap som lukker modalen; guide-HTML sender ingen `postMessage` mere (den sticky nav er fjernet).
+- **Brugervejledning**: linket i headeren åbner guiden som in-app iframe-modal (ikke ny tab). Ny tab ville tilføje WebRadio til back-historikken i den nye tab → brugeren lander på en frisk instans ved at trykke tilbage → to parallelle streams. App.tsx modal-header har "Luk ✕"-knap som lukker modalen; guide-HTML sender ingen `postMessage` mere (den sticky nav er fjernet), og den tilsvarende (uopnåelige) `postMessage`-lytter i `App.tsx` er fjernet som dead code (14-07-2026, BUG-11).
 
 **CarPlay**: WebRadio vises i CarPlays "Now Playing"-skærm via MediaSession API (stationsnavn, logo, play/pause via rat). Fuld CarPlay-integration (app-ikon på CarPlay-hjemskærm) kræver en native iOS-app og Apples CarPlay-entitlement — ikke muligt for en web-app.
 
@@ -111,7 +114,7 @@ Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og imp
 ## UX-regler
 - **Klik** på stationskort → starter afspilning øjeblikkeligt
 - **Hold i 2 sek** på stationskort → slet-dialog vises (ingen slet-ikon på kortet)
-- **Hold 250ms + bevæg** i kategori-visning → drag & drop reorder
+- **Hold + bevæg** (>8px) i kategori-visning → åbner "rediger rækkefølge"-listen (`ReorderListModal`); selve trækket i den liste sker via et lille håndtag-ikon pr. række
 - Play/pause styres kun fra player-baren nederst
 - Player viser gul "Forbinder"-indikator mens stream buffererer, rød "Live" + lyttetimer når den spiller
 - Stationsnavne bruger dynamisk skriftstørrelse med `line-clamp-2` sikkerhedsnet: ≤12 tegn → `text-sm`, ≤15 → `text-xs`, ≤22 → `text-[11px]`, længere → `text-[10px]`
@@ -134,12 +137,11 @@ Vises i Player row 1 ved siden af "Live"-status (rød farve, tabular-nums):
 - `formatListenTime(sec)` funktion i `Player.tsx`
 
 ## Drag & drop rækkefølge
+**Omlagt 14-07-2026 (BUG-01)** — whole-card dnd-kit-drag direkte i gridet virkede aldrig reelt (en dupliceret `onPointerDown` overskrev dnd-kit's egen listener, se `BUGS.md`). Erstattet af en dedikeret "rediger rækkefølge"-liste:
 - **Kun aktiv** i kategori-specifik visning (ikke "Alle" eller "Favoritter")
-- `PointerSensor` med `delay: 250ms, tolerance: 5px` — skelner fra klik og long-press
-- `DragOverlay` med klone-kort (let drejet, kategorifarve shadow, `dropAnimation: null`)
-- Dragged kort: `opacity: 0` i grid mens DragOverlay vises
-- `isDragging` i StationCard annullerer long-press timer + sætter `wasDragged` flag (forhindrer click-after-drag)
-- `reorderCategory(category, orderedIds)` i store: optimistisk update + async Firestore write
+- **Grid-visning**: intet dnd-kit på selve stationskortet længere. Klik = afspil. Holder man kortet **stille** i `LONG_PRESS_MS` (2000ms) = slet-dialog. Holder man og **bevæger** musen/fingeren mere end `REORDER_MOVE_THRESHOLD_PX` (8px) — mens pointeren stadig er nede — annulleres slet-timeren, og `ReorderListModal` åbnes i stedet (`StationCard.tsx`: `handlePointerMove` + `onRequestReorder`)
+- **`ReorderListModal.tsx`**: fuldskærms liste-modal for den valgte kategori. Kun et lille håndtag-ikon (⋮⋮) pr. række bærer dnd-kit's `{...listeners}` — `PointerSensor` med `activationConstraint: { distance: 4 }`, `verticalListSortingStrategy`. Ingen tvetydighed med klik/slet, da denne visning ikke har nogen af de gestures at forveksle med
+- `reorderCategory(category, orderedIds)` i store: optimistisk update + async Firestore write, guardet af et sekvensnummer pr. kategori (`reorderSeq`, tilføjet 14-07-2026, BUG-08) — forhindrer at et langsomt fejlende ældre kald kan overskrive et nyere, allerede gemt resultat
 - Rækkefølge gemmes i `stationOrders/{deviceId}` — påvirker ikke andre enheder
 - Nye stationer (ikke i saved order) vises sidst, alfabetisk
 
@@ -173,6 +175,9 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - **32 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
 - 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
 - Player poller hvert 30. sek når der spiller
+- Alle fejlgrene (ikke-OK svar, ugyldig/for stor `icy-metaint`, for kort buffer, uventet exception) returnerer eksplicit `icySupported: false` (rettet 14-07-2026, BUG-09) — forhindrer at `Player.tsx` fejlagtigt bliver ved med at polle en station, hvis stream reelt ikke leverer brugbar ICY-metadata
+- `isPrivateHost`-tjekket resolver hostnavnet via `dns.promises.lookup()` og validerer den faktiske IP (ikke kun hostname-strengen) — lukker SSRF-bypass via decimal/oktal/hex-encodede loopback-/private-adresser samt IPv4-mappede IPv6-adresser (rettet 14-07-2026, BUG-07)
+- `Player.tsx` rydder `meta`-state (sangtitel/genre) ubetinget ved hvert stations-/afspilningsskift (rettet 14-07-2026, BUG-16) — forhindrer at en tidligere stations sangtitel bliver stående, når man skifter til en station uden ICY-understøttelse
 
 ## Kendte stream-problemer
 - **laut.fm streams** indsætter pre-roll reklamer ved ny tilkobling (platform-level, kan ikke forhindres)
@@ -249,6 +254,8 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 **Ingen kendte fejl pr. juni 2026.**
 
+**Juli 2026-runden (14-07-2026):** Høj-effort kodegennemgang fandt 13 fejl + 3 yderligere fund under efterfølgende test (BUG-14, 15, 16) = 16 i alt. **Runden er afsluttet:** 14/16 rettet og bekræftet, 2 lukket som accepterede platformsbegrænsninger (BUG-14: iOS-keepalive/låseskærm-persistens; BUG-15: PLAY på låst skærm efter pause kan fejle stille, samme grundårsag). Fuld detaljeret historik, fejlscenarier og verifikationsbeviser i `BUGS.md` — ingen åbne fejl pt.
+
 ## Test-infrastruktur
 - `playwright.config.ts` — Playwright-konfiguration (Chromium, headless, target: live-app)
 - `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
@@ -265,7 +272,8 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
-- `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers)
+- `firebase-init.mjs` — **delt** Firebase-init (læser `.env`, eksporterer en færdig `db`-instans), tilføjet 14-07-2026 (BUG-13). Alle rodmappe-scripts importerer denne (`import { db } from './firebase-init.mjs'`) i stedet for at duplikere `.env`-parsing/`initializeApp`-boilerplate hver især — hold denne opdateret, hvis Firebase-config'en ændres, i stedet for at genindføre duplikeret init i nye scripts
+- `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
