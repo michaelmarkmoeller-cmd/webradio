@@ -294,8 +294,13 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         fadeIntervalId = null
         try { a.volume = get().volume } catch {}
       }
-      // Live streams can't resume from a buffered position — reconnect from "now"
-      if (currentStation) a.src = currentStation.streamUrl
+      // Live streams can't resume from a buffered position — reconnect from "now".
+      // Stop any stale/half-open connection first, so a previous failed resume
+      // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
+      if (currentStation) {
+        a.pause()
+        a.src = currentStation.streamUrl
+      }
       a.play().catch(() => {
         set({ isPlaying: false, isBuffering: false, listenStartedAt: null })
         if (currentStation) syncMediaSession(currentStation, false)

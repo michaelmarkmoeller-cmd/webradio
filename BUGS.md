@@ -9,8 +9,8 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-01 | `src/components/StationCard.tsx:124` | 🟢 Rettet (deployet + bekræftet på iPhone) | Kritisk |
 | BUG-02 | `src/components/AddStationModal.tsx:30` | 🔴 Åben | Kritisk |
 | BUG-03 | `src/firebase/stationsService.ts:102` | 🔴 Åben | Kritisk |
-| BUG-04 | `src/store/useRadioStore.ts:255` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
-| BUG-05 | `src/store/useRadioStore.ts:303` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
+| BUG-04 | `src/store/useRadioStore.ts:255` | 🟢 Rettet (bekræftet på iPhone) | Kritisk |
+| BUG-05 | `src/store/useRadioStore.ts:303` | 🟢 Rettet (bekræftet på iPhone, dog se BUG-15) | Kritisk |
 | BUG-06 | `src/App.tsx:65` | 🔴 Åben | Kritisk |
 | BUG-07 | `api/icy-meta.ts:1` | 🔴 Åben | Mellem |
 | BUG-08 | `src/store/useRadioStore.ts:224` | 🔴 Åben | Mellem |
@@ -20,8 +20,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🔴 Åben — fundet under BUG-04/05-test | Kritisk |
 
-> **Status: 1/13 rettet + bekræftet (BUG-01), 2/13 deployet afventer bekræftelse (BUG-04, BUG-05), 1 fund udenfor de 13 lukket (BUG-14 — accepteret platformsbegrænsning). 9/13 stadig åbne (BUG-02, 03, 06-13).**
+> **Status: 3/13 rettet + bekræftet (BUG-01, BUG-04, BUG-05), 1 fund udenfor de 13 lukket (BUG-14 — accepteret platformsbegrænsning). 9/13 stadig åbne (BUG-02, 03, 06-13). 1 nyt fund under manuel test, stadig åben (BUG-15).**
 
 ---
 
@@ -266,3 +267,62 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Konklusion:** Låseskærm-begrænsningen (kan forsvinde og kræve genåbning af appen efter en pause) rammer tilsyneladende **både** DR's professionelle HLS-baserede afspiller og WebRadios MP3-baserede afspilning — det er ikke et tegn på, at WebRadio afspiller kanalerne forkert, men at Icecast/MP3 (som 80 ud af 80 stationer reelt leverer, inkl. DR via WebRadio) mangler den DVR-buffer, HLS kan tilbyde. At matche DR's fulde adfærd ville kræve at skifte til HLS, hvilket kun DR selv leverer blandt kilderne — ikke noget WebRadio kan løse generelt uden at bygge en dedikeret transskoderings-backend (vurderet uforholdsmæssigt stort, se ovenfor).
 
 **Endelig beslutning 14-07-2026:** Michael accepterer "genåbn appen efter hver pause, hvis den er forsvundet fra låseskærmen" som normal, forventet adfærd. Intet yderligere arbejde planlagt på dette punkt.
+
+---
+
+## BUG-15 — PLAY på låst skærm efter pause fejler stille og dræber medie-sessionen
+**Fil:** `src/store/useRadioStore.ts:298` (`togglePlay()`'s resume-gren) · **Prioritet:** Kritisk · *fundet af Michael under manuel test af BUG-04/05 på iPhone, 14-07-2026*
+
+**Fund:** `togglePlay()`'s resume-gren tvinger altid en fuld genforbindelse (`a.src = currentStation.streamUrl`) før `a.play()`, og sætter `isPlaying:true` optimistisk, før play()-promise'et er afgjort. Når dette trigges fra MediaSession's `play`-handler mens telefonen er låst og appen er baggrundslagt, strupper iOS netværksadgangen så hårdt, at genforbindelsen aldrig når at levere lyd — men `a.play()`-promise'et afvises heller aldrig (det hænger i pending), så BUG-05's fejl-catch aldrig trigges.
+
+**Reproduktion (bekræftet 2× af Michael på rigtig iPhone):**
+1. Spil en station i appen, forlad appen (baggrundslæg), lås telefonen.
+2. Væk skærmen — widget viser korrekt afspilning.
+3. Tryk pause på låseskærmen — widget bliver korrekt stående, viser "play"-ikon.
+4. Vent 10 sek., væk skærmen igen — widget stadig der, korrekt paused.
+5. Tryk PLAY på låseskærmen.
+6. Efter ca. 5 sekunder: ingen lyd, widget viser "Afspiller ikke", derefter forsvinder widget'en helt (låseskærm tom).
+
+**Bonus-observation (Michael):** Når man derefter selv åbner appen igen, begynder den sidst spillede station automatisk at afspille — **uden** at man selv vælger/trykker på stationen.
+
+**Sandsynlig årsag (kodeanalyse, endnu ikke root-cause-bekræftet på enheden):**
+- `togglePlay()`'s resume-gren (linje 297-304) sætter `isPlaying:true` synkront, samtidig med at den kalder `a.src = ...` (fuld reconnect) + `a.play()`. Ingen throttling/timeout på selve genforbindelsen.
+- Når trigget fra en låst/baggrundslagt kontekst, strupper iOS Safaris baggrunds-netværksadgang så meget, at stream-handshaket aldrig fuldføres — `a.play()`-promise'et bliver hverken opfyldt eller afvist, det hænger blot. BUG-05's `.catch()` (linje 299-302) trigges derfor **aldrig** i dette specifikke scenarie, selvom det var netop denne slags fejl, den skulle fange.
+- Efter ca. 5 sekunder konkluderer iOS selv (uden om vores JS), at "playing"-sessionen aldrig producerede faktisk lyd, og deaktiverer hele medie-sessionen — heraf "Afspiller ikke" og at widget'en forsvinder.
+- Storen sidder derefter fast med `isPlaying:true`, mens `a.paused === true` i virkeligheden. Når appen senere bringes til forgrunden, opdager den eksisterende `visibilitychange`-reconciler (linje 95-112) uoverensstemmelsen (`isPlaying && a.paused`), sætter `isPlaying:false` og arm'er `_shouldResume`. Første klik hvor som helst i appen (linje 118-130) udløser derefter en ny reconnect, som **denne gang lykkes** (appen er i forgrunden, fuld netværksadgang) — hvilket brugeren oplever som "sidste kanal starter automatisk", uden selv at have trykket play på noget.
+
+**Vigtigt forbehold:** Dette er en hypotese baseret på kodeanalyse og de observerede symptomer — det er **ikke** verificeret med faktisk netværks-/devtools-inspektion på enheden (kan være svært, da Safari remote debugging kræver kabelforbindelse til en Mac). Det kan også hænge sammen med BUG-14's underliggende platformsbegrænsning (ingen keepalive-mekanisme længere til at holde audio-sessionen "levende" under en pause) — dvs. dette kan være endnu en facet af samme grundlæggende iOS-begrænsning, snarere end noget der kan rettes fuldstændigt i JS.
+
+**Mulige retninger (ikke besluttet endnu):**
+- Undgå at sætte `isPlaying:true` optimistisk før `a.play()` reelt er lykkedes (kun opdatere UI/MediaSession til "playing" i `.then()`, ikke synkront) — ville i det mindste undgå at UI/lyttetimer lyver om tilstanden, selvom widget'en muligvis stadig forsvinder.
+- Tilføj en timeout (fx 3-4 sek.) på resume-forsøget: hvis `a.play()` hverken er opfyldt eller afvist inden for den tid, antag fejl og revert selv, i stedet for at vente på et reject der måske aldrig kommer.
+- Accepter som endnu en platformsbegrænsning i samme ånd som BUG-14, hvis det viser sig, at intet JS-niveau kan overvinde iOS' baggrunds-netværksstrupning af et låst-skærms-tryk.
+
+**Status:** Åben — afventer beslutning om retning, samt evt. yderligere test for at isolere om timeout-tilgangen (revert efter et par sekunder uden held) reelt forbedrer noget, eller om iOS-begrænsningen gør ethvert forsøg på baggrunds-reconnect udsigtsløst.
+
+**Manuel test 14-07-2026 (Michael, rigtig iPhone) — reproduceret 3/3 gange:**
+
+| TC# | Testnavn | Resultat |
+|---|---|---|
+| TC-04-01 | Genklik på pauseret station reconnecter (i app'en) | 🟢 Godkendt |
+| TC-04-02 | Klik på allerede spillende station (regression) | 🟢 Godkendt |
+| TC-05-01 | Låseskærm pause → vent 10 sek → PLAY | 🔴 Fejlet — "Afspiller ikke" efter ~5 sek, widget forsvinder, ingen lyd |
+| TC-05-02 | Hurtigt spam-klik play/pause i selve app'en (forgrund) | 🟢 Godkendt — UI/lyd/tæller matcher altid |
+| TC-05-03 | Pause på låseskærm → vent 30+ sek (skærm helt sort) → PLAY | 🔴 Fejlet — samme symptom som TC-05-01 |
+
+BUG-04 og BUG-05 er begge bekræftet virkende for deres respektive scenarier (reconnect ved genklik i app'en; korrekt UI-state ved hurtige toggles i forgrunden). Men det oprindelige problem, der udløste BUG-05 ("PLAY på låst skærm virker ikke"), er stadig til stede — blot med nyt symptom (stille session-nedbrud + auto-resume ved næste app-åbning, i stedet for fastfrossen UI). BUG-15 dækker dette resterende, ikke-løste scenarie.
+
+**Yderligere observation efter TC-05-03 (Michael):** Denne gang startede intet automatisk op ved genåbning af appen (modsat TC-05-01, hvor samme kanal auto-resumede) — sandsynligvis fordi `isPlaying` nåede at blive `false` ad en anden kodesti (den eksterne `pause`-event-lytter) inden `visibilitychange` kunne arme `_shouldResume`, afhængig af præcis timing. Da Michael derefter selv trykkede på samme station, startede afspilningen **hakkende/skrattende** — ikke rent. Skift til en anden kanal startede rent; skift tilbage til den oprindelige (tidligere hakkende) kanal spillede nu også rent.
+
+**Ny hypotese:** `playStation()`s reconnect-skip-optimering (`if (a.src !== station.streamUrl || !wasPlaying)`, linje 253) antager, at "samme URL + var spillende" betyder en sund forbindelse, den kan genbruge uden reset. Men efter et mislykket baggrunds-genforbindelsesforsøg (BUG-15) kan `a.src` sidde tilbage i en halvdød/korrupt netværkstilstand under samme URL — hvorved genbrug af forbindelsen (i stedet for fuld nulstilling) giver hakkende lyd, indtil et rigtigt `src`-skift (til en anden kanal og tilbage) tvinger en frisk forbindelse igennem. Dette styrker sporet "eksplicit oprydning ved timeout" som løsningsretning — se løsningsforslag ovenfor.
+
+**Delvis rettelse implementeret 14-07-2026 (Michaels forslag):** Michael foreslog, at enhver igangværende/gammel stream eksplicit stoppes, før en ny forbindelse sættes op. `togglePlay()`'s resume-gren (`useRadioStore.ts:297-302`) manglede et `a.pause()`-kald før `a.src`-nulstillingen — i modsætning til `playStation()`, som allerede gjorde dette i sin reconnect-branch. Tilføjet:
+```js
+if (currentStation) {
+  a.pause()
+  a.src = currentStation.streamUrl
+}
+```
+`a.pause()` er et synkront, lokalt kald (ingen netværks-I/O, ingen målbar forsinkelse) — tilføjer ikke ventetid til reconnect, som allerede skete i denne gren. `playStation()`s eksisterende "spring reconnect over ved klik på allerede-spillende station"-optimering (bekræftet hik-fri i TC-04-02) er **ikke** ændret, så den forbliver upåvirket. `npx tsc --noEmit` — ren.
+
+Dette retter formentlig den hakkende/skrattende genafspilning, Michael observerede efter et BUG-15-scenarie (manuel klik på samme station efter mislykket baggrunds-resume) — men retter **ikke** selve BUG-15's kerneproblem (ingen lyd overhovedet ved første PLAY-tryk på låst skærm), som stadig afventer beslutning (timeout-revert, dybere undersøgelse, eller accept som platformsbegrænsning). Afventer Michaels test på iPhone.
