@@ -15,15 +15,15 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-07 | `api/icy-meta.ts:1` | 🟢 Rettet (verificeret mod real handler) | Mellem |
 | BUG-08 | `src/store/useRadioStore.ts:224` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-09 | `api/icy-meta.ts:52` | 🟢 Rettet (bekræftet på iPhone, afdækkede BUG-16) | Mellem |
-| BUG-10 | `src/store/useRadioStore.ts:100` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-10 | `src/store/useRadioStore.ts:100` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-11 | `src/App.tsx:23` | 🟢 Rettet (dead code fjernet) | Lav |
 | BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 | BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Delvis rettet — hakke-symptom løst, kerneproblem åbent | Kritisk |
-| BUG-16 | `src/components/Player.tsx:32` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
-> **Status: 12/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13), 2/16 rettet i kode og afventer test (BUG-10, 16), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15).**
+> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15 — kerneproblem åbent).**
 
 ---
 
@@ -218,7 +218,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `visibilitychange`-handleren destrukturerer state UDEN `listenStartedAt`: `const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()` (linje 100), og gør derefter på `isPlaying && a.paused`-grenen kun `useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })` (linje 103) — den lægger aldrig `Date.now() - listenStartedAt` til `listenAccumulatedMs`, og stoler udelukkende på kommentarens antagelse om, at "baggrundens pause-handler snapshottede det" (linje 102). Men det snapshot sker kun inde i pause-lytterens `setTimeout(() => {...}, 300)` (linje 79-90), som skriver `listenAccumulatedMs: snapshotMs` kun når den fyrer. Ifølge projektets egen dokumenterede rækkefølge ("pause-event fires on iOS FØR visibilityState skifter til hidden") er sekvensen: pause fyrer og armerer 300ms-timeout'en (linje 79) → `visibilitychange` til "hidden" fyrer, men returnerer tidligt (linje 98, state !== "visible") → hvis brugeren vender tilbage til forgrunden inden for de 300ms, fyrer `visibilitychange` igen med "visible", rammer `isPlaying&&a.paused`-grenen (isPlaying er stadig true, og a.paused er allerede true fra den reelle eksterne pause) FØR `setTimeout`'en er eksekveret. På det tidspunkt er storens `listenAccumulatedMs` stadig den før-pause-værdi, så den forløbne tid mellem det oprindelige `listenStartedAt` og nu tabes stille, når `listenStartedAt` nulstilles på linje 103. Dette matcher præcis den påståede race og undertæller permanent lyttetid for den session.
 
-**Rettet 14-07-2026:** `visibilitychange`-handleren destrukturerer nu også `listenStartedAt`, og folder — ligesom de andre pause-grene i filen — selv `Date.now() - listenStartedAt` ind i `listenAccumulatedMs` (kun hvis `listenStartedAt` stadig er sat; er den allerede `null`, fordi pause-handlerens 300ms-timeout nåede at køre først, sker der ingen dobbelttælling). `npx tsc --noEmit` ren. Afventer test — racen kræver meget hurtigt app-skift (under 300ms) for at udløse, svært at ramme pålideligt manuelt; koderettelsen er dog en direkte, verificeret modgift mod det beskrevne mønster.
+**Rettet 14-07-2026:** `visibilitychange`-handleren destrukturerer nu også `listenStartedAt`, og folder — ligesom de andre pause-grene i filen — selv `Date.now() - listenStartedAt` ind i `listenAccumulatedMs` (kun hvis `listenStartedAt` stadig er sat; er den allerede `null`, fordi pause-handlerens 300ms-timeout nåede at køre først, sker der ingen dobbelttælling). `npx tsc --noEmit` ren.
+
+**Testet 14-07-2026 (Michael, rigtig iPhone):** Gentagne hurtige appskift mens en station spillede — lyttetimeren opførte sig fornuftigt, ingen synlige spring frem/tilbage. Bemærk: dette beviser ikke racen specifikt (kræver <300ms timing, som ikke kan fremtvinges pålideligt i hånden) — men bekræfter ingen regression. **BUG-10 markeres rettet** på baggrund af kodeanalysen + denne regressionstest.
 
 ---
 
@@ -373,4 +375,6 @@ Dette retter formentlig den hakkende/skrattende genafspilning, Michael observere
 
 **Kodebevis:** `Player.tsx:32-58`. Effekten nulstiller `icySupportedRef.current = null` ved hvert stationsskift, men rydder kun `meta` via `setMeta({title:null, genre:null})` inde i den tidlige `if (!currentStation || !isPlaying)`-gren (linje 34-37) — ikke ubetinget. `fetchMeta()`'s eneste kald til `setMeta(...)` sker efter en bekræftet ICY-succes (linje 51-52); ved `data.icySupported === false` (linje 50) returnerer funktionen med det samme uden at røre `meta`. For en ny station, hvor selv det første kald bekræfter `icySupported:false`, bliver `meta` derfor aldrig opdateret — den forrige stations værdi lever videre uændret i React-state.
 
-**Rettet 14-07-2026:** Effekten kalder nu ubetinget `setMeta({ title: null, genre: null })` med det samme ved hvert stations-/afspilningsskift, før den evt. korte-slutter på `!currentStation || !isPlaying`. Dette garanterer et rent udgangspunkt for enhver ny station, uanset om dens første metadata-forespørgsel lykkes, fejler, eller bekræfter manglende ICY-understøttelse — `fetchMeta()` opdaterer derefter kun `meta`, hvis der reelt er noget at vise. `npx tsc --noEmit` ren. Afventer test på iPhone (skift fra en ICY-station til en ikke-ICY-station og bekræft at den gamle titel forsvinder med det samme).
+**Rettet 14-07-2026:** Effekten kalder nu ubetinget `setMeta({ title: null, genre: null })` med det samme ved hvert stations-/afspilningsskift, før den evt. korte-slutter på `!currentStation || !isPlaying`. Dette garanterer et rent udgangspunkt for enhver ny station, uanset om dens første metadata-forespørgsel lykkes, fejler, eller bekræfter manglende ICY-understøttelse — `fetchMeta()` opdaterer derefter kun `meta`, hvis der reelt er noget at vise. `npx tsc --noEmit` ren.
+
+**Bekræftet 14-07-2026 (Michael, rigtig iPhone):** Skift fra en DR-station til en radio SAW-station — den gamle sangtitel forsvinder nu korrekt med det samme. **BUG-16 er lukket.**
