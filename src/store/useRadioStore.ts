@@ -2,8 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, startKeepalive, stopKeepalive } from '../audio'
-import { isIOS } from '../utils/platform'
+import { getOrCreateAudio } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
@@ -55,34 +54,12 @@ let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
 let _shouldResume = false
 
-let keepaliveStopTimer: ReturnType<typeof setTimeout> | null = null
-const KEEPALIVE_AUTO_STOP_MS = 90_000
-
-// Bounds how long the near-silent iOS keepalive loop (see audio.ts) can run unattended —
-// e.g. after a pause with no resume, or a failed play() — so it can't hum through an
-// external subwoofer/home-theater system indefinitely. Cancelled as soon as real playback
-// is confirmed (the shared audio element's 'playing' event, wired in audio() below).
-function armKeepaliveAutoStop() {
-  if (keepaliveStopTimer) clearTimeout(keepaliveStopTimer)
-  keepaliveStopTimer = setTimeout(() => {
-    keepaliveStopTimer = null
-    stopKeepalive()
-  }, KEEPALIVE_AUTO_STOP_MS)
-}
-
-function cancelKeepaliveAutoStop() {
-  if (keepaliveStopTimer) {
-    clearTimeout(keepaliveStopTimer)
-    keepaliveStopTimer = null
-  }
-}
-
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
 // Event listeners are wired up on first creation only.
 function audio() {
   const a = getOrCreateAudio({
-    onPlaying: () => { useRadioStore.setState({ isBuffering: false }); cancelKeepaliveAutoStop() },
+    onPlaying: () => useRadioStore.setState({ isBuffering: false }),
     onWaiting: () => useRadioStore.setState({ isBuffering: true }),
     onError:   () => useRadioStore.setState({ isBuffering: false, isPlaying: false }),
   })
@@ -94,7 +71,6 @@ function audio() {
     a.addEventListener('pause', () => {
       const { isPlaying, listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       if (!isPlaying) return
-      if (isIOS) { startKeepalive(); armKeepaliveAutoStop() }
       // Snapshot accumulated time at the instant of pause so visibilitychange
       // does not double-count time spent with audio paused in background.
       const snapshotMs = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
@@ -172,7 +148,6 @@ function syncMediaSession(station: Station, playing: boolean) {
   if (!('mediaSession' in navigator)) return
   if (!mediaSessionReady) {
     navigator.mediaSession.setActionHandler('play', () => {
-      if (isIOS) { startKeepalive(); armKeepaliveAutoStop() } // iOS only — reactivate audio session if suspended
       if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('pause', () => {
@@ -182,8 +157,6 @@ function syncMediaSession(station: Station, playing: boolean) {
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
-      cancelKeepaliveAutoStop()
-      if (isIOS) stopKeepalive()
       audio().pause()
     })
     mediaSessionReady = true
@@ -263,7 +236,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   playStation: (station) => {
-    if (isIOS) { startKeepalive(); armKeepaliveAutoStop() } // iOS only — keeps audio session alive while stream is paused
     const a = audio()
     if (fadeIntervalId) {
       clearInterval(fadeIntervalId)
@@ -298,15 +270,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
     const a = audio()
     if (isPlaying) {
-      // Confirm the keepalive loop is active before the stream pauses — it may already be
-      // running (started in playStation()), but re-asserting it here, synchronously at the
-      // moment of pause, guards against it having been suspended for any reason in the
-      // meantime. Without this, iOS can drop WebRadio from the lock screen after an in-app
-      // pause once the tab backgrounds, since nothing else restarts it for a deliberate
-      // (non-external) pause. Auto-stops again after KEEPALIVE_AUTO_STOP_MS if nothing
-      // resumes — bounds how long the near-silent tone can run (avoids an indefinite,
-      // faintly audible hum on subwoofer-equipped external speakers).
-      if (isIOS) { startKeepalive(); armKeepaliveAutoStop() }
       const { volume } = get()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
@@ -377,8 +340,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       sleepTimerInterval = null
       const state = useRadioStore.getState()
       if (state.isPlaying) state.togglePlay()
-      cancelKeepaliveAutoStop()
-      if (isIOS) stopKeepalive()
       set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       toast('Sov godt', { icon: '🌙' })
     }, end - Date.now())

@@ -19,7 +19,7 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-11 | `src/App.tsx:23` | 🔴 Åben | Lav |
 | BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
-| BUG-14 | `src/store/useRadioStore.ts:277` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
+| BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟡 Keepalive fjernet helt, afventer bekræftelse på iPhone | Kritisk |
 
 > **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy) + 1 ny fejl fundet og rettet (BUG-14)**
 
@@ -231,8 +231,8 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 ---
 
-## BUG-14 — Manuel in-app-pause genstarter ikke iOS-keepalive, kan miste "Now Playing" på låst skærm
-**Fil:** `src/store/useRadioStore.ts:277` (`togglePlay()`s pause-gren) · **Prioritet:** Kritisk · *fundet 14-07-2026 ved Michaels egen test, ikke en del af den oprindelige 13-punkts kodegennemgang*
+## BUG-14 — iOS-keepalive (låseskærm-hack) fjernet helt efter afvejning
+**Fil:** `src/audio.ts`, `src/store/useRadioStore.ts` · **Prioritet:** Kritisk · *fundet 14-07-2026 ved Michaels egen test, ikke en del af den oprindelige 13-punkts kodegennemgang*
 
 **Fund:** `startKeepalive()` (den 18 Hz subsoniske WAV-loop, der forhindrer iOS i at deaktivere audio-sessionen når streamen er pauset — se CLAUDE.md's iOS-audio-arkitektur-afsnit) bliver kun genstartet automatisk ved en *ekstern* pause (AirPods ear-detection, telefonopkald — `useRadioStore.ts`'s `pause`-event-listener, linje 72-75, guardet af `if (!isPlaying) return`). Når brugeren selv trykker pause i appens player-bar, sætter `togglePlay()`s pause-gren `isPlaying:false` **før** den rigtige `a.pause()` kaldes (fade-out-mekanismen) — så guarden på linje 74 springer over, og `startKeepalive()` bliver **aldrig** kaldt for en bevidst, selv-initieret pause. Keepalien'en er ganske vist allerede startet én gang i `playStation()`, da afspilningen først begyndte, og intet eksplicit stopper den ved en almindelig pause — men der er heller intet, der *bekræfter/genstarter* den på selve pause-tidspunktet, hvilket er den eneste garanterede lejlighed til at gøre det, før siden evt. baggrundslægges/JS-eksekvering throttles af iOS.
 
@@ -252,3 +252,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 - Hvis intet resumer inden for 90 sekunder, stopper keepalien'en automatisk sig selv (`stopKeepalive()`), og WebRadio kan forventeligt forsvinde fra låseskærmen derefter — en bevidst afvejning: kort, begrænset eksponering for en evt. hørbar brummen, i stedet for uendelig.
 
 **Verifikation:** `npx tsc --noEmit` ren, `eslint` kun de 4 kendte, urelaterede `no-empty`-linjer. Kørt en hurtig regressionstest lokalt (klik→afspil, pause, resume) for at bekræfte, at selve afspilningsflowet er upåvirket — bestået. Selve 90-sekunders-timeren og dens interaktion med iOS' reelle audio-session-håndtering (herunder om brummen reelt forsvinder, og om låseskærmen opfører sig som ventet inden for/efter de 90 sek.) **kan kun testes på en rigtig iPhone** — afventer Michaels test.
+
+**Endelig beslutning 14-07-2026 — keepalive fjernet helt:** Michael vurderede, at den tidsbegrænsede tone stadig ikke var en god løsning — den holder telefonen unødigt aktiv/strømforbrugende under en pause, uanset varighed. Hele keepalive-mekanismen er derfor fjernet: `src/audio.ts`s `startKeepalive()`/`stopKeepalive()`/`buildKeepaliveUrl()` og al `_keepalive`/`_silentUrl`-state slettet; alle kald samt `armKeepaliveAutoStop()`/`cancelKeepaliveAutoStop()`/`keepaliveStopTimer` fjernet fra `useRadioStore.ts`. `isIOS`-importen i `useRadioStore.ts` blev også overflødig og fjernet (var kun brugt til keepalive-gating).
+
+**Konsekvens (accepteret, ikke en fejl):** WebRadio kan nu forsvinde fra låseskærmen, efter en pause og baggrundslægning af telefonen — iOS' standardopførsel uden en aktiv holdt-i-live-mekanisme. CLAUDE.md er opdateret til at dokumentere dette som et bevidst valg (batteri/lyd-renhed prioriteret over garanteret låseskærms-persistens).
+
+**Verifikation:** `npx tsc --noEmit` ren, `eslint` uændret (kun de 4 kendte, urelaterede `no-empty`-linjer), ingen resterende referencer til keepalive nogen steder i `src/` (grep-verificeret). **BUG-14 er lukket** — pending Michaels bekræftelse på iPhone af, at almindelig afspil/pause/resume og strømforbrug er tilfredsstillende uden keepalive.
