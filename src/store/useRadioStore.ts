@@ -247,21 +247,22 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       fadeIntervalId = null
       try { a.volume = get().volume } catch {}
     }
-    const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt } = get()
+    const { volume, sleepTimerMinutes, currentStation: prev, listenAccumulatedMs, listenStartedAt, isPlaying: wasPlaying } = get()
     // Reset sleep timer only when switching to a different station
     if (sleepTimerMinutes !== null && prev?.id !== station.id) get().setSleepTimer(sleepTimerMinutes)
-    // Only change src if station is different — avoids aborting in-progress buffering.
+    // Reconnect when switching stations, or resuming this same station from paused —
+    // live streams can't resume from a buffered position, so a paused stream must always
+    // reconnect from "now" (matches togglePlay's resume path below). Skip the reconnect
+    // only when already playing this station, to avoid aborting in-progress buffering.
     // Set isPlaying:false before a.pause() so the external-pause listener doesn't misfire.
-    if (a.src !== station.streamUrl) {
+    if (a.src !== station.streamUrl || !wasPlaying) {
       set({ isPlaying: false })
       a.pause()
       a.src = station.streamUrl
     }
     a.volume = volume
-    a.play().catch((err) => {
-      if (err.name === 'NotAllowedError') {
-        set({ isPlaying: false, isBuffering: false })
-      }
+    a.play().catch(() => {
+      set({ isPlaying: false, isBuffering: false })
     })
     const isNewStation = prev?.id !== station.id
     const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
@@ -300,7 +301,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       }
       // Live streams can't resume from a buffered position — reconnect from "now"
       if (currentStation) a.src = currentStation.streamUrl
-      a.play().catch(() => {})
+      a.play().catch(() => {
+        set({ isPlaying: false, isBuffering: false, listenStartedAt: null })
+        if (currentStation) syncMediaSession(currentStation, false)
+      })
       set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })
       if (currentStation) syncMediaSession(currentStation, true)
     }

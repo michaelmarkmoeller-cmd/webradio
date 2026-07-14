@@ -6,11 +6,11 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 
 | BUG# | Fil | Status | Prioritet |
 |------|-----|--------|-----------|
-| BUG-01 | `src/components/StationCard.tsx:124` | 🟡 Rettet lokalt, afventer commit | Kritisk |
+| BUG-01 | `src/components/StationCard.tsx:124` | 🟢 Rettet (deployet + bekræftet på iPhone) | Kritisk |
 | BUG-02 | `src/components/AddStationModal.tsx:30` | 🔴 Åben | Kritisk |
 | BUG-03 | `src/firebase/stationsService.ts:102` | 🔴 Åben | Kritisk |
-| BUG-04 | `src/store/useRadioStore.ts:255` | 🔴 Åben | Kritisk |
-| BUG-05 | `src/store/useRadioStore.ts:303` | 🔴 Åben | Kritisk |
+| BUG-04 | `src/store/useRadioStore.ts:255` | 🟡 Rettet lokalt, afventer deploy | Kritisk |
+| BUG-05 | `src/store/useRadioStore.ts:303` | 🟡 Rettet lokalt, afventer deploy | Kritisk |
 | BUG-06 | `src/App.tsx:65` | 🔴 Åben | Kritisk |
 | BUG-07 | `api/icy-meta.ts:1` | 🔴 Åben | Mellem |
 | BUG-08 | `src/store/useRadioStore.ts:224` | 🔴 Åben | Mellem |
@@ -20,7 +20,7 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
 
-> **Status: 0/13 rettet, 1 rettet lokalt (afventer commit)**
+> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy)**
 
 ---
 
@@ -72,9 +72,9 @@ Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPres
 | "Alle"-visning: stadig cursor-pointer, ingen reorder-adgang | ✓ |
 | "Alle"-visning: hold+bevæg åbner ikke reorder-listen | ✓ |
 
-**Kendt, ikke-verificerbar restrisiko:** Reorder-åbningen i grid-visningen er nu bevægelses-baseret (ingen `touch-action` sat på selve kortet). På en touch-enhed er der en teoretisk risiko for, at et forsøg på at scrolle siden lodret ved at swipe hen over et kort i stedet bliver tolket som "bevæg dig ⇒ åbn reorder-listen", hvis swipet starter på et kort og overskrider 8px, før browseren når at overtage scrollet. Dette kan ikke testes pålideligt i en desktop-browser eller headless Playwright — bør afprøves på en rigtig iPhone, før det stoles på 100%. Selve reorder-listens greb-ikon har `touch-action: none` sat eksplicit og er ikke berørt af denne risiko.
+**Restrisiko fra tidligere (nu afkræftet):** Der var en teoretisk bekymring om, at bevægelses-baseret åbning af reorder-listen kunne genere lodret side-scroll ved swipe på en touch-skærm (kunne ikke testes i desktop-browser/headless Playwright). **Bekræftet af Michael 14-07-2026 på rigtig iPhone: ingen problemer** — scroll og reorder-åbning konflikter ikke i praksis.
 
-**Ikke committet endnu** — afventer din godkendelse af at teste i browseren (`npm run dev`) inden `git add && commit && push`, jf. projektets workflow.
+**Deployet 14-07-2026** — commit `514ddbf`, pushet til `main`, automatisk udrullet af Vercel til https://webradio-chi.vercel.app. Bekræftet virkende i produktion på iPhone af Michael. **BUG-01 er lukket.**
 
 ---
 
@@ -109,6 +109,10 @@ Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPres
 
 **Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:255` `if (a.src !== station.streamUrl) { set({ isPlaying: false }); a.pause(); a.src = station.streamUrl }` nulstiller kun forbindelsen, når URL'en afviger; når pauseret via player-baren (`togglePlay` fader+pauser men lader `a.src` være uændret) og brugeren derefter klikker samme stations kort igen, kalder `StationCard.tsx:90` ubetinget `playStation(station)` (`handleClick` har ingen branch der tjekker `isPlaying`), så reconnect-branchen springes over og koden fortsætter direkte til `a.play()` (linje 261) på den gamle, hængte forbindelse — præcis det forældede-live-stream-problem, som søster-stien `togglePlay`'s resume (linje 302: `if (currentStation) a.src = currentStation.streamUrl` med kommentar "Live streams can't resume from a buffered position — reconnect from now") blev skrevet for at undgå.
 
+**Implementeret løsning 14-07-2026:** Betingelsen for at reconnecte er udvidet fra kun "URL er anderledes" til også "stationen er ikke i gang med at spille" (`if (a.src !== station.streamUrl || !wasPlaying)`). Genklik på en pauseret station — same URL — reconnecter nu altid fra "nu", præcis som `togglePlay`'s resume-sti. Genklik på en station, der allerede spiller/buffer, springer stadig reconnect over (det oprindelige formål: undgå at afbryde en igangværende forbindelse ved overflødige klik).
+
+Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion og hænger sammen med hans oplevelse af at PLAY på låst skærm ikke virkede (se BUG-05's fund — den var den reelle årsag til låseskærm-symptomet, BUG-04 er en beslægtet men adskilt fejl i selve appens grid).
+
 ---
 
 ## BUG-05 — `togglePlay()` kvitterer ikke for fejlet `play()`
@@ -119,6 +123,22 @@ Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPres
 **Fejlscenarie (finder):** Hvis `a.play()` afvises efter en hurtig pause/resume eller src-genforsyning (fx AbortError fra overlappende loads, eller en netværksfejl før afspilning starter), sætter storen stadig `isPlaying:true, isBuffering:true` og starter lyttetimeren. Da afspilning aldrig reelt startede, fyrer audio-elementets `pause`-event (som normalt retter op på `isPlaying`) heller aldrig — UI'et sidder permanent fast og viser "Live" med kørende timer og pause-ikon, mens ingen lyd spiller, indtil brugeren manuelt toggler igen.
 
 **Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:303-304` — i `togglePlay()`'s resume-gren: `a.play().catch(() => {})` svæler enhver afvisning, og linjen lige efter gør ubetinget `set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })` uanset om play()-promise'et blev opfyldt eller afvist. I modsætning til `playStation()` (linje 261-263), som har `.catch((err) => { if (err.name === 'NotAllowedError') set({ isPlaying: false, ... }) })`, gør `togglePlay()`'s catch slet ingenting. Hvis `play()` afvises (fx AbortError fra `a.src = currentStation.streamUrl` på linje 302 blivende overhalet af endnu et hurtigt toggle, eller en netværksfejl før nogen frame afkodes), skifter audio-elementet aldrig fra "paused" til "playing" og tilbage til "paused" — så elementets eget `pause`-event (registreret på linje 72, guarded af `if (!isPlaying) return`) fyrer ikke for at rette op på state, da der ingen playing→paused-overgang er, kun et `play()`-kald der aldrig havde effekt. `onError`-handleren (linje 65) fyrer kun ved faktiske `error`-events på elementet, hvilket ikke er garanteret for enhver `play()`-afvisning (fx giver AbortError fra overlappende load-requests intet `error`-event). Nettoeffekt: `isPlaying` forbliver true, `isBuffering` forbliver true, `listenStartedAt` fortsætter med at fremme timeren, og UI viser "Live"/pause-ikon mens ingen lyd reelt spiller, uden automatisk gendannelsessti før brugeren manuelt toggler igen.
+
+**Sandsynlig årsag til Michaels oplevelse:** PLAY-knappen på låst skærm går gennem MediaSession-handleren i storen, som kalder `togglePlay()` (ikke `playStation()`). Hvis `a.play()` fejler stille i denne kontekst (fx pga. iOS' audio-session-adfærd når skærmen er låst), viste UI'et/låseskærmen tidligere fortsat "spiller", uden at noget reelt skete — brugeren oplever at PLAY "ikke virker", uden fejl at gå efter.
+
+**Implementeret løsning 14-07-2026:** `togglePlay()`'s resume-gren fanger nu enhver fejl fra `a.play()` (ikke længere en tom `.catch(() => {})`) og reverterer `isPlaying`, `isBuffering` og `listenStartedAt` til korrekt "ikke-spiller"-tilstand, samt opdaterer MediaSession til `paused`, så låseskærmen viser den reelle tilstand i stedet for at hænge fast som "spiller". Samme udvidelse (fra kun `NotAllowedError` til alle fejl) er lavet i `playStation()`'s eget `.catch()`, da BUG-04-rettelsen betyder, at `playStation()` nu også kan optræde som en "resume"-vej (genklik på pauseret station) og derfor har brug for samme robusthed.
+
+**Verifikation (lokal `npm run dev`, ikke produktion):**
+- `npx tsc --noEmit` — ren
+- `npx eslint src/store/useRadioStore.ts` — kun 4 præ-eksisterende `no-empty`-fejl i urelaterede `try/catch`-linjer (samme linjer som før ændringen, ikke introduceret af denne rettelse)
+- Instrumenteret Playwright-script, kørt **både på oprindelig og rettet kode** for at bevise testene reelt fanger noget:
+
+| Test | Oprindelig kode | Rettet kode |
+|---|---|---|
+| BUG-04: genklik på pauseret station udløser ny stream-forbindelse (netværks-request talt) | ✗ (0 nye requests) | ✓ (nye requests registreret) |
+| BUG-05: UI hænger ikke fast i "Forbinder"/"Live" efter kunstigt fremtvunget fejlet `play()` | ✗ ("Forbinder" sad fast permanent) | ✓ (reverterer korrekt) |
+
+**Ikke deployet endnu** — afventer Michaels godkendelse til `git add && commit && push`.
 
 ---
 
