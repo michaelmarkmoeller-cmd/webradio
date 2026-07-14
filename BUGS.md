@@ -9,8 +9,8 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-01 | `src/components/StationCard.tsx:124` | 🟢 Rettet (deployet + bekræftet på iPhone) | Kritisk |
 | BUG-02 | `src/components/AddStationModal.tsx:30` | 🔴 Åben | Kritisk |
 | BUG-03 | `src/firebase/stationsService.ts:102` | 🔴 Åben | Kritisk |
-| BUG-04 | `src/store/useRadioStore.ts:255` | 🟡 Rettet lokalt, afventer deploy | Kritisk |
-| BUG-05 | `src/store/useRadioStore.ts:303` | 🟡 Rettet lokalt, afventer deploy | Kritisk |
+| BUG-04 | `src/store/useRadioStore.ts:255` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
+| BUG-05 | `src/store/useRadioStore.ts:303` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
 | BUG-06 | `src/App.tsx:65` | 🔴 Åben | Kritisk |
 | BUG-07 | `api/icy-meta.ts:1` | 🔴 Åben | Mellem |
 | BUG-08 | `src/store/useRadioStore.ts:224` | 🔴 Åben | Mellem |
@@ -19,8 +19,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-11 | `src/App.tsx:23` | 🔴 Åben | Lav |
 | BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
+| BUG-14 | `src/store/useRadioStore.ts:277` | 🟡 Deployet, afventer bekræftelse på iPhone | Kritisk |
 
-> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy)**
+> **Status: 1/13 rettet, 2 rettet lokalt (afventer deploy) + 1 ny fejl fundet og rettet (BUG-14)**
 
 ---
 
@@ -138,7 +139,7 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 | BUG-04: genklik på pauseret station udløser ny stream-forbindelse (netværks-request talt) | ✗ (0 nye requests) | ✓ (nye requests registreret) |
 | BUG-05: UI hænger ikke fast i "Forbinder"/"Live" efter kunstigt fremtvunget fejlet `play()` | ✗ ("Forbinder" sad fast permanent) | ✓ (reverterer korrekt) |
 
-**Ikke deployet endnu** — afventer Michaels godkendelse til `git add && commit && push`.
+**Deployet 14-07-2026** — commit `abaa9dd`, pushet til `main`, automatisk udrullet af Vercel til https://webradio-chi.vercel.app. Afventer Michaels bekræftelse på iPhone (særligt: PLAY på låst skærm efter en fejlet/afbrudt afspilning).
 
 ---
 
@@ -227,3 +228,18 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 **Fejlscenarie (finder):** Alle 17 filer duplikerer de samme ca. 10-15 linjer, der læser og parser `.env` og kalder `initializeApp({...seks VITE_FIREBASE_*-nøgler...})` (nogle via `readFileSync`-linjesplitning, én via `process.env` direkte — `set-countries.mjs` gør faktisk begge dele, én gang for et config-objekt der straks kasseres). Hvis `.env`-formatet nogensinde ændres (fx quoted values, kommentarer, multiline secrets), eller en Firebase-config-nøgle omdøbes, skal hver af disse 17 filer have samme rettelse anvendt individuelt; et overset script bliver stille ved med at bruge forældet/ødelagt config, næste gang nogen kører det mod produktions-Firestore.
 
 **Verifikations-bevis (uafhængig agent):** Hver af de 17 filer duplikerer uafhængigt `.env`-parsing + `initializeApp`-boilerplate, fx `add-dance-stations-jun2026.mjs:7-19`: `const env = Object.fromEntries(readFileSync('.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>l.split('=').map(s=>s.trim()))); const app = initializeApp({apiKey: env.VITE_FIREBASE_API_KEY, ...})` — det identiske mønster gentages ordret i de øvrige 15 add-/fix-/set-/list-/check-/migrate-/test-scripts. `set-countries.mjs:3-10` læser i stedet direkte `apiKey: process.env.VITE_FIREBASE_API_KEY` uden nogen `.env`-parsing overhovedet — hvilket bekræfter divergens-risikoen nævnt i fundet (ét script afviger allerede fra resten og ville ikke modtage samme rettelse, hvis `.env`-formatet ændredes). Ingen af disse 17 filer importerer et delt config-hjælpemodul eller `src/firebase/config.ts`.
+
+---
+
+## BUG-14 — Manuel in-app-pause genstarter ikke iOS-keepalive, kan miste "Now Playing" på låst skærm
+**Fil:** `src/store/useRadioStore.ts:277` (`togglePlay()`s pause-gren) · **Prioritet:** Kritisk · *fundet 14-07-2026 ved Michaels egen test, ikke en del af den oprindelige 13-punkts kodegennemgang*
+
+**Fund:** `startKeepalive()` (den 18 Hz subsoniske WAV-loop, der forhindrer iOS i at deaktivere audio-sessionen når streamen er pauset — se CLAUDE.md's iOS-audio-arkitektur-afsnit) bliver kun genstartet automatisk ved en *ekstern* pause (AirPods ear-detection, telefonopkald — `useRadioStore.ts`'s `pause`-event-listener, linje 72-75, guardet af `if (!isPlaying) return`). Når brugeren selv trykker pause i appens player-bar, sætter `togglePlay()`s pause-gren `isPlaying:false` **før** den rigtige `a.pause()` kaldes (fade-out-mekanismen) — så guarden på linje 74 springer over, og `startKeepalive()` bliver **aldrig** kaldt for en bevidst, selv-initieret pause. Keepalien'en er ganske vist allerede startet én gang i `playStation()`, da afspilningen først begyndte, og intet eksplicit stopper den ved en almindelig pause — men der er heller intet, der *bekræfter/genstarter* den på selve pause-tidspunktet, hvilket er den eneste garanterede lejlighed til at gøre det, før siden evt. baggrundslægges/JS-eksekvering throttles af iOS.
+
+**Michaels observation:** "Hvor jeg før kunne se WebRadio på låseskærmen på iPhone forsvinder den nu hvis jeg trykker på pause i app'en og slukker telefonen." — dvs. WebRadios "Now Playing"-widget forsvinder fra låseskærmen, efter en manuel pause i appen efterfulgt af at telefonen låses/slukkes for skærmen. Dette modsiger den dokumenterede hensigt: "Loops a silent WAV to keep the iOS audio session alive while the stream is paused, so WebRadio stays 'Now Playing' on the lock screen" (`audio.ts`).
+
+**Implementeret løsning 14-07-2026:** `togglePlay()`s manuelle pause-gren kalder nu eksplicit `if (isIOS) startKeepalive()` synkront, i samme øjeblik pausen sker — samme ét-linje-mønster som allerede bruges i `playStation()` og i MediaSession's `play`-handler. `startKeepalive()` er idempotent (tjekker `_keepalive.paused` før den kalder `.play()` igen), så det er harmløst at kalde den, selvom loopet allerede kører.
+
+**Vigtig forbehold — kan ikke fuldt verificeres herfra:** Denne rettelse er baseret på grundig kodeanalyse (ingen anden kodesti i projektet kalder `startKeepalive()` ved en bevidst in-app-pause), men selve iOS' interne beslutning om, hvornår en baggrundslagt Safari-fanes audio-session helt deaktiveres, kan ikke simuleres i en desktop-browser eller headless Playwright — det kræver et rigtigt iPhone. Hvis problemet fortsætter efter denne rettelse, er den mest sandsynlige næste hypotese, at iOS under visse omstændigheder deaktiverer *hele* sidens audio-session (inkl. keepalive-loopet) et stykke tid efter baggrundslægning, uanset om keepalive var aktiv ved pause-tidspunktet — hvilket i så fald ville kræve en anden tilgang (fx Background Audio-registrering, eller accept af en platformsbegrænsning).
+
+**Test ønsket fra Michael:** Pause i appen → lås telefonen → tjek låseskærmen efter hhv. et par sekunder, ét minut og nogle minutter, for at afgøre om fixet løser det, eller om det kun udskyder forsvindingen.

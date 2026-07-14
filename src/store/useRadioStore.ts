@@ -275,6 +275,13 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
     const a = audio()
     if (isPlaying) {
+      // Confirm the keepalive loop is active before the stream pauses — it may already be
+      // running (started in playStation()), but re-asserting it here, synchronously at the
+      // moment of pause, guards against it having been suspended for any reason in the
+      // meantime. Without this, iOS can drop WebRadio from the lock screen after an in-app
+      // pause once the tab backgrounds, since nothing else restarts it for a deliberate
+      // (non-external) pause.
+      if (isIOS) startKeepalive()
       const { volume } = get()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
