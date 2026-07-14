@@ -31,10 +31,12 @@ export function Player() {
 
   useEffect(() => {
     icySupportedRef.current = null
-    if (!currentStation || !isPlaying) {
-      setMeta({ title: null, genre: null })
-      return
-    }
+    // Always clear stale metadata from the previous station on every switch — otherwise
+    // a station that never resolves its own title (e.g. one without ICY support) keeps
+    // showing the last station's title indefinitely, since fetchMeta below only ever
+    // updates `meta` on a confirmed ICY response.
+    setMeta({ title: null, genre: null })
+    if (!currentStation || !isPlaying) return
     let cancelled = false
     const controller = new AbortController()
     async function fetchMeta() {

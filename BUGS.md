@@ -7,22 +7,23 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG# | Fil | Status | Prioritet |
 |------|-----|--------|-----------|
 | BUG-01 | `src/components/StationCard.tsx:124` | 🟢 Rettet (deployet + bekræftet på iPhone) | Kritisk |
-| BUG-02 | `src/components/AddStationModal.tsx:30` | 🟡 Rettet i kode, afventer test | Kritisk |
-| BUG-03 | `src/firebase/stationsService.ts:102` | 🟡 Rettet i kode, afventer test | Kritisk |
+| BUG-02 | `src/components/AddStationModal.tsx:30` | 🟢 Rettet (verificeret mod Firestore med TEST_-poster) | Kritisk |
+| BUG-03 | `src/firebase/stationsService.ts:102` | 🟢 Rettet (verificeret mod Firestore med TEST_-poster) | Kritisk |
 | BUG-04 | `src/store/useRadioStore.ts:255` | 🟢 Rettet (bekræftet på iPhone) | Kritisk |
 | BUG-05 | `src/store/useRadioStore.ts:303` | 🟢 Rettet (bekræftet på iPhone, dog se BUG-15) | Kritisk |
-| BUG-06 | `src/App.tsx:65` | 🟡 Rettet i kode, afventer test | Kritisk |
-| BUG-07 | `api/icy-meta.ts:1` | 🟡 Rettet i kode, afventer test | Mellem |
-| BUG-08 | `src/store/useRadioStore.ts:224` | 🟡 Rettet i kode, afventer test | Mellem |
-| BUG-09 | `api/icy-meta.ts:52` | 🟡 Rettet i kode, afventer test | Mellem |
+| BUG-06 | `src/App.tsx:65` | 🟢 Rettet (bekræftet på iPhone) | Kritisk |
+| BUG-07 | `api/icy-meta.ts:1` | 🟢 Rettet (verificeret mod real handler) | Mellem |
+| BUG-08 | `src/store/useRadioStore.ts:224` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
+| BUG-09 | `api/icy-meta.ts:52` | 🟢 Rettet (bekræftet på iPhone, afdækkede BUG-16) | Mellem |
 | BUG-10 | `src/store/useRadioStore.ts:100` | 🟡 Rettet i kode, afventer test | Mellem |
 | BUG-11 | `src/App.tsx:23` | 🟢 Rettet (dead code fjernet) | Lav |
-| BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret) | Lav |
-| BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`) | Lav |
+| BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
+| BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 | BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Delvis rettet — hakke-symptom løst, kerneproblem åbent | Kritisk |
+| BUG-16 | `src/components/Player.tsx:32` | 🟡 Rettet i kode, afventer test | Mellem |
 
-> **Status: 6/13 rettet + bekræftet (BUG-01, 04, 05, 11, 12, 13), 6/13 rettet i kode og afventer test (BUG-02, 03, 06-10), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15).**
+> **Status: 12/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13), 2/16 rettet i kode og afventer test (BUG-10, 16), 1 lukket som accepteret begrænsning (BUG-14), 1 delvist rettet (BUG-15).**
 
 ---
 
@@ -157,7 +158,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `src/App.tsx` linje 65-84: `onDeviceChange` har kun to grene, styret af det interne `pendingReconnect`-flag, uden tjek af `navigator.mediaDevices.enumerateDevices()` eller andet signal om, hvorvidt en enhed blev tilføjet eller fjernet. Når `pendingReconnect` er false (steady-state mens musik spiller), falder enhver `devicechange`-event i else-grenen: `wasPlayingAtDisconnect = isPlaying; if (isPlaying) togglePlay()` (linje 78-80) — ubetinget behandlet som en frakobling og pauser. Media Devices API fyrer `devicechange` for enhver ændring i enhedslisten, inklusive tilføjelser (fx tilslutning af kabelhovedtelefoner mens en Bluetooth-højtaler forbliver tilsluttet), så det scenarie rammer præcis denne pause-gren uden mulighed for at undgå det.
 
-**Rettet 14-07-2026:** `onDeviceChange` tæller nu enheder via `navigator.mediaDevices.enumerateDevices()` før og efter hvert event, og sammenligner antal. Kun et **fald** i antal enheder udløser pause-grenen; en stigning (eller uændret antal) rører ikke afspilningen, medmindre appen allerede venter på en reconnect (i så fald tolkes det som den forventede genforbindelse, som før). `npx tsc --noEmit` ren. Afventer test på iPhone (tilslut høretelefoner mens Bluetooth-højtaler forbliver tilsluttet — musikken må ikke pause).
+**Rettet 14-07-2026:** `onDeviceChange` tæller nu enheder via `navigator.mediaDevices.enumerateDevices()` før og efter hvert event, og sammenligner antal. Kun et **fald** i antal enheder udløser pause-grenen; en stigning (eller uændret antal) rører ikke afspilningen, medmindre appen allerede venter på en reconnect (i så fald tolkes det som den forventede genforbindelse, som før). `npx tsc --noEmit` ren.
+
+**Bekræftet 14-07-2026 (Michael, rigtig iPhone):** Afspillede en station via telefonens egen højttaler, forbandt derefter AirPods mens musikken spillede — musikken fortsatte uden pause. **BUG-06 er lukket.**
 
 ---
 
@@ -170,7 +173,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `isPrivateHost` (`api/icy-meta.ts:1-15`) tjekker kun `h === 'localhost' || h === '::1'` og en punktum-decimal IPv4-regex `^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$`. Et hostnavn som `2130706433` (decimal for 127.0.0.1), `017700000001` (oktal), eller `[::ffff:169.254.169.254]` (IPv6-mappet) matcher ingen af grenene, så `isPrivateHost` returnerer false, og requesten fortsætter til `fetch(url, ...)` på linje 39. Derudover opererer tjekket kun på hostname-strengen, ikke den resolvede IP, så et DNS-navn der resolver til en privat/metadata-IP ved fetch-tidspunktet fanges slet ikke (klassisk DNS-rebinding-hul) — der er intet IP-efter-resolution-tjek nogen steder i filen. Da `Player.tsx` poller dette endpoint hvert 30. sek. for vilkårlige Firestore-lagrede streamUrl-værdier (station-streamUrl kræves kun at starte med `http(s)://` ifølge projektdokumentationen), er dette et reelt SSRF-bypass af den eksisterende beskyttelse.
 
-**Rettet 14-07-2026:** `isPrivateHost` er nu asynkron og bruger `dns.promises.lookup(hostname, { all: true })` til at resolve hostnavnet og validere den **faktiske** IP-adresse (alle returnerede adresser, ikke kun den første) — i stedet for kun at mønster-matche hostname-strengen. Dette normaliserer alternative encodings (decimal/oktal/hex forstås af Node's underliggende getaddrinfo og resolver til en almindelig dotted-quad, som så tjekkes), og indsnævrer (om end ikke eliminerer fuldstændigt) DNS-rebinding-vinduet til gabet mellem opslag og selve `fetch()`. Udvidet til også at dække IPv4-mappede IPv6-adresser (`::ffff:a.b.c.d`), unique-local (`fc00::/7`) og link-local (`fe80::/10`) IPv6-ranges. Uopløselige hostnavne afvises defensivt. Standalone type-check af `api/icy-meta.ts` (uden for hoved-tsconfig'en, som ikke inkluderer `api/`) er ren. Afventer test — bør prøves med en station der har en gyldig, offentlig stream-URL for at bekræfte ICY-metadata stadig virker efter ændringen.
+**Rettet 14-07-2026:** `isPrivateHost` er nu asynkron og bruger `dns.promises.lookup(hostname, { all: true })` til at resolve hostnavnet og validere den **faktiske** IP-adresse (alle returnerede adresser, ikke kun den første) — i stedet for kun at mønster-matche hostname-strengen. Dette normaliserer alternative encodings (decimal/oktal/hex forstås af Node's underliggende getaddrinfo og resolver til en almindelig dotted-quad, som så tjekkes), og indsnævrer (om end ikke eliminerer fuldstændigt) DNS-rebinding-vinduet til gabet mellem opslag og selve `fetch()`. Udvidet til også at dække IPv4-mappede IPv6-adresser (`::ffff:a.b.c.d`), unique-local (`fc00::/7`) og link-local (`fe80::/10`) IPv6-ranges. Uopløselige hostnavne afvises defensivt. Standalone type-check af `api/icy-meta.ts` (uden for hoved-tsconfig'en, som ikke inkluderer `api/`) er ren.
+
+**Verificeret 14-07-2026 (direkte mod den rigtige handler-funktion, via `tsx`, ingen Firestore/produktionsdata involveret):** 7/7 tests bestået — `127.0.0.1`, decimal-encoded (`2130706433`), oktal-encoded (`017700000001`), IPv6-mapped cloud metadata-adresse, `localhost`, og `192.168.x.x` blokeres alle korrekt (HTTP 400); en legitim offentlig stream (DR P3) blokeres **ikke** og fetches normalt. **BUG-07 er lukket.**
 
 ---
 
@@ -183,7 +188,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:224-239`. `reorderCategory` fanger `prevCategoryOrder = stationOrder[category]` fra `get()` ved kaldets tidspunkt, gør derefter en optimistisk `set()` og affyrer `saveStationOrder(...).catch(...)`, der lukker over den forældede `prevCategoryOrder`. Hvis kald A's promise afvises, efter at kald B allerede har kørt (B's optimistiske `set()` overskrev storen, og B's egen save lykkedes), reverterer A's catch-handler på linje 232-236 stadig `revertedOrder[category] = prevCategoryOrder` (A's pre-update-snapshot, dvs. state før både A og B), hvilket overskriver B's succesfuldt gemte rækkefølge med en toast "Kunne ikke gemme rækkefølge", selvom B lykkedes. Der er ingen request-sekvensering/versions-token, der styrer hvilket kalds fejl der må revertere, så et langsommere-fejlende tidligere kald kan overtrampe et hurtigere-succesfuldt senere kalds resultat.
 
-**Rettet 14-07-2026:** Tilføjet et sekvensnummer pr. kategori (`reorderSeq`). Hvert `reorderCategory`-kald inkrementerer og fanger sit eget nummer; når et kalds Firestore-write fejler, tjekker catch-handleren først om dens nummer stadig er det seneste for kategorien — hvis et nyere kald allerede er startet, er det gamle kalds revert et no-op, så det ikke kan overskrive et senere (evt. allerede gemt) resultat. `npx tsc --noEmit` ren. Afventer test — kræver hurtig dobbelt-reorder i samme kategori for at udløse racen, svært at teste manuelt med sikkerhed; kodeanalysen bekræfter fixet, men er ikke afprøvet under faktisk netværksforsinkelse.
+**Rettet 14-07-2026:** Tilføjet et sekvensnummer pr. kategori (`reorderSeq`). Hvert `reorderCategory`-kald inkrementerer og fanger sit eget nummer; når et kalds Firestore-write fejler, tjekker catch-handleren først om dens nummer stadig er det seneste for kategorien — hvis et nyere kald allerede er startet, er det gamle kalds revert et no-op, så det ikke kan overskrive et senere (evt. allerede gemt) resultat. `npx tsc --noEmit` ren.
+
+**Testet 14-07-2026 (Michael, rigtig iPhone):** Hurtig dobbelt-drag i samme kategori efterfulgt af genindlæsning — rækkefølgen matchede korrekt, ingen ændringer sprang tilbage. Bemærk: dette beviser ikke racen specifikt (kræver en reelt fejlende Firestore-write præcist mens et andet kald er i flight, hvilket ikke kan fremtvinges pålideligt manuelt) — men bekræfter ingen regression i normal brug. **BUG-08 markeres rettet** på baggrund af kodeanalysen + denne regressionstest.
 
 ---
 
@@ -196,7 +203,9 @@ Rettet **sammen med BUG-05** efter Michaels ønske, da begge er i samme funktion
 
 **Verifikations-bevis (uafhængig agent):** `api/icy-meta.ts` har fire fejlstier, der returnerer `{title:null}` uden nogen `icySupported`-nøgle overhovedet: linje 52 `if (!response.ok || !response.body) { ... return res.json({ title: null }) }`, linje 64-65 (for stor/ugyldig metaint) `if (!metaint || metaint <= 0 || metaint > 65536) { ... return res.json({ title: null }) }`, linje 91 `if (buffer.length <= metaint) return res.json({ title: null })`, og catch-all'en på linje 115-117 `catch { return res.json({ title: null }) }`. Imens tjekker `Player.tsx` (linje 50-51) kun det eksplicitte-false-signal: `if (data.icySupported === false) { icySupportedRef.current = false; return } icySupportedRef.current = true`. Ethvert svar uden `icySupported`-nøglen (alle fire grene ovenfor) falder igennem til `icySupportedRef.current = true`, så en station, hvis stream returnerer fx en fejlbehæftet/for stor `icy-metaint` (deterministisk reproducerbar hver request, ikke bare transient), er permanent markeret ICY-understøttet og polles hvert 30. sekund for hele afspilningssessionen — modsat en ægte ikke-ICY-stream (manglende `icy-metaint`-header, linje 56-58), som korrekt sætter `icySupported:false` og stopper polling efter én request.
 
-**Rettet 14-07-2026:** Alle fire identificerede fejlgrene i `api/icy-meta.ts` returnerer nu eksplicit `icySupported: false` (ikke-OK svar, ugyldig/for stor metaint, for kort buffer, og catch-all). `Player.tsx` er ikke ændret — den korrekte gren (`icySupported === false`) fandtes allerede, den manglede blot at blive sat konsekvent. Bemærk: `icySupportedRef` nulstilles i forvejen ved hvert stations-/afspilningsskift (`Player.tsx:33`), så en enkelt fejlramt session stopper ikke metadata-forsøg permanent på tværs af fremtidige afspilninger. Standalone type-check af `api/icy-meta.ts` ren. Afventer test — bør bekræftes ved at afspille en station, der reelt understøtter ICY (fx en DR-station), og verificere at sangtitel stadig vises.
+**Rettet 14-07-2026:** Alle fire identificerede fejlgrene i `api/icy-meta.ts` returnerer nu eksplicit `icySupported: false` (ikke-OK svar, ugyldig/for stor metaint, for kort buffer, og catch-all). `Player.tsx` er ikke ændret — den korrekte gren (`icySupported === false`) fandtes allerede, den manglede blot at blive sat konsekvent. Bemærk: `icySupportedRef` nulstilles i forvejen ved hvert stations-/afspilningsskift (`Player.tsx:33`), så en enkelt fejlramt session stopper ikke metadata-forsøg permanent på tværs af fremtidige afspilninger. Standalone type-check af `api/icy-meta.ts` ren.
+
+**Testet 14-07-2026 (Michael, rigtig iPhone):** DR-station viser fortsat sangtitel korrekt (regression bekræftet OK). Ved skift til en radio SAW-station (ikke-ICY) opdagede Michael dog en **separat, ægte fejl**: den viste den **gamle titel fra DR-stationen** i stedet for ingen titel. Dette var ikke en konsekvens af selve BUG-09-rettelsen (den pågældende "intet icy-metaint-header"-gren havde allerede `icySupported:false` fra starten, uændret af denne fix) — det er en uafhængig mangel i `Player.tsx`, som aldrig ryddede `meta`-state ved stationsskift. Logget og rettet separat som **BUG-16**. **BUG-09 selv markeres rettet** (den oprindelige cache-fejl er bekræftet løst).
 
 ---
 
@@ -352,3 +361,16 @@ Dette retter formentlig den hakkende/skrattende genafspilning, Michael observere
 **Relateret observation 14-07-2026 (Michael) — samme grundproblem, anden udløser (app-skift/Safari, ikke låseskærm):** Michael afspillede en station, swipede til Safari (eb.dk), navigerede til en artikel og trykkede "tilbage" — lyden stoppede præcis samtidig med at siden skiftede (mens WebRadio stadig var baggrundslagt). Ved tilbagevenden til WebRadio hørtes ca. **1 sekunds lyd, derefter stilhed** — et efterfølgende manuelt tryk på samme station fik den til at spille normalt igen. Et tilsvarende forsøg lige forinden (kortere Safari-besøg, ingen artikel-navigation) resulterede i **ren automatisk genoptagelse** uden noget tryk overhovedet.
 
 **Sandsynlig mekanisme (kodeanalyse, ikke yderligere verificeret):** Når WebRadio baggrundslægges og iOS selv pauser lyden, opdaterer `pause`-lytteren (`useRadioStore.ts:71-89`) kun tidsbogføringen — ikke `isPlaying` — fordi appen er usynlig (bevidst designvalg mod UI-flicker). Ved tilbagevenden opdager `visibilitychange`-lytteren (linje 95-112) uoverensstemmelsen, sætter `isPlaying:false`, og arm'er `_shouldResume`. Næste tryk et sted i appen udløser en frisk genforbindelse via klik-lytteren (linje 118-130). I det ene tilfælde blev denne nye forbindelse stabil (ren auto-resume); i det andet blev den tilsyneladende afbrudt af iOS igen efter blot ca. 1 sekund — formentlig fordi appen lige var kommet i forgrunden og endnu ikke havde fuld baggrunds-lyd-tilladelse konsolideret. Appens egen eksterne-pause-detektion reagerede korrekt på denne nye afbrydelse (UI endte pauseret, ikke fastfrosset) — det er altså ikke en UI-desync-fejl, men en ægte, kortvarig forbindelsesustabilitet i selve genoptagelsen, sandsynligvis samme underliggende iOS-begrænsning som resten af BUG-15, blot udløst af app-skift/Safari-navigation i stedet for låseskærm-PLAY. Ikke yderligere undersøgt eller rettet — logget som kontekst for evt. fremtidig BUG-15-beslutning.
+
+---
+
+## BUG-16 — Gammel sangtitel bliver stående ved skift til en ikke-ICY-station
+**Fil:** `src/components/Player.tsx:32` · **Prioritet:** Mellem · *fundet af Michael under manuel test af BUG-09 på iPhone, 14-07-2026*
+
+**Fund:** `Player.tsx`'s metadata-effekt rydder kun `meta`-state (sangtitel/genre) når `!currentStation || !isPlaying` — ikke ved et almindeligt stationsskift. Når den nye station bekræftes ikke at understøtte ICY (`icySupported === false`), returnerer `fetchMeta()` tidligt uden nogensinde at kalde `setMeta(...)`, så den forrige stations sangtitel bliver stående på skærmen, som om den tilhørte den nye (forkerte) station.
+
+**Fejlscenarie (Michael, verificeret på iPhone):** Afspil en DR-station — sangtitel vises korrekt. Skift til en radio SAW-station (ingen ICY-understøttelse, docs bekræfter denne stationsfamilie blokerer server-til-server-forespørgsler). I stedet for at vise ingen titel (korrekt for en ikke-ICY-stream), viser player-baren **stadig DR-stationens gamle sangtitel** — vildledende, da man kan tro titlen tilhører den nye station.
+
+**Kodebevis:** `Player.tsx:32-58`. Effekten nulstiller `icySupportedRef.current = null` ved hvert stationsskift, men rydder kun `meta` via `setMeta({title:null, genre:null})` inde i den tidlige `if (!currentStation || !isPlaying)`-gren (linje 34-37) — ikke ubetinget. `fetchMeta()`'s eneste kald til `setMeta(...)` sker efter en bekræftet ICY-succes (linje 51-52); ved `data.icySupported === false` (linje 50) returnerer funktionen med det samme uden at røre `meta`. For en ny station, hvor selv det første kald bekræfter `icySupported:false`, bliver `meta` derfor aldrig opdateret — den forrige stations værdi lever videre uændret i React-state.
+
+**Rettet 14-07-2026:** Effekten kalder nu ubetinget `setMeta({ title: null, genre: null })` med det samme ved hvert stations-/afspilningsskift, før den evt. korte-slutter på `!currentStation || !isPlaying`. Dette garanterer et rent udgangspunkt for enhver ny station, uanset om dens første metadata-forespørgsel lykkes, fejler, eller bekræfter manglende ICY-understøttelse — `fetchMeta()` opdaterer derefter kun `meta`, hvis der reelt er noget at vise. `npx tsc --noEmit` ren. Afventer test på iPhone (skift fra en ICY-station til en ikke-ICY-station og bekræft at den gamle titel forsvinder med det samme).
