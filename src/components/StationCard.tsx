@@ -1,6 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useRef, useState } from 'react'
 import type { Station } from '../types'
 import { useRadioStore } from '../store/useRadioStore'
 import { DeleteConfirm } from './DeleteConfirm'
@@ -11,6 +9,7 @@ import { CATEGORY_COLORS } from '../utils/categoryColors'
 interface Props {
   station: Station
   sortable?: boolean
+  onRequestReorder?: () => void
 }
 
 
@@ -28,29 +27,21 @@ function nameSize(name: string): string {
 }
 
 const LONG_PRESS_MS = 2000
+// A stationary hold triggers delete (above); moving the pointer past this many
+// pixels during a hold instead opens the reorder list — see BUGS.md BUG-01.
+const REORDER_MOVE_THRESHOLD_PX = 8
 
-export function StationCard({ station, sortable = false }: Props) {
+export function StationCard({ station, sortable = false, onRequestReorder }: Props) {
   const { currentStation, isPlaying, playStation, favorites, toggleFavorite } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
   const [isPressing, setIsPressing] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
+  const wasDragged = useRef(false)
+  const pressStart = useRef<{ x: number; y: number } | null>(null)
 
   const [hovered, setHovered] = useState(false)
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: station.id,
-    disabled: !sortable,
-  })
-
-  const wasDragged = useRef(false)
-  useEffect(() => {
-    if (isDragging) {
-      wasDragged.current = true
-      cancelPress()
-    }
-  }, [isDragging])
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
   const isFavorite = favorites.includes(station.id)
   const isActive = currentStation?.id === station.id
   const isCurrentlyPlaying = isActive && isPlaying
@@ -84,6 +75,28 @@ export function StationCard({ station, sortable = false }: Props) {
     setIsPressing(false)
   }
 
+  function handlePointerDown(e: React.PointerEvent) {
+    if (sortable) pressStart.current = { x: e.clientX, y: e.clientY }
+    startPress()
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!sortable || !pressStart.current) return
+    const dx = e.clientX - pressStart.current.x
+    const dy = e.clientY - pressStart.current.y
+    if (Math.hypot(dx, dy) > REORDER_MOVE_THRESHOLD_PX) {
+      pressStart.current = null
+      wasDragged.current = true
+      cancelPress()
+      onRequestReorder?.()
+    }
+  }
+
+  function endPress() {
+    pressStart.current = null
+    cancelPress()
+  }
+
   function handleClick() {
     if (wasDragged.current) { wasDragged.current = false; return }
     if (didLongPress.current) { didLongPress.current = false; return }
@@ -93,15 +106,10 @@ export function StationCard({ station, sortable = false }: Props) {
   return (
     <>
       <div
-        ref={setNodeRef}
-        {...(sortable ? listeners : {})}
-        {...(sortable ? attributes : {})}
-        className={`relative overflow-hidden rounded-xl border px-4 pt-2 pb-2 select-none ${
-          isDragging ? '' : 'transition-all duration-150'
+        className={`relative overflow-hidden rounded-xl border px-4 pt-2 pb-2 select-none transition-all duration-150 ${
+          sortable ? 'cursor-grab' : 'cursor-pointer'
         } ${
-          sortable ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer'
-        } ${
-          isDragging ? '' : (isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : '')
+          isPressing ? 'scale-[0.97] brightness-75' : hovered ? 'scale-[1.02]' : ''
         } ${
           isActive
             ? 'border-accent/60 bg-accent/8'
@@ -114,16 +122,13 @@ export function StationCard({ station, sortable = false }: Props) {
             ? `0 0 12px ${accentColor}33`
             : hovered ? `0 0 14px ${accentColor}28` : 'none',
           WebkitTouchCallout: 'none',
-          transform: CSS.Transform.toString(transform),
-          transition,
-          opacity: isDragging ? 0 : 1,
-          zIndex: isDragging ? 1 : undefined,
         }}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false); cancelPress() }}
-        onPointerDown={startPress}
-        onPointerUp={cancelPress}
-        onPointerCancel={cancelPress}
+        onMouseLeave={() => { setHovered(false); endPress() }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
         onContextMenu={(e) => e.preventDefault()}
         onClick={handleClick}
       >

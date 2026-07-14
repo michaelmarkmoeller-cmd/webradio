@@ -1,0 +1,209 @@
+# Fejlliste — WebRadio
+
+Fundet ved kritisk kodegennemgang 14-07-2026 (høj-effort workflow-review: 4 uafhængige finder-agenter + 1 uafhængig verifikations-agent pr. fund, alle 13 kandidater blev bekræftet, 0 afvist). Denne fil indeholder den fulde rå information fra reviewet — finderens fejlscenarie OG verifikationsagentens uafhængige kode-bevis, ikke bare en opsummering. Ingen af fejlene er rettet endnu — de tages én ad gangen.
+
+Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
+
+| BUG# | Fil | Status | Prioritet |
+|------|-----|--------|-----------|
+| BUG-01 | `src/components/StationCard.tsx:124` | 🟡 Rettet lokalt, afventer commit | Kritisk |
+| BUG-02 | `src/components/AddStationModal.tsx:30` | 🔴 Åben | Kritisk |
+| BUG-03 | `src/firebase/stationsService.ts:102` | 🔴 Åben | Kritisk |
+| BUG-04 | `src/store/useRadioStore.ts:255` | 🔴 Åben | Kritisk |
+| BUG-05 | `src/store/useRadioStore.ts:303` | 🔴 Åben | Kritisk |
+| BUG-06 | `src/App.tsx:65` | 🔴 Åben | Kritisk |
+| BUG-07 | `api/icy-meta.ts:1` | 🔴 Åben | Mellem |
+| BUG-08 | `src/store/useRadioStore.ts:224` | 🔴 Åben | Mellem |
+| BUG-09 | `api/icy-meta.ts:52` | 🔴 Åben | Mellem |
+| BUG-10 | `src/store/useRadioStore.ts:100` | 🔴 Åben | Mellem |
+| BUG-11 | `src/App.tsx:23` | 🔴 Åben | Lav |
+| BUG-12 | `check-streams.mjs:122` | 🔴 Åben | Lav |
+| BUG-13 | rodmappe-scripts (17 filer) | 🔴 Åben | Lav |
+
+> **Status: 0/13 rettet, 1 rettet lokalt (afventer commit)**
+
+---
+
+## BUG-01 — Drag & drop reorder virker slet ikke
+**Fil:** `src/components/StationCard.tsx:124` · **Prioritet:** Kritisk
+
+**Fund:** Den bogstavelige prop `onPointerDown={startPress}` overskriver dnd-kit's `listeners.onPointerDown`, spredt to linjer tidligere, så drag-and-drop aldrig kan aktiveres.
+
+**Fejlscenarie (finder):** I kategori-visning (`sortable=true`) spredes `{...listeners}` (linje 97), som inkluderer dnd-kit's PointerSensor-aktivator på `onPointerDown` (`PointerSensor.activators = [{eventName:'onPointerDown', ...}]`). Den senere bogstavelige `onPointerDown={startPress}` (linje 124) er en duplikeret nøgle i samme JSX-prop-objekt, så den vinder og erstatter fuldstændig dnd-kit's handler — sensorens aktiveringshandler kaldes aldrig. Kun `PointerSensor` er registreret i `StationGrid.tsx` (ingen `KeyboardSensor`-fallback), så tryk-og-træk på et kort producerer aldrig et `DragOverlay` eller reorder; det starter kun 2-sek. long-press-slet-timeren. Dette regresserede i commit `b66f63e` ("Fix DnD: whole-card drag with 250ms delay, no separate handle"), da det dedikerede drag-handle (som havde sin egen isolerede `onPointerDown` via `{...listeners}`) blev fjernet, og `listeners` blev spredt på samme div, som allerede bar long-press `onPointerDown`. TC-09-testene fanger det ikke: TC-09-01/02/03 tjekker kun CSS-klasser (`cursor-grab`/`cursor-pointer`), og TC-09-04's egen kommentar siger den består "hvad enten drag blev aktiveret eller ej", da den kun sammenligner rækkefølge før/efter reload — hvilket trivielt er ens hvis reorder aldrig sker. TC-09-05/06 er markeret "ikke testet", fordi headless ikke kan simulere aktiveringen. Nettoeffekt: den dokumenterede drag-and-drop-reorder-funktion er stille ikke-funktionel for rigtige brugere, både med mus og touch.
+
+**Verifikations-bevis (uafhængig agent):** JSX-prop-objektet bygges i kildekode-rækkefølge: `{...(sortable ? listeners : {})}` (linje 97) spredes først, og den bogstavelige `onPointerDown={startPress}` optræder senere på linje 124. Babels JSX-transform fletter spreads og bogstavelige attributter til ét objekt-spread-udtryk i kilderækkefølge, så senere nøgler vinder — den bogstavelige `onPointerDown={startPress}` overskriver ubetinget, hvad end `onPointerDown` dnd-kit's `listeners` leverede. `StationGrid.tsx` konfigurerer kun `useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } })` (linje 29), ingen `KeyboardSensor`-fallback. Da `startPress` (linje 69-77) er en bar lokal closure, der aldrig kalder den oprindelige dnd-kit-handler den erstattede, og kun starter 2-sek. slet-long-press-`setTimeout`, bliver PointerSensor's aktivator aldrig kaldt ved pointerdown i nogen kodesti hvor `sortable` er true. Dette betyder, at `DragStartEvent`/`handleDragStart` aldrig kan fyre fra et reelt bruger-pointerdown — drag-and-drop-reorder er dødt for slutbrugere, i modstrid med den dokumenterede UX-regel "Hold 250ms + bevæg i kategori-visning → drag & drop reorder" i CLAUDE.md.
+
+**Forsøgt rettelse 14-07-2026 — afvist, ny konflikt fundet ved test:** Den oplagte rettelse (flet dnd-kit's `listeners.onPointerDown` og `startPress` i én handler i stedet for at lade den ene overskrive den anden) blev implementeret og testet lokalt mod `npm run dev` (ikke produktion) med et instrumenteret Playwright-script. `npx tsc --noEmit` var ren, og drag & drop virkede derefter korrekt (DragOverlay vises, kort får `opacity:0`, klik-afspilning upåvirket). MEN testen afslørede en ny regression: dnd-kit's `PointerSensor` med `activationConstraint: { delay: 250, tolerance: 5 }` er **forsinkelses-baseret, ikke bevægelses-baseret** — den aktiverer automatisk en drag, blot man holder musen/fingeren **helt stille** i 250ms; `tolerance` annullerer kun en *tidlig* bevægelse før forsinkelsen udløber, den kræver ikke bevægelse for at aktivere. Instrumenteret bevis (stationær hold, ingen bevægelse overhovedet):
+
+| Tid holdt stille | DragOverlay vist | Kort-opacity | Slet-dialog vist |
+|---|---|---|---|
+| 200ms | Nej | 1 | Nej |
+| 300ms | **Ja** | **0** | Nej |
+| 1000ms | Ja | 0 | Nej |
+| 2100ms | Ja | 0 | **Nej** |
+
+Fordi `useEffect(() => { if (isDragging) { wasDragged.current = true; cancelPress() } }, [isDragging])` (linje 47-52) allerede annullerer long-press-slet-timeren, så snart dnd-kit rapporterer `isDragging`, bliver 2-sekunders slet-timeren nu annulleret efter blot ca. 250-300ms — **slet-via-hold ville holde op med at virke i kategori-visning** (den forbliver upåvirket i "Alle"/"Favoritter", hvor `sortable=false` og dnd-kit aldrig kobles på). Den oplagte rettelse blev derfor forkastet og reverteret (ingen ændring committet) — se de to reelle løsningsforslag nedenfor.
+
+**Reelle løsningsforslag (kræver et produktvalg, ikke kun en kodeændring):**
+
+- **Forslag A — skift til bevægelses-baseret aktivering** (`activationConstraint: { distance: 8 }` i stedet for `{ delay: 250, tolerance: 5 }`): En helt stationær hold udløser aldrig drag, uanset varighed, så 2-sekunders slet-gestus er 100% sikker. Drag starter først, når musen/fingeren reelt har bevæget sig ca. 8px, hvilket matcher CLAUDE.md's egen formulering "Hold 250ms **+ bevæg**". **Risiko:** bevægelses-baseret aktivering er kendt for at kunne kapre en lodret scroll-swipe på touch-enheder, fordi de første pixels af "scroll siden" og "start en drag" ser identiske ud for sensoren — formodentlig netop derfor den oprindelige udvikler valgte forsinkelses-baseret aktivering (bedre til at sameksistere med side-scroll på mobil). Bør testes på en reel iPhone/touch-enhed, før det kan stoles på — kan ikke verificeres pålideligt i en desktop-browser eller headless test.
+- **Forslag B — genindfør et lille dedikeret greb-område** (fx et lille greb-ikon i hjørnet) der alene bærer dnd-kit's `listeners`, adskilt fra resten af kortet, som stadig bærer long-press-slet. Eliminerer enhver gestus-konflikt fuldstændigt ved konstruktion (drag og slet lytter på fysisk forskellige DOM-elementer), og har ingen scroll-risiko. **Ulempe:** går imod det eksplicitte designvalg i commit `b66f63e` ("whole-card drag... no separate handle") — dog har ingen bruger reelt oplevet whole-card-drag, siden den aldrig har virket pga. denne bug, så det er ikke et regressions-brud mod faktisk oplevet adfærd, kun mod den oprindelige hensigt.
+
+**Implementeret løsning 14-07-2026 — Forslag C (Michaels idé): dedikeret reorder-liste, iPhone-stil.** I stedet for at trække kort direkte i gridet, eller give hele kortet en lille greb-zone, indføres en separat "rediger rækkefølge"-tilstand:
+
+- **Grid-visning (uændret adfærd):** Klik = afspil. Holder man et kort **stille** i 2 sekunder = slet-dialog, præcis som i dag. Ingen dnd-kit overhovedet koblet på selve gridkortet længere.
+- **Ny gestus:** Holder man et kort og **bevæger** musen/fingeren mere end 8px (mens pointeren stadig er nede), åbnes en fuldskærms liste-modal for den aktuelle kategori i stedet for at trække kortet selv. Dette skelner "stille = slet" fra "bevæg = reorder" ved bevægelse, ikke ved timing — samme mekanisme, der allerede blev bevist konfliktfri i det forkastede forsøg ovenfor.
+- **Reorder-listen (`src/components/ReorderListModal.tsx`, ny fil):** Viser stationerne i kategorien som rækker med et lille greb-ikon (⋮⋮) til højre. Kun grebet bærer dnd-kit's `listeners` (samme mønster som Forslag B, men afgrænset til denne modal) — ingen tvetydighed, da der ikke er noget klik-for-afspil eller slet-gestus at forveksle med i denne visning. `verticalListSortingStrategy` bruges (liste, ikke grid). Rækkefølgen gemmes via den eksisterende `reorderCategory()` i storen (uændret, inkl. dens kendte race i BUG-08). Lukkes med en "Færdig"-knap øverst.
+- **Filer ændret:** `src/components/StationCard.tsx` (fjernet `useSortable`/dnd-kit helt, tilføjet pointer-bevægelses-detektion), `src/components/StationGrid.tsx` (fjernet `DndContext`/`SortableContext`/`DragOverlay`, tilføjet modal-state), `src/components/ReorderListModal.tsx` (ny).
+
+**Verifikation (lokal `npm run dev`, ikke produktion):**
+- `npx tsc --noEmit` — ren
+- `npx eslint` på de tre ændrede/nye filer — ingen fejl
+- Instrumenteret Playwright-script, 8/8 bestået:
+
+| Test | Resultat |
+|---|---|
+| Klik afspiller stadig station | ✓ |
+| Long-press (2s, ingen bevægelse) viser stadig slet-dialog | ✓ |
+| Hold + bevæg åbner reorder-listen | ✓ |
+| Hold + bevæg viser IKKE slet-dialogen (ingen konflikt) | ✓ |
+| Træk i håndtag ændrer rækkefølgen i listen | ✓ |
+| Ny rækkefølge persisteret efter reload (Firestore round-trip) | ✓ |
+| "Alle"-visning: stadig cursor-pointer, ingen reorder-adgang | ✓ |
+| "Alle"-visning: hold+bevæg åbner ikke reorder-listen | ✓ |
+
+**Kendt, ikke-verificerbar restrisiko:** Reorder-åbningen i grid-visningen er nu bevægelses-baseret (ingen `touch-action` sat på selve kortet). På en touch-enhed er der en teoretisk risiko for, at et forsøg på at scrolle siden lodret ved at swipe hen over et kort i stedet bliver tolket som "bevæg dig ⇒ åbn reorder-listen", hvis swipet starter på et kort og overskrider 8px, før browseren når at overtage scrollet. Dette kan ikke testes pålideligt i en desktop-browser eller headless Playwright — bør afprøves på en rigtig iPhone, før det stoles på 100%. Selve reorder-listens greb-ikon har `touch-action: none` sat eksplicit og er ikke berørt af denne risiko.
+
+**Ikke committet endnu** — afventer din godkendelse af at teste i browseren (`npm run dev`) inden `git add && commit && push`, jf. projektets workflow.
+
+---
+
+## BUG-02 — "Tilføj station" kan fejle stille ved tomme valgfrie felter
+**Fil:** `src/components/AddStationModal.tsx:30` · **Prioritet:** Kritisk
+
+**Fund:** `addStation()` kaldes med et objekt-literal, der eksplicit sætter `bitrate`/`country` til `undefined`, når brugeren lader dem stå på standardværdi — men Firestores `addDoc` (ingen `ignoreUndefinedProperties` sat i `config.ts`) afviser ethvert felt med værdien `undefined`.
+
+**Fejlscenarie (finder):** Brugeren åbner "Tilføj station", udfylder kun navn + stream-URL + kategori (bitrate forbliver på standardvalget "Ukendt" → state `undefined`; land forbliver tomt → `country.trim().toLowerCase() || undefined` → `undefined`) og indsender. `addDoc(collection(db,'stations'), {...data, createdAt: serverTimestamp()})` i `stationsService.ts` kaster "Unsupported field value: undefined (found in field bitrate/country)", fanget af modalens generiske `catch { toast.error('Kunne ikke tilføje stationen') }` — stationen oprettes aldrig, stille. Denne præcise tvetydighed er synlig i `tests/tc-10-11.spec.ts` TC-11-03, som eksplicit accepterer enten "modal lukker" eller "fejl-toast vist" som bestået — dvs. projektets egen testsuite tolererer allerede denne fejl uden at diagnosticere den.
+
+**Verifikations-bevis (uafhængig agent):** `AddStationModal.tsx:30` kalder `addStation({ name: name.trim(), streamUrl: trimmedUrl, category, bitrate, country: country.trim().toLowerCase() || undefined })`, hvor `bitrate`-state som standard er `undefined` (linje 15, kun sat af det valgfrie bitrate-`<select>`), og `country.trim().toLowerCase() || undefined` evaluerer til `undefined` når land-feltet forbliver tomt (dets standard). `stationsService.ts:78-83` `addStation()` sender dette objekt direkte ind i `addDoc(collection(db, COLLECTION), { ...data, createdAt: serverTimestamp() })` uden at stripning/default-sætning af undefined-felter. `config.ts:16-18` initialiserer Firestore via `initializeFirestore(app, { localCache: persistentLocalCache() })` uden `ignoreUndefinedProperties: true`, så SDK'ens standardadfærd (afvis undefined-feltværdier) gælder. Indsendelse af tilføj-station-formularen med bitrate på "Ukendt" og land tomt (standard-state for begge felter) får `addDoc` til at kaste på det undefined-felt, fanget af den generiske `catch { toast.error('Kunne ikke tilføje stationen') }` i `AddStationModal.tsx:33-34` — stationen fejler stille uden specifik diagnostik.
+
+---
+
+## BUG-03 — Import kan fejle helt eller skrive fremmede felter
+**Fil:** `src/firebase/stationsService.ts:102` · **Prioritet:** Kritisk
+
+**Fund:** `importStations()` spreder hvert kaldende-leverede stationsobjekt direkte ind i `batch.set()` uden at fjerne de ekstra `valid`/`error`-felter eller undefined valgfrie felter, som `ImportExportModal`'s `ParsedStation`-objekter altid bærer, så én ufuldstændig række afbryder (og forurener) hele batchen.
+
+**Fejlscenarie (finder):** `ImportExportModal.parseFile()` sætter altid nøglerne `bitrate`, `logoUrl` og `country`, selv når de mangler i den uploadede JSON (`typeof s.bitrate === 'number' ? s.bitrate : undefined` osv.), og tilføjer altid en `valid: true`-markør. `handleImport()` sender denne `ParsedStation[]` direkte til `importStations(stations: StationFormData[])` — TypeScript tillader den bredere type gennem en variabel-tildeling (ingen excess-property-tjek), så objekterne ved runtime har `bitrate: undefined` / `country: undefined` for enhver station uden disse valgfrie felter. Firestores `batch.set` kaster på undefined-feltværdier, hvilket afbryder hele `batch.commit()` for den chunk (op til 499 stationer) — så import af en JSON-eksport, hvor de fleste stationer mangler bitrate/land (meget almindeligt), fejler helt med kun en generisk "Import fejlede"-toast, og enhver station der *lykkes* (i en chunk uden undefined-felter) skrives til Firestore med et fremmed `valid: true`-felt, der aldrig var en del af Station-skemaet.
+
+**Verifikations-bevis (uafhængig agent):** `ImportExportModal.tsx` `parseFile()` sætter altid `bitrate`/`logoUrl`/`country`-nøgler, med default `undefined` når fraværende (fx linje 42: `bitrate: typeof s.bitrate === 'number' ? s.bitrate : undefined`), og tilføjer altid `valid: true` (`ParsedStation` udvider `StationFormData` med `valid: boolean`). `handleImport()` gør `const valid = parsed.stations.filter((s) => s.valid)` og derefter `importStations(valid)` (`ImportExportModal.tsx:98,101`) — da TypeScripts excess-property-tjek kun gælder for friske objekt-literaler, ikke variabler, passerer `ParsedStation[]` (der stadig bærer `valid: true` og evt. `bitrate: undefined` osv.) som `StationFormData[]` uden stripning. I `stationsService.ts:102` spreder `batch.set(doc(collection(db, COLLECTION)), { ...station, createdAt: serverTimestamp() })` disse ekstra/undefined-værdi-felter direkte ind i skrivningen. Firestores standardadfærd (ingen `ignoreUndefinedProperties` konfigureret) kaster synkront på ethvert felt med en `undefined`-værdi, og dette kast sker inde i for-løkken, før `batch.commit()` nås — så én station uden bitrate/logoUrl/land afbryder hele chunkens import (fanget generisk som "Import fejlede"). Enhver station der lykkes (alle valgfrie felter til stede) skrives med et fremmed `valid: true`-felt, aldrig en del af Station-skemaet (`types/index.ts:5-15` har intet `valid`-felt).
+
+---
+
+## BUG-04 — Genklik på pauseret station reconnecter ikke streamen
+**Fil:** `src/store/useRadioStore.ts:255` · **Prioritet:** Kritisk
+
+**Fund:** `playStation()` reconnecter kun streamen, når `a.src` afviger fra stationens URL, så genklik på den aktuelt valgte men pauserede station genoptager den forældede forbindelse i stedet for at reconnecte live.
+
+**Fejlscenarie (finder):** Brugeren trykker pause i player-baren (`src` forbliver sat til den aktuelle station, kun fadet/pauseret), klikker derefter samme stations kort igen i gridet (`StationCard.tsx` kalder altid `playStation`, aldrig `togglePlay`). Fordi `a.src === station.streamUrl`, springes reconnect-branchen (`set isPlaying:false; a.pause(); a.src = ...`) over, og koden falder direkte til `a.play()` på den gamle forbindelse — præcis det forældede-buffer-positions-problem, som `togglePlay`'s resume-sti eksplicit blev rettet for at undgå (kommentar: "Live streams can't resume from a buffered position — reconnect from 'now'"). Resultat: lyden kan genoptage fra en død/stalled forbindelse, spille stilhed, eller hænge, mens UI viser Live/Forbinder som om der er reconnectet.
+
+**Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:255` `if (a.src !== station.streamUrl) { set({ isPlaying: false }); a.pause(); a.src = station.streamUrl }` nulstiller kun forbindelsen, når URL'en afviger; når pauseret via player-baren (`togglePlay` fader+pauser men lader `a.src` være uændret) og brugeren derefter klikker samme stations kort igen, kalder `StationCard.tsx:90` ubetinget `playStation(station)` (`handleClick` har ingen branch der tjekker `isPlaying`), så reconnect-branchen springes over og koden fortsætter direkte til `a.play()` (linje 261) på den gamle, hængte forbindelse — præcis det forældede-live-stream-problem, som søster-stien `togglePlay`'s resume (linje 302: `if (currentStation) a.src = currentStation.streamUrl` med kommentar "Live streams can't resume from a buffered position — reconnect from now") blev skrevet for at undgå.
+
+---
+
+## BUG-05 — `togglePlay()` kvitterer ikke for fejlet `play()`
+**Fil:** `src/store/useRadioStore.ts:303` · **Prioritet:** Kritisk
+
+**Fund:** Resume-grenen i `togglePlay()` sætter `isPlaying:true` ubetinget uden at tjekke, om `a.play()` reelt lykkedes.
+
+**Fejlscenarie (finder):** Hvis `a.play()` afvises efter en hurtig pause/resume eller src-genforsyning (fx AbortError fra overlappende loads, eller en netværksfejl før afspilning starter), sætter storen stadig `isPlaying:true, isBuffering:true` og starter lyttetimeren. Da afspilning aldrig reelt startede, fyrer audio-elementets `pause`-event (som normalt retter op på `isPlaying`) heller aldrig — UI'et sidder permanent fast og viser "Live" med kørende timer og pause-ikon, mens ingen lyd spiller, indtil brugeren manuelt toggler igen.
+
+**Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:303-304` — i `togglePlay()`'s resume-gren: `a.play().catch(() => {})` svæler enhver afvisning, og linjen lige efter gør ubetinget `set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })` uanset om play()-promise'et blev opfyldt eller afvist. I modsætning til `playStation()` (linje 261-263), som har `.catch((err) => { if (err.name === 'NotAllowedError') set({ isPlaying: false, ... }) })`, gør `togglePlay()`'s catch slet ingenting. Hvis `play()` afvises (fx AbortError fra `a.src = currentStation.streamUrl` på linje 302 blivende overhalet af endnu et hurtigt toggle, eller en netværksfejl før nogen frame afkodes), skifter audio-elementet aldrig fra "paused" til "playing" og tilbage til "paused" — så elementets eget `pause`-event (registreret på linje 72, guarded af `if (!isPlaying) return`) fyrer ikke for at rette op på state, da der ingen playing→paused-overgang er, kun et `play()`-kald der aldrig havde effekt. `onError`-handleren (linje 65) fyrer kun ved faktiske `error`-events på elementet, hvilket ikke er garanteret for enhver `play()`-afvisning (fx giver AbortError fra overlappende load-requests intet `error`-event). Nettoeffekt: `isPlaying` forbliver true, `isBuffering` forbliver true, `listenStartedAt` fortsætter med at fremme timeren, og UI viser "Live"/pause-ikon mens ingen lyd reelt spiller, uden automatisk gendannelsessti før brugeren manuelt toggler igen.
+
+---
+
+## BUG-06 — `devicechange` fejlfortolker enhedstilføjelser som frakobling
+**Fil:** `src/App.tsx:65` · **Prioritet:** Kritisk
+
+**Fund:** `devicechange`-handleren antager, at den første event efter idle altid er en frakobling, men browseren fyrer `devicechange` for enhver ændring i enhedslisten, inklusive tilføjelser.
+
+**Fejlscenarie (finder):** Mens musik spiller, hvis brugeren tilslutter en ny/ekstra lydudgang (fx kabelhovedtelefoner mens en Bluetooth-højtaler stadig er tilsluttet) i stedet for at frakoble én, er `pendingReconnect` false, så handleren tager "disconnect"-grenen og kalder `togglePlay()` for at pause — selvom intet reelt blev fjernet. Afspilning stopper uventet blot ved at tilføje en enhed.
+
+**Verifikations-bevis (uafhængig agent):** `src/App.tsx` linje 65-84: `onDeviceChange` har kun to grene, styret af det interne `pendingReconnect`-flag, uden tjek af `navigator.mediaDevices.enumerateDevices()` eller andet signal om, hvorvidt en enhed blev tilføjet eller fjernet. Når `pendingReconnect` er false (steady-state mens musik spiller), falder enhver `devicechange`-event i else-grenen: `wasPlayingAtDisconnect = isPlaying; if (isPlaying) togglePlay()` (linje 78-80) — ubetinget behandlet som en frakobling og pauser. Media Devices API fyrer `devicechange` for enhver ændring i enhedslisten, inklusive tilføjelser (fx tilslutning af kabelhovedtelefoner mens en Bluetooth-højtaler forbliver tilsluttet), så det scenarie rammer præcis denne pause-gren uden mulighed for at undgå det.
+
+---
+
+## BUG-07 — SSRF-beskyttelsen i ICY-metadata-proxyen kan omgås
+**Fil:** `api/icy-meta.ts:1` · **Prioritet:** Mellem
+
+**Fund:** `isPrivateHost` blokerer kun punktum-decimal IPv4 og `::1`, og mangler alternative IP-encodings samt DNS-rebinding — et SSRF-hul i en proxy, hvis URL er offentligt skrivbar.
+
+**Fejlscenarie (finder):** Firestore-reglerne tillader `allow read, write: if true`, og `AddStationModal`/`importStations` kræver kun, at URL'en starter med `http(s)://` — enhver besøgende kan tilføje en station, hvis streamUrl er `http://2130706433/` (decimal for 127.0.0.1), `http://017700000001/` (oktal), `http://[::ffff:169.254.169.254]/latest/meta-data/` (IPv6-mappet cloud metadata-adresse), eller et domæne der kun resolver til en privat IP ved fetch-tidspunktet (DNS-rebinding). Ingen af disse hostnavne matcher `isPrivateHost`'s punktum-decimal-regex eller den bogstavelige `::1`-tjek, så de passerer validering. `Player.tsx` poller derefter `/api/icy-meta?url=<den streamUrl>` hvert 30. sekund mens stationen spiller, hvilket får Vercel-serverless-funktionen til at udføre outbound requests mod interne/metadata-endpoints på angriberens vegne — SSRF-beskyttelsen tilføjet i commit `38e5e28` kan omgås via alternative adresse-encodings.
+
+**Verifikations-bevis (uafhængig agent):** `isPrivateHost` (`api/icy-meta.ts:1-15`) tjekker kun `h === 'localhost' || h === '::1'` og en punktum-decimal IPv4-regex `^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$`. Et hostnavn som `2130706433` (decimal for 127.0.0.1), `017700000001` (oktal), eller `[::ffff:169.254.169.254]` (IPv6-mappet) matcher ingen af grenene, så `isPrivateHost` returnerer false, og requesten fortsætter til `fetch(url, ...)` på linje 39. Derudover opererer tjekket kun på hostname-strengen, ikke den resolvede IP, så et DNS-navn der resolver til en privat/metadata-IP ved fetch-tidspunktet fanges slet ikke (klassisk DNS-rebinding-hul) — der er intet IP-efter-resolution-tjek nogen steder i filen. Da `Player.tsx` poller dette endpoint hvert 30. sek. for vilkårlige Firestore-lagrede streamUrl-værdier (station-streamUrl kræves kun at starte med `http(s)://` ifølge projektdokumentationen), er dette et reelt SSRF-bypass af den eksisterende beskyttelse.
+
+---
+
+## BUG-08 — Race i `reorderCategory`'s fejl-rollback
+**Fil:** `src/store/useRadioStore.ts:224` · **Prioritet:** Mellem
+
+**Fund:** `reorderCategory`'s fejl-revert lukker over rækkefølgen fanget *før* den optimistiske opdatering, så to overlappende reorders på samme kategori kan have et senere succesfuldt gem overskrevet af et tidligere fejlets revert.
+
+**Fejlscenarie (finder):** Brugeren trækker for at reordere kategori X (kald A, `prevOrder=P1`), trækker derefter hurtigt igen i samme kategori før A's Firestore-write er afsluttet (kald B, `prevOrder=P2`=A's optimistiske rækkefølge). Hvis B lykkes, men A's write senere fejler/timeout'er, reverterer A's catch-handler `stationOrder[X]` tilbage til P1 (A's pre-update-snapshot), hvilket stille kasserer B's allerede gemte, bruger-synlige reorder og viser en forældet rækkefølge plus en misvisende "Kunne ikke gemme rækkefølge"-toast, selvom B lykkedes.
+
+**Verifikations-bevis (uafhængig agent):** `src/store/useRadioStore.ts:224-239`. `reorderCategory` fanger `prevCategoryOrder = stationOrder[category]` fra `get()` ved kaldets tidspunkt, gør derefter en optimistisk `set()` og affyrer `saveStationOrder(...).catch(...)`, der lukker over den forældede `prevCategoryOrder`. Hvis kald A's promise afvises, efter at kald B allerede har kørt (B's optimistiske `set()` overskrev storen, og B's egen save lykkedes), reverterer A's catch-handler på linje 232-236 stadig `revertedOrder[category] = prevCategoryOrder` (A's pre-update-snapshot, dvs. state før både A og B), hvilket overskriver B's succesfuldt gemte rækkefølge med en toast "Kunne ikke gemme rækkefølge", selvom B lykkedes. Der er ingen request-sekvensering/versions-token, der styrer hvilket kalds fejl der må revertere, så et langsommere-fejlende tidligere kald kan overtrampe et hurtigere-succesfuldt senere kalds resultat.
+
+---
+
+## BUG-09 — ICY-support caches forkert ved delvise stream-fejl
+**Fil:** `api/icy-meta.ts:52` · **Prioritet:** Mellem
+
+**Fund:** Flere transient-fejl-grene (ikke-OK svar, tom metaint, for stor metaint, kort buffer) returnerer `{ title: null }` uden `icySupported`-feltet, hvilket `Player.tsx`'s polling-logik behandler identisk med "ICY bekræftet understøttet" i stedet for "ukendt/ikke understøttet".
+
+**Fejlscenarie (finder):** `Player.tsx` stopper kun polling, når `data.icySupported === false`; enhver anden form (inkl. `{title:null}` uden `icySupported`-nøgle) falder i else-grenen, der sætter `icySupportedRef.current = true`. For en station, hvis upstream-stream lejlighedsvis svarer 200, men returnerer en fejlbehæftet/for stor `icy-metaint` eller en afkortet metadata-blok, lærer den 30-sekunders polling-løkke i `Player.tsx` aldrig, at stationen reelt er ikke-ICY, og fortsætter med at kalde `/api/icy-meta` hvert 30. sekund gennem hele afspilningen — modsat en ægte ikke-ICY-stream (intet `icy-metaint`-header), som korrekt stopper efter første request.
+
+**Verifikations-bevis (uafhængig agent):** `api/icy-meta.ts` har fire fejlstier, der returnerer `{title:null}` uden nogen `icySupported`-nøgle overhovedet: linje 52 `if (!response.ok || !response.body) { ... return res.json({ title: null }) }`, linje 64-65 (for stor/ugyldig metaint) `if (!metaint || metaint <= 0 || metaint > 65536) { ... return res.json({ title: null }) }`, linje 91 `if (buffer.length <= metaint) return res.json({ title: null })`, og catch-all'en på linje 115-117 `catch { return res.json({ title: null }) }`. Imens tjekker `Player.tsx` (linje 50-51) kun det eksplicitte-false-signal: `if (data.icySupported === false) { icySupportedRef.current = false; return } icySupportedRef.current = true`. Ethvert svar uden `icySupported`-nøglen (alle fire grene ovenfor) falder igennem til `icySupportedRef.current = true`, så en station, hvis stream returnerer fx en fejlbehæftet/for stor `icy-metaint` (deterministisk reproducerbar hver request, ikke bare transient), er permanent markeret ICY-understøttet og polles hvert 30. sekund for hele afspilningssessionen — modsat en ægte ikke-ICY-stream (manglende `icy-metaint`-header, linje 56-58), som korrekt sætter `icySupported:false` og stopper polling efter én request.
+
+---
+
+## BUG-10 — Lyttetimer kan undertælle ved hurtigt app-skift (iOS)
+**Fil:** `src/store/useRadioStore.ts:100` · **Prioritet:** Mellem
+
+**Fund:** `visibilitychange`-handleren kan fyre, før den 300ms `setTimeout` fra den eksterne pause-håndtering resolver, hvilket nulstiller `listenStartedAt` uden at folde forløbet tid ind i `listenAccumulatedMs`.
+
+**Fejlscenarie (finder):** På iOS fyrer `pause`-eventet først ved baggrundslægning og planlægger en 300ms `setTimeout` (linje ~79), før `visibilityState` overhovedet rapporterer "hidden". Hvis brugeren vender tilbage til forgrunden inden for det 300ms-vindue (fx et meget hurtigt app-skift), kører `visibilitychange`-lytteren først: den ser `isPlaying:true && a.paused`, og — ifølge kommentaren "listenAccumulatedMs er allerede korrekt — background pause handler snapshotted it" — sætter kun `listenStartedAt: null` uden at lægge `Date.now() - listenStartedAt` til `listenAccumulatedMs`. Den snapshot-antagelse er falsk i denne rækkefølge: pause-lytterens `setTimeout` er endnu ikke kørt, så den forløbne spilletid mellem sidste `listenStartedAt` og dette øjeblik tabes permanent, og lyttetimeren undertæller forløbet lyttetid fra det tidspunkt i sessionen.
+
+**Verifikations-bevis (uafhængig agent):** `visibilitychange`-handleren destrukturerer state UDEN `listenStartedAt`: `const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()` (linje 100), og gør derefter på `isPlaying && a.paused`-grenen kun `useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null })` (linje 103) — den lægger aldrig `Date.now() - listenStartedAt` til `listenAccumulatedMs`, og stoler udelukkende på kommentarens antagelse om, at "baggrundens pause-handler snapshottede det" (linje 102). Men det snapshot sker kun inde i pause-lytterens `setTimeout(() => {...}, 300)` (linje 79-90), som skriver `listenAccumulatedMs: snapshotMs` kun når den fyrer. Ifølge projektets egen dokumenterede rækkefølge ("pause-event fires on iOS FØR visibilityState skifter til hidden") er sekvensen: pause fyrer og armerer 300ms-timeout'en (linje 79) → `visibilitychange` til "hidden" fyrer, men returnerer tidligt (linje 98, state !== "visible") → hvis brugeren vender tilbage til forgrunden inden for de 300ms, fyrer `visibilitychange` igen med "visible", rammer `isPlaying&&a.paused`-grenen (isPlaying er stadig true, og a.paused er allerede true fra den reelle eksterne pause) FØR `setTimeout`'en er eksekveret. På det tidspunkt er storens `listenAccumulatedMs` stadig den før-pause-værdi, så den forløbne tid mellem det oprindelige `listenStartedAt` og nu tabes stille, når `listenStartedAt` nulstilles på linje 103. Dette matcher præcis den påståede race og undertæller permanent lyttetid for den session.
+
+---
+
+## BUG-11 — Dødt `postMessage`-lytter for lukning af brugervejledning
+**Fil:** `src/App.tsx:23` · **Prioritet:** Lav (cleanup) · *droppet fra top-10 i den oprindelige rapport pga. lavest prioritet, men verificeret*
+
+**Fund:** Dødt `postMessage`-lytter for "close-guide" forbliver, selvom guide-HTML'en ikke længere sender nogen `postMessage`.
+
+**Fejlscenarie (finder):** CLAUDE.md dokumenterer: "App.tsx modal-header har 'Luk ✕'-knap som lukker modalen; guide-HTML sender ingen postMessage mere (den sticky nav er fjernet)." Bekræftet ved grep: `public/guide/index.html` indeholder nul `postMessage`-kald. `useEffect`'en på linje 22-29 i `App.tsx` registrerer stadig en `window.addEventListener('message', onMessage)`, der tjekker for `e.data === 'close-guide'` — denne gren kan aldrig eksekvere, da intet længere poster den besked, hvilket gør effekten til dead code, som en fremtidig vedligeholder fejlagtigt kan tro er guide-luk-mekanismen (det er den ikke — det er "Luk"-knappens onClick), når modalen fejlsøges.
+
+**Verifikations-bevis (uafhængig agent):** `src/App.tsx:23-26`: `const onMessage = (e: MessageEvent) => { if (e.origin !== window.location.origin) return; if (e.data === 'close-guide') setShowGuide(false) }` registreret via `window.addEventListener('message', onMessage)`. Grep af `public/guide/index.html` for "postMessage" returnerer ingen matches, hvilket bekræfter, at intet nogensinde sender "close-guide". Dette matcher CLAUDE.md's eksplicitte note om, at guide-HTML'en ikke sender postMessage mere, siden den sticky nav blev fjernet, og modalen reelt lukkes via "Luk ✕"-knappens onClick. Lytteren er uopnåelig dead code.
+
+---
+
+## BUG-12 — `check-streams.mjs` tjekker alle 80 stationer sekventielt
+**Fil:** `check-streams.mjs:122` · **Prioritet:** Lav (effektivitet) · *droppet fra top-10 i den oprindelige rapport pga. lavest prioritet, men verificeret*
+
+**Fund:** Stream-tilgængeligheds-tjek kører én station ad gangen med 8s HTTP-timeout (+evt. 403-retry +TCP-fallback) i stedet for parallelt.
+
+**Fejlscenarie (finder):** `for (const station of stations) { const result = await checkStream(station.streamUrl) ... }`-løkken (linje 122) afventer hver af de ca. 80 stationers tjek sekventielt; en langsom/utilgængelig stream kan koste op til 8s (HTTP) + 8s (403-retry) + 5s (TCP-fallback) = ca. 21s, før den går videre til næste station. Med bare en håndfuld døde streams kan en rutinemæssig kørsel af dette dokumenterede vedligeholdelsesscript (listet i CLAUDE.md's Hjælpescripts) tage mange minutter i stedet for de få sekunder en concurrency-begrænset `Promise.all`/`allSettled`-batch ville tage, da tjekkene er uafhængig I/O uden delt state.
+
+**Verifikations-bevis (uafhængig agent):** `check-streams.mjs:122-123` `for (const station of stations) { const result = await checkStream(station.streamUrl) ... }` behandler stationer strengt én ad gangen. `checkStream` (linje 84-106) afventer selv sekventielt `checkStreamHttp` (8000ms timeout, linje 24/85), derefter ved 403 endnu et `checkStreamHttp` uden ICY-header (8000ms timeout, linje 90), derefter ved netværksfejl et `checkStreamTcp`-fallback (5000ms timeout, linje 99). Ingen `Promise.all`/`allSettled` eller concurrency-begrænser bruges nogen steder i filen, så en håndfuld langsomme/døde streams blandt de ca. 80 stationer hentet fra Firestore (linje 109-112) kan lægge minutter til wall-clock-tiden, som parallel batching ville undgå, da hver stations tjek er uafhængig I/O uden delt state.
+
+---
+
+## BUG-13 — Duplikeret Firebase-init-boilerplate i 17 hjælpescripts
+**Fil:** rodmappe — `add-dance-stations-jun2026.mjs`, `add-danish-stations-jun2026.mjs`, `add-italo-mix.mjs`, `add-italo-stations.mjs`, `add-new-stations-jun2026.mjs`, `add-new-stations.mjs`, `add-rock-stations-jun2026.mjs`, `check-duplicates.mjs`, `check-streams.mjs`, `fix-big70s-stream.mjs`, `fix-veronica-stream.mjs`, `list-stations.mjs`, `migrate-stations.mjs`, `set-bitrates.mjs`, `set-countries.mjs`, `set-logo.mjs`, `test-all-streams.mjs` · **Prioritet:** Lav (cleanup) · *droppet fra top-10 i den oprindelige rapport pga. lavest prioritet, men verificeret*
+
+**Fund:** 17 rod-`.mjs`-scripts genimplementerer hver især identisk Firebase-init- og `.env`-parsing-boilerplate i stedet for at dele ét hjælpemodul.
+
+**Fejlscenarie (finder):** Alle 17 filer duplikerer de samme ca. 10-15 linjer, der læser og parser `.env` og kalder `initializeApp({...seks VITE_FIREBASE_*-nøgler...})` (nogle via `readFileSync`-linjesplitning, én via `process.env` direkte — `set-countries.mjs` gør faktisk begge dele, én gang for et config-objekt der straks kasseres). Hvis `.env`-formatet nogensinde ændres (fx quoted values, kommentarer, multiline secrets), eller en Firebase-config-nøgle omdøbes, skal hver af disse 17 filer have samme rettelse anvendt individuelt; et overset script bliver stille ved med at bruge forældet/ødelagt config, næste gang nogen kører det mod produktions-Firestore.
+
+**Verifikations-bevis (uafhængig agent):** Hver af de 17 filer duplikerer uafhængigt `.env`-parsing + `initializeApp`-boilerplate, fx `add-dance-stations-jun2026.mjs:7-19`: `const env = Object.fromEntries(readFileSync('.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>l.split('=').map(s=>s.trim()))); const app = initializeApp({apiKey: env.VITE_FIREBASE_API_KEY, ...})` — det identiske mønster gentages ordret i de øvrige 15 add-/fix-/set-/list-/check-/migrate-/test-scripts. `set-countries.mjs:3-10` læser i stedet direkte `apiKey: process.env.VITE_FIREBASE_API_KEY` uden nogen `.env`-parsing overhovedet — hvilket bekræfter divergens-risikoen nævnt i fundet (ét script afviger allerede fra resten og ville ikke modtage samme rettelse, hvis `.env`-formatet ændredes). Ingen af disse 17 filer importerer et delt config-hjælpemodul eller `src/firebase/config.ts`.
