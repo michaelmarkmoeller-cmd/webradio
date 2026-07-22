@@ -22,8 +22,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 | BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Lukket — hakke-symptom rettet, kerneproblem accepteret som platformsbegrænsning | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
+| BUG-17 | `src/components/StationCard.tsx:83` | 🟡 Rettet, afventer bekræftelse på iPhone | Mellem |
 
-> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15).**
+> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15). BUG-17 fundet 22-07-2026, uden for juli-runden.**
 
 ---
 
@@ -384,3 +385,20 @@ Intet yderligere arbejde planlagt på BUG-15's kerneproblem, medmindre nye obser
 **Rettet 14-07-2026:** Effekten kalder nu ubetinget `setMeta({ title: null, genre: null })` med det samme ved hvert stations-/afspilningsskift, før den evt. korte-slutter på `!currentStation || !isPlaying`. Dette garanterer et rent udgangspunkt for enhver ny station, uanset om dens første metadata-forespørgsel lykkes, fejler, eller bekræfter manglende ICY-understøttelse — `fetchMeta()` opdaterer derefter kun `meta`, hvis der reelt er noget at vise. `npx tsc --noEmit` ren.
 
 **Bekræftet 14-07-2026 (Michael, rigtig iPhone):** Skift fra en DR-station til en radio SAW-station — den gamle sangtitel forsvinder nu korrekt med det samme. **BUG-16 er lukket.**
+
+---
+
+## BUG-17 — Scroll i kategori-liste udløste rediger-rækkefølge-popup
+**Fil:** `src/components/StationCard.tsx:83` · **Prioritet:** Mellem · *fundet af Michael på iPhone, 22-07-2026, 100% reproducerbar*
+
+**Fund:** `handlePointerMove` tolkede enhver pointer-bevægelse over `REORDER_MOVE_THRESHOLD_PX` (8px) — under et hold i kategori-visning (`sortable=true`) — som en reorder-drag-hensigt, uden nogen tidsforsinkelse og uden hensyn til retning. Et almindeligt scroll-swipe (finger ned på et stationskort, træk op/ned for at scrolle listen) rammer 8px inden for millisekunder, så `ReorderListModal` åbnede med det samme, i stedet for at listen bare scrollede.
+
+**Fejlscenarie (Michael, verificeret på iPhone):** I en hvilken som helst kategori med nok stationer til at kræve scroll: sæt fingeren på et kort og bevæg den op eller ned for at scrolle — "Rediger rækkefølge"-listen popper op i stedet for at scrolle normalt. 100% reproducerbart, uafhængigt af hvilken kategori.
+
+**Rettet 22-07-2026:** Tilføjet en 300ms "arm-forsinkelse" (`REORDER_ARM_DELAY_MS`), inspireret af iOS' eget hjemmeskærm-ikon-drag-mønster (hold stille, *så* træk). `handlePointerDown` starter en timer, der sætter `reorderArmed.current = true` efter 300ms. `handlePointerMove` tjekker nu dette flag, før den reagerer på bevægelse over tærsklen:
+- **Ikke armeret endnu** (bevægelse inden for de første 300ms) → tolkes som scroll: holdet annulleres helt (`endPress()`), ingen popup, ingen slet-timer — browseren scroller uforstyrret.
+- **Armeret** (300ms er gået, pointeren har ligget stille) → uændret opførsel: rediger-rækkefølge-listen åbnes som hidtil.
+
+`armTimerRef` ryddes i `cancelPress()` (kaldt af både `endPress()` og den eksisterende slet-annullering), så der ikke opstår hængende timere ved hurtige tap eller pointer-cancel. `npx tsc --noEmit` ren. Deployet i commit `7b34b3a`.
+
+**Status:** Rettet, afventer Michaels bekræftelse på rigtig iPhone via Vercel — kan ikke automatiseres i Playwright (samme headless drag-simulerings-begrænsning som TC-09-05/06).
