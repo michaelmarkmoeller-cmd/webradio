@@ -140,6 +140,7 @@ Vises i Player row 1 ved siden af "Live"-status (rød farve, tabular-nums):
 **Omlagt 14-07-2026 (BUG-01)** — whole-card dnd-kit-drag direkte i gridet virkede aldrig reelt (en dupliceret `onPointerDown` overskrev dnd-kit's egen listener, se `BUGS.md`). Erstattet af en dedikeret "rediger rækkefølge"-liste:
 - **Kun aktiv** i kategori-specifik visning (ikke "Alle" eller "Favoritter")
 - **Grid-visning**: intet dnd-kit på selve stationskortet længere. Klik = afspil. Holder man kortet **stille** i `LONG_PRESS_MS` (2000ms) = slet-dialog. Holder man og **bevæger** musen/fingeren mere end `REORDER_MOVE_THRESHOLD_PX` (8px) — mens pointeren stadig er nede — annulleres slet-timeren, og `ReorderListModal` åbnes i stedet (`StationCard.tsx`: `handlePointerMove` + `onRequestReorder`)
+- **Scroll vs. reorder (BUG-17, rettet 22-07-2026)**: bevægelse tolkes kun som reorder-drag-hensigt, hvis pointeren først har ligget stille i `REORDER_ARM_DELAY_MS` (300ms) — ellers kolliderede gestussen med et almindeligt scroll-swipe i en lang kategori-liste (finger ned på et kort, træk op/ned) og åbnede fejlagtigt reorder-listen med det samme. Bevæger pointeren sig før de 300ms er gået, annulleres holdet helt (`endPress()`), og browseren scroller uforstyrret; er de 300ms gået, åbnes reorder-listen som hidtil ved bevægelse over tærsklen
 - **`ReorderListModal.tsx`**: fuldskærms liste-modal for den valgte kategori. Kun et lille håndtag-ikon (⋮⋮) pr. række bærer dnd-kit's `{...listeners}` — `PointerSensor` med `activationConstraint: { distance: 4 }`, `verticalListSortingStrategy`. Ingen tvetydighed med klik/slet, da denne visning ikke har nogen af de gestures at forveksle med
 - `reorderCategory(category, orderedIds)` i store: optimistisk update + async Firestore write, guardet af et sekvensnummer pr. kategori (`reorderSeq`, tilføjet 14-07-2026, BUG-08) — forhindrer at et langsomt fejlende ældre kald kan overskrive et nyere, allerede gemt resultat
 - Rækkefølge gemmes i `stationOrders/{deviceId}` — påvirker ikke andre enheder
@@ -254,7 +255,9 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 **Ingen kendte fejl pr. juni 2026.**
 
-**Juli 2026-runden (14-07-2026):** Høj-effort kodegennemgang fandt 13 fejl + 3 yderligere fund under efterfølgende test (BUG-14, 15, 16) = 16 i alt. **Runden er afsluttet:** 14/16 rettet og bekræftet, 2 lukket som accepterede platformsbegrænsninger (BUG-14: iOS-keepalive/låseskærm-persistens; BUG-15: PLAY på låst skærm efter pause kan fejle stille, samme grundårsag). Fuld detaljeret historik, fejlscenarier og verifikationsbeviser i `BUGS.md` — ingen åbne fejl pt.
+**Juli 2026-runden (14-07-2026):** Høj-effort kodegennemgang fandt 13 fejl + 3 yderligere fund under efterfølgende test (BUG-14, 15, 16) = 16 i alt. **Runden er afsluttet:** 14/16 rettet og bekræftet, 2 lukket som accepterede platformsbegrænsninger (BUG-14: iOS-keepalive/låseskærm-persistens; BUG-15: PLAY på låst skærm efter pause kan fejle stille, samme grundårsag). Fuld detaljeret historik, fejlscenarier og verifikationsbeviser i `BUGS.md`.
+
+**BUG-17 (22-07-2026, fundet af Michael på iPhone, uden for juli-runden):** Scroll i en lang kategori-liste udløste "rediger rækkefølge"-popup'en med det samme (se "Scroll vs. reorder" ovenfor). Rettet, bekræftet på iPhone, ny regressionstest tilføjet (TC-09-09). Ingen åbne fejl pt.
 
 ## Test-infrastruktur
 - `playwright.config.ts` — Playwright-konfiguration (Chromium, headless, target: live-app)
@@ -262,13 +265,13 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
 - `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
 - `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
-- `tests/tc-09.spec.ts` — TC-09: drag & drop (4 pass, 2 skip — headless limitation)
+- `tests/tc-09.spec.ts` — TC-09: rediger rækkefølge, inkl. scroll-vs-reorder-arm-forsinkelse (9 tests, alle automatiserbare siden BUG-01-omlægningen)
 - `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **86 test cases** fordelt på 17 grupper (4 ikke-automatiserbare fjernet)
-- `TEST-REPORT.md` — testrapport: **84/86 godkendt**, 2 ikke testet (TC-09-05/06 kræver visuel drag)
+- `TEST-CASES.md` — fuld testspecifikation: **89 test cases** fordelt på 17 grupper
+- `TEST-REPORT.md` — testrapport: **89/89 godkendt**
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)

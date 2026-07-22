@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-07-14 (TC-09 omlagt efter BUG-01, TC-13-02 omlagt efter BUG-11, TC-11-03 skærpet efter BUG-02)  
+**Sidst opdateret:** 2026-07-22 (TC-09-09 tilføjet efter BUG-17)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 88
+**Antal test cases:** 89
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 88 | 0 | 0 | 88 |
+| 89 | 0 | 0 | 89 |
 
 ---
 
@@ -147,6 +147,8 @@
 
 **Omlagt 14-07-2026 (BUG-01, se BUGS.md):** Whole-card dnd-kit-drag direkte i gridet er erstattet af en dedikeret "rediger rækkefølge"-liste (`ReorderListModal.tsx`). Alle 8 test cases nedenfor er nu automatiserbare headless (`tests/tc-09.spec.ts`) — modalens håndtag-drag bruger bevægelses-baseret aktivering (`distance: 4`), ikke den gamle forsinkelses-baserede (`delay: 250ms`) mekanisme, som var årsagen til at TC-09-05/06 tidligere ikke kunne testes headless.
 
+**Rettet 22-07-2026 (BUG-17, se BUGS.md):** Hold+bevæg kolliderede med almindeligt scroll i en lang liste — bevægelse tolkes nu kun som reorder-drag efter 300ms stille hold (`REORDER_ARM_DELAY_MS`); bevægelse før da annullerer holdet (scroll). Ny test TC-09-09 tilføjet. `holdAndMove()`-hjælperen i `tc-09.spec.ts` venter nu 350ms efter `mouse.down()` før den flytter musen, så TC-09-05/07/08 fortsat rammer den tilsigtede reorder-gestus.
+
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
 | TC-09-01 | Kategori-visning har cursor-grab | 🟢 Godkendt | `cursor-grab` sat i kategori-visning (hold+bevæg-hint) | 14-07-2026 |
@@ -157,8 +159,9 @@
 | TC-09-06 | Klik afspiller stadig station | 🟢 Godkendt | Ingen gestus-konflikt — almindeligt klik afspiller uændret | 14-07-2026 |
 | TC-09-07 | Træk i håndtag ændrer rækkefølgen | 🟢 Godkendt | Håndtag-drag (`distance:4`) omarrangerer rækkerne i modalen | 14-07-2026 |
 | TC-09-08 | Ny rækkefølge persisteret efter reload | 🟢 Godkendt | Rækkefølge bevares i `stationOrders/{deviceId}` efter reload | 14-07-2026 |
+| TC-09-09 | Bevægelse før arm-forsinkelsen tolkes som scroll, ikke reorder (BUG-17) | 🟢 Godkendt | Bevægelse med det samme (< 300ms) annullerer holdet — ingen modal, intet slet-dialog | 22-07-2026 |
 
-**Resultat: 8/8 godkendt** (0 ikke-testbare — den nye bevægelses-baserede drag lukker det tidligere headless-hul)
+**Resultat: 9/9 godkendt** (0 ikke-testbare — den nye bevægelses-baserede drag lukker det tidligere headless-hul)
 
 ---
 
@@ -390,7 +393,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 88/88 godkendt** (0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01)
+> **Resultat: 89/89 godkendt** (0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 

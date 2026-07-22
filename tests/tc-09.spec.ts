@@ -7,6 +7,12 @@ import { test, expect } from '@playwright/test'
 // dnd-kit's PointerSensor (activationConstraint: { distance: 4 }) — bevægelses-baseret,
 // ikke forsinkelses-baseret som den gamle 250ms-mekanisme, hvilket gør det pålideligt at
 // simulere headless (ingen timing-race at ramme).
+//
+// Rettet 22-07-2026 (BUG-17, se BUGS.md): bevægelse på selve kortet åbner nu kun
+// reorder-listen, hvis pointeren først har ligget stille i REORDER_ARM_DELAY_MS (300ms) —
+// bevægelse før da tolkes som scroll og annullerer holdet helt. holdAndMove() venter derfor
+// 350ms efter mouse.down() før den flytter musen, så testene fortsat rammer den tilsigtede
+// "hold + træk"-gestus og ikke den nye scroll-annullering.
 
 const URL = 'https://webradio-chi.vercel.app'
 
@@ -32,6 +38,7 @@ async function holdAndMove(page: import('@playwright/test').Page, cardIndex = 0)
   const cy = box.y + box.height / 2
   await page.mouse.move(cx, cy)
   await page.mouse.down()
+  await page.waitForTimeout(350) // clear REORDER_ARM_DELAY_MS (300ms, BUG-17) before moving
   await page.mouse.move(cx, cy + 20, { steps: 5 })
   await page.waitForTimeout(150)
   // Mouse events (unlike touch) have no implicit pointer capture — if the modal opened
@@ -43,6 +50,23 @@ async function holdAndMove(page: import('@playwright/test').Page, cardIndex = 0)
     const hintBox = await hint.boundingBox()
     if (hintBox) await page.mouse.move(hintBox.x + hintBox.width / 2, hintBox.y + hintBox.height / 2, { steps: 3 })
   }
+  await page.mouse.up()
+}
+
+// Simulates a scroll gesture: presses down on a card and moves past the 8px threshold
+// immediately (before REORDER_ARM_DELAY_MS elapses) — BUG-17 should cancel the press
+// outright instead of opening the reorder list.
+async function holdAndMoveImmediately(page: import('@playwright/test').Page, cardIndex = 0) {
+  const card = page.locator('.rounded-xl.border.px-4').nth(cardIndex)
+  await card.scrollIntoViewIfNeeded()
+  const box = await card.boundingBox()
+  if (!box) return
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx, cy + 40, { steps: 5 })
+  await page.waitForTimeout(150)
   await page.mouse.up()
 }
 
@@ -213,6 +237,16 @@ test.describe('TC-09: Rediger rækkefølge', () => {
 
     const nameAfterReload = (await page.locator('.rounded-xl.border.px-4').first().locator('h3').textContent())?.trim()
     expect(nameAfterReload).toBe(nameAfterDrag)
+  })
+
+  test('TC-09-09: Bevægelse før arm-forsinkelsen tolkes som scroll, ikke reorder (BUG-17)', async ({ page }) => {
+    await loadApp(page)
+    await goToCategory(page)
+    if (await page.locator('.rounded-xl.border.px-4').count() < 2) test.skip()
+
+    await holdAndMoveImmediately(page, 0)
+    await expect(page.locator('[data-testid="reorder-row"]')).toHaveCount(0)
+    await expect(page.getByText('Slet station')).toHaveCount(0)
   })
 
 })

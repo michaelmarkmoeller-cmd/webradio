@@ -22,9 +22,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
 | BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Lukket — hakke-symptom rettet, kerneproblem accepteret som platformsbegrænsning | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
-| BUG-17 | `src/components/StationCard.tsx:83` | 🟡 Rettet, afventer bekræftelse på iPhone | Mellem |
+| BUG-17 | `src/components/StationCard.tsx:83` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
-> **Status: 14/16 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15). BUG-17 fundet 22-07-2026, uden for juli-runden.**
+> **Status: 15/17 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16, 17), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15). BUG-17 fundet 22-07-2026, uden for juli-runden.**
 
 ---
 
@@ -402,3 +402,5 @@ Intet yderligere arbejde planlagt på BUG-15's kerneproblem, medmindre nye obser
 `armTimerRef` ryddes i `cancelPress()` (kaldt af både `endPress()` og den eksisterende slet-annullering), så der ikke opstår hængende timere ved hurtige tap eller pointer-cancel. `npx tsc --noEmit` ren. Deployet i commit `7b34b3a`.
 
 **Status:** Rettet, afventer Michaels bekræftelse på rigtig iPhone via Vercel — kan ikke automatiseres i Playwright (samme headless drag-simulerings-begrænsning som TC-09-05/06).
+
+**Bekræftet 22-07-2026 (Michael, rigtig iPhone, deployet commit `7b34b3a`):** Scroll i en lang kategori-liste virker nu som forventet — ingen uventet popup. Ny automatiseret regressionstest tilføjet (`tests/tc-09.spec.ts`, TC-09-09) verificerer, at bevægelse inden arm-forsinkelsen annullerer holdet uden at åbne reorder-listen eller slet-dialogen; de eksisterende TC-09-05/07/08 (som åbner reorder-listen bevidst) opdateret til at vente 350ms efter `mouse.down()` før bevægelse, så de fortsat rammer den tilsigtede gestus efter fixet. Alle 9 TC-09-tests kørt grønt mod produktion. **BUG-17 er lukket.**

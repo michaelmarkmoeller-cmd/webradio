@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-07-14 (TC-09 omlagt efter BUG-01, TC-13-02 efter BUG-11)  
-**Antal test cases:** 88 fordelt på 17 grupper
+**Senest opdateret:** 2026-07-22 (TC-09-09 tilføjet efter BUG-17)  
+**Antal test cases:** 89 fordelt på 17 grupper
 
 ---
 
@@ -554,6 +554,8 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 **Omlagt 14-07-2026 (BUG-01, se BUGS.md):** Whole-card dnd-kit-drag direkte i gridet blev erstattet af en dedikeret "rediger rækkefølge"-liste (`ReorderListModal.tsx`). Grid-kortet har ikke længere dnd-kit — kun klik (afspil), stille 2-sek. hold (slet), og hold+bevæg >8px (åbner reorder-listen). Selve trækket sker i listen via et håndtag-ikon med bevægelses-baseret aktivering (`distance: 4`), ikke den gamle forsinkelses-baserede (`delay: 250ms`) mekanisme.
 
+**Rettet 22-07-2026 (BUG-17, se BUGS.md):** Hold+bevæg-gesten kolliderede med almindeligt scroll i en lang stationsliste (bevægelse blev tolket som reorder-hensigt med det samme, uanset retning). Der kræves nu 300ms stille hold (`REORDER_ARM_DELAY_MS`), før bevægelse tolkes som reorder-drag — bevæger pointeren sig før da, annulleres holdet helt, og browseren scroller normalt.
+
 ### TC-09-01: Kategori-visning har cursor-grab
 **Forudsætning:** En specifik kategori er valgt (ikke "Alle" eller "Favoritter")  
 **Trin:**
@@ -595,7 +597,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 ### TC-09-05: Hold + bevæg åbner reorder-listen, ikke slet-dialogen
 **Forudsætning:** En specifik kategori er valgt  
 **Trin:**
-1. Hold finger/mus nede på et stationskort
+1. Hold finger/mus nede på et stationskort, uden at bevæge, i mindst 300ms (`REORDER_ARM_DELAY_MS`)
 2. Bevæg >8px mens pointeren er nede (før 2-sek.-grænsen nås)
 
 **Forventet resultat:** "Rediger rækkefølge"-modalen åbner for den aktuelle kategori. Slet-dialogen vises ikke.
@@ -617,6 +619,16 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 1. Træk håndtag-ikonet (⋮⋮) for én række til en anden position i listen
 
 **Forventet resultat:** Rækkernes rækkefølge i modalen opdateres til at matche den nye placering.
+
+---
+
+### TC-09-09: Bevægelse før arm-forsinkelsen tolkes som scroll, ikke reorder (BUG-17)
+**Forudsætning:** En specifik kategori er valgt, mindst 2 stationer  
+**Trin:**
+1. Hold finger/mus nede på et stationskort
+2. Bevæg >8px **med det samme** (før de 300ms er gået)
+
+**Forventet resultat:** Holdet annulleres helt — hverken reorder-listen eller slet-dialogen åbner. Svarer til et almindeligt scroll-swipe i en lang liste.
 
 ---
 
