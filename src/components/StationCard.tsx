@@ -30,12 +30,18 @@ const LONG_PRESS_MS = 2000
 // A stationary hold triggers delete (above); moving the pointer past this many
 // pixels during a hold instead opens the reorder list — see BUGS.md BUG-01.
 const REORDER_MOVE_THRESHOLD_PX = 8
+// Movement is only interpreted as a reorder-drag once the pointer has stayed
+// down this long without moving — before that, movement is treated as the
+// user scrolling the list and the press is cancelled outright (BUG-17).
+const REORDER_ARM_DELAY_MS = 300
 
 export function StationCard({ station, sortable = false, onRequestReorder }: Props) {
   const { currentStation, isPlaying, playStation, favorites, toggleFavorite } = useRadioStore()
   const [showDelete, setShowDelete] = useState(false)
   const [isPressing, setIsPressing] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reorderArmed = useRef(false)
   const didLongPress = useRef(false)
   const wasDragged = useRef(false)
   const pressStart = useRef<{ x: number; y: number } | null>(null)
@@ -72,11 +78,21 @@ export function StationCard({ station, sortable = false, onRequestReorder }: Pro
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
+    if (armTimerRef.current) {
+      clearTimeout(armTimerRef.current)
+      armTimerRef.current = null
+    }
+    reorderArmed.current = false
     setIsPressing(false)
   }
 
   function handlePointerDown(e: React.PointerEvent) {
-    if (sortable) pressStart.current = { x: e.clientX, y: e.clientY }
+    if (sortable) {
+      pressStart.current = { x: e.clientX, y: e.clientY }
+      armTimerRef.current = setTimeout(() => {
+        reorderArmed.current = true
+      }, REORDER_ARM_DELAY_MS)
+    }
     startPress()
   }
 
@@ -85,6 +101,12 @@ export function StationCard({ station, sortable = false, onRequestReorder }: Pro
     const dx = e.clientX - pressStart.current.x
     const dy = e.clientY - pressStart.current.y
     if (Math.hypot(dx, dy) > REORDER_MOVE_THRESHOLD_PX) {
+      if (!reorderArmed.current) {
+        // Moved before the arm delay elapsed — this is a scroll, not a
+        // reorder-drag. Cancel the press entirely and let the browser scroll.
+        endPress()
+        return
+      }
       pressStart.current = null
       wasDragged.current = true
       cancelPress()
