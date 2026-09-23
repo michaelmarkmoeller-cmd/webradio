@@ -165,17 +165,22 @@ function syncMediaSession(station: Station, playing: boolean) {
     })
     mediaSessionReady = true
   }
-  const artwork: MediaImage[] = [
-    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-  ]
-  if (station.logoUrl) {
-    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: imageMimeType(station.logoUrl) })
-  }
   // Aktuelt nummer (sat af Player via setMediaSessionTrack) — kun hvis det hører til denne station
   const track = mediaSessionTrack?.stationId === station.id ? mediaSessionTrack : null
+  const artwork: MediaImage[] = []
   if (track?.cover) {
-    artwork.unshift({ src: track.cover.src, sizes: track.cover.sizes, type: imageMimeType(track.cover.src) })
+    artwork.push({ src: artworkSrc(track.cover.src), sizes: track.cover.sizes, type: imageMimeType(track.cover.src) })
+  }
+  if (station.logoUrl) {
+    artwork.push({ src: artworkSrc(station.logoUrl), sizes: '256x256', type: imageMimeType(station.logoUrl) })
+  }
+  // App-ikonerne kun som sidste udvej — ellers kan OS'et vælge det større 512×512-ikon
+  // frem for et mindre cover/logo
+  if (artwork.length === 0) {
+    artwork.push(
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    )
   }
   navigator.mediaSession.metadata = new MediaMetadata({
     title: track?.title ?? station.name,
@@ -183,6 +188,14 @@ function syncMediaSession(station: Station, playing: boolean) {
     artwork,
   })
   navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
+}
+
+// iOS viser kun artwork fra appens eget domæne på låseskærmen (covers/logoer fra fremmede
+// domæner blev erstattet af app-ikonet) — så eksterne billeder hentes via /api/artwork
+function artworkSrc(url: string): string {
+  return url.startsWith('https://') && !url.startsWith(location.origin)
+    ? `/api/artwork?url=${encodeURIComponent(url)}`
+    : url
 }
 
 function imageMimeType(url: string): string {

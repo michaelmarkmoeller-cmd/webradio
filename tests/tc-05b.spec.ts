@@ -152,9 +152,15 @@ test.describe('TC-05: Nu spiller fra netværks-API', () => {
     })
     expect(md?.title).toBe('TC05 Artist - TC05 Song')
     expect(md?.artist).toBe('80s80s Radio')
-    expect(md?.artwork[0]).toEqual({ src: TEST_COVER, sizes: '600x600', type: 'image/jpeg' })
-    // Stationslogo + app-ikoner bevares som fallback efter coveret
-    expect(md?.artwork.length).toBeGreaterThanOrEqual(3)
+    // Eksterne billeder leveres fra appens eget domæne via /api/artwork (iOS-krav)
+    const origin = new globalThis.URL(page.url()).origin
+    expect(md?.artwork[0]).toEqual({
+      src: `${origin}/api/artwork?url=${encodeURIComponent(TEST_COVER)}`, sizes: '600x600', type: 'image/jpeg',
+    })
+    // Stationslogo som fallback efter coveret — ingen app-ikoner, der kan "vinde" på størrelse
+    expect(md?.artwork.length).toBe(2)
+    expect(md?.artwork[1].src).toContain('/api/artwork?url=')
+    expect(md?.artwork.some(a => a.src.includes('/icons/icon-'))).toBe(false)
   })
 
 })
