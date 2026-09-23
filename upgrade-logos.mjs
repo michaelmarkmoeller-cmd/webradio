@@ -58,7 +58,7 @@ const MANUAL = {
   // Findes kun i 80×80 (TuneIn-"600 px" er samme billede forstørret) — genskabt som vektor: public/logos/forever-80.svg
   'Forever 80': { url: `${SITE}/logos/forever-80.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
   // Tegnet geometrisk ud fra kantmålinger af TuneIn-logoet (300 px): public/logos/radio-anr.svg
-  'Radio ANR': { url: `${SITE}/logos/radio-anr.png`, force: true, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
+  'Radio ANR': { url: `${SITE}/logos/radio-anr.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
 }
 
 async function loadAny(src) {
