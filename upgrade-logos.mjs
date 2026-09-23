@@ -51,8 +51,8 @@ const MANUAL = {
   'Big 70s Radio': { url: 'https://assets.laut.fm/0883f770dab240771e733732875df77d', note: 'laut.fm API-logo for radio70' },
   'Rock Antenne': { url: 'https://www.rockantenne.de/logos/station-rock-antenne/android-chrome-512x512.png', note: 'rockantenne.de eget 512 px-ikon' },
   // Tredje runde 23-09-2026 — officielle sider, filtreret på REEL opløsning (ikke kun filstørrelse)
-  'Italo Disco New Gen': { force: true, src: 'https://radiomaxitalo.com/wp-content/uploads/2025/12/RMI-New-Logo-New.png', bg: { r: 34, g: 34, b: 34 }, fill: 0.94, note: 'RMI officielt logo (radiomaxitalo.com) — erstatter forstørret TuneIn-billede' },
-  'Radio Alfa': { force: true, src: 'https://www.radioalfa.dk/wp-content/uploads/2024/02/Radio-Alfa_Logo-2.png', bg: { r: 255, g: 255, b: 255 }, fill: 0.86, note: 'radioalfa.dk header-logo (300×142, skarpt) — erstatter forstørret TuneIn-billede' },
+  'Italo Disco New Gen': { src: 'https://radiomaxitalo.com/wp-content/uploads/2025/12/RMI-New-Logo-New.png', bg: { r: 34, g: 34, b: 34 }, fill: 0.94, note: 'RMI officielt logo (radiomaxitalo.com) — erstatter forstørret TuneIn-billede' },
+  'Radio Alfa': { src: 'https://www.radioalfa.dk/wp-content/uploads/2024/02/Radio-Alfa_Logo-2.png', bg: { r: 255, g: 255, b: 255 }, fill: 0.86, note: 'radioalfa.dk header-logo (300×142, skarpt) — erstatter forstørret TuneIn-billede' },
   'Radio Stad Den Haag': { src: 'https://www.radiostaddenhaag.com/wp-content/uploads/2024/09/rsdhlogo2024@075x.png', bg: { r: 17, g: 17, b: 17 }, fill: 0.9, note: 'radiostaddenhaag.com 2024-logo (960×600) — hostes lokalt (certifikatfejl hos kilden)' },
   'laut.fm Eurobeat': { src: 'https://assets.laut.fm/96917e65938d7e6c8bf516008b8e2ddf', centerSquare: true, fill: 1, note: 'laut.fm 600×338, beskåret til kvadrat fra midten' },
   // Findes kun i 80×80 (TuneIn-"600 px" er samme billede forstørret) — genskabt som vektor: public/logos/forever-80.svg
