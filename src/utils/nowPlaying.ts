@@ -1,6 +1,7 @@
-// "Nu spiller" fra netværkernes egne API'er — til stationer hvis stream kun sender
-// stationsnavnet som ICY StreamTitle (streamabc/QuantumCast: 80s80s, 90s90s, BOB!, bigFM,
-// Klassik Radio). Alle endpoints svarer med CORS `*`, så de kaldes direkte fra browseren.
+// "Nu spiller" fra netværkernes egne API'er — til stationer hvis stream ikke sender en brugbar
+// ICY StreamTitle (streamabc/QuantumCast: 80s80s, 90s90s, BOB!, bigFM, Klassik Radio — kun
+// stationsnavn; Bauer DK: ingen titel). Iris/streamabc svarer med CORS `*` og kaldes direkte
+// fra browseren; Bauers CORS tillader kun radioplay.dk, så den går via `/api/now-playing`.
 // Kilden udledes af stream-URL'ens host + første path-segment (mount), så en station der
 // oprettes igen med samme URL automatisk får sangtitel. Kanal-ID'erne står som
 // `data-channel` på netværkernes forsider (verificeret 23-09-2026).
@@ -8,6 +9,7 @@
 export type NowPlayingSource =
   | { kind: 'iris'; base: string; station: string }
   | { kind: 'streamabc'; channel: string }
+  | { kind: 'bauer'; station: string }
 
 interface IrisNetwork {
   host: string
@@ -42,6 +44,19 @@ const STREAMABC_MOUNTS: Record<string, Record<string, string>> = {
   'stream.klassikradio.de': { christmas: 'klassikr-christmas' },
 }
 
+// Bauer Media DK (Radioplay) — mount → stationCode fra listenapi.planetradio.co.uk/api9.2/stations/DK
+const BAUER_HOST = 'live-bauerdk.sharp-stream.com'
+const BAUER_MOUNTS: Record<string, string> = {
+  'nova_dk_mp3': 'nov',
+  'popfm_dk_mp3': 'pop',
+  'popfm80.mp3': 'pf8',
+  'thevoice_dk_mp3': 'the',
+  'radio100_dk_mp3': 'rhu',
+  'radiosoft_dk_mp3': 'dso',
+  'dk_hq_rp05.aac': 'deh',
+  'dk_hq_rp04.aac': 'eih',
+}
+
 // Et nummer der sluttede for mere end dette er ikke længere "nu" (fx nyheder/reklamer
 // mellem numre) — vis hellere ingen titel end en forældet
 const STALE_GRACE_MS = 2 * 60_000
@@ -58,12 +73,20 @@ export function getNowPlayingSource(streamUrl: string): NowPlayingSource | null 
     const station = iris.mounts[mount]
     return station ? { kind: 'iris', base: iris.base, station } : null
   }
+  if (host === BAUER_HOST) {
+    const station = BAUER_MOUNTS[mount]
+    return station ? { kind: 'bauer', station } : null
+  }
   const channel = STREAMABC_MOUNTS[host]?.[mount]
   return channel ? { kind: 'streamabc', channel } : null
 }
 
 export interface NowPlaying {
   title: string | null
+}
+
+function isStale(endMs: number): boolean {
+  return Number.isFinite(endMs) && endMs + STALE_GRACE_MS < Date.now()
 }
 
 function formatTrack(artist: string | null | undefined, song: string | null | undefined): string | null {
@@ -84,7 +107,7 @@ async function fetchIris(src: Extract<NowPlayingSource, { kind: 'iris' }>, signa
 
   const airtime = Date.parse(entry.airtime)
   const durationMs = Number(entry.duration) * 1000
-  if (Number.isFinite(airtime) && durationMs > 0 && airtime + durationMs + STALE_GRACE_MS < Date.now()) {
+  if (durationMs > 0 && isStale(airtime + durationMs)) {
     return { title: null }
   }
 
@@ -104,6 +127,18 @@ async function fetchStreamAbc(src: Extract<NowPlayingSource, { kind: 'streamabc'
   return { title: formatTrack(artist, song) }
 }
 
+async function fetchBauer(src: Extract<NowPlayingSource, { kind: 'bauer' }>, signal: AbortSignal): Promise<NowPlaying> {
+  const res = await fetch(`/api/now-playing?station=${encodeURIComponent(src.station)}`, { signal })
+  if (!res.ok) return { title: null }
+  const data = await res.json()
+  if (typeof data?.end === 'string' && isStale(Date.parse(data.end))) return { title: null }
+  return { title: typeof data?.title === 'string' && data.title ? data.title : null }
+}
+
 export function fetchNowPlaying(src: NowPlayingSource, signal: AbortSignal): Promise<NowPlaying> {
-  return src.kind === 'iris' ? fetchIris(src, signal) : fetchStreamAbc(src, signal)
+  switch (src.kind) {
+    case 'iris': return fetchIris(src, signal)
+    case 'streamabc': return fetchStreamAbc(src, signal)
+    case 'bauer': return fetchBauer(src, signal)
+  }
 }

@@ -82,4 +82,28 @@ test.describe('TC-05: Nu spiller fra netværks-API', () => {
     await expect(player.locator('text=TC05 Carol;TC05 Carol')).not.toBeVisible()
   })
 
+  test('TC-05-12: Bauer DK-station henter sangtitel via /api/now-playing', async ({ page }) => {
+    let requestedStation: string | null = null
+    await page.route('**/api/now-playing**', (route) => {
+      requestedStation = new globalThis.URL(route.request().url()).searchParams.get('station')
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ title: 'TC05 Dansk Kunstner - TC05 Dansk Sang', end: new Date(Date.now() + 120_000).toISOString() }) })
+    })
+    await loadApp(page)
+    await playStation(page, "Danske 80'er Hits")
+    await expect(page.locator('.fixed.bottom-0').locator('text=TC05 Dansk Kunstner - TC05 Dansk Sang')).toBeVisible({ timeout: 5000 })
+    expect(requestedStation).toBe('deh')
+  })
+
+  test('TC-05-13: Forældet Bauer-nummer vises ikke', async ({ page }) => {
+    await page.route('**/api/now-playing**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ title: 'TC05 Gammel Dansk Sang', end: new Date(Date.now() - 30 * 60_000).toISOString() }) })
+    })
+    await loadApp(page)
+    await playStation(page, 'NOVA')
+    await page.waitForTimeout(2000)
+    await expect(page.locator('.fixed.bottom-0').locator('text=TC05 Gammel Dansk Sang')).not.toBeVisible()
+  })
+
 })
