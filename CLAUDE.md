@@ -270,7 +270,8 @@ Samme variabler skal sættes i Vercel under Environment Variables.
   - `sky-radio-christmas.png`, `christmas-vinyl-hd.jpg` — Jul-kategori logoer
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
-- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
+- **Logo-opgradering 23-09-2026** (`upgrade-logos.mjs`): 52 logoer opgraderet til 512–600 px (låseskærm/CarPlay viste små logoer groft) — 37 via større variant hos samme kilde (TuneIn `logog`/`s…g.png` = 600 px, laut.fm `?t=_600x600`), 15 genereret som 512×512 PNG i `public/logos/` (radio SAW-originaler, RadioMonster ud fra Tophits 2000 px + kanalbjælke, Bauer-SVG'er m.fl.). Rettede samtidig 7 forkerte logoer (DR P5 viste P6 Beat, Limfjord Mix viste Limfjord Plus, Radio Alfa viste 00's Hits m.fl.). Prøvekørsel laver før/efter-`preview.html` som Michael godkender i browseren; `REJECT`/`MANUAL` i scriptet holder styr på afviste og håndplukkede. `--apply` skriver til Firestore og kopierer genererede PNG'er — genererede peges først på, når de leveres som billede (vercel.json omskriver ukendte stier til index.html med status 200, så status alene er ikke nok)
+- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund, helst ≥ 512 px. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
 ## Kendte fejl
 
