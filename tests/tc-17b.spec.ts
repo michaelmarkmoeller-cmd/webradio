@@ -96,10 +96,10 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     await expect(page.locator('[aria-label="Afspil"]')).toBeVisible()
   })
 
-  test('TC-17-08: Låseskærm-pause holder stilhedsløkken i gang i 5 min., derefter rigtigt stop', async ({ page }) => {
+  test('TC-17-08: Låseskærm-pause holder stilhedsløkken i gang i 30 min., derefter rigtigt stop', async ({ page }) => {
     await setHidden(page, true)
     await lockScreen(page, 'pause')
-    await page.clock.fastForward(4 * 60_000 + 50_000)
+    await page.clock.fastForward(29 * 60_000 + 50_000)
     expect(await audioState(page)).toMatchObject({ paused: false, silent: true })
     await page.clock.fastForward(15_000)
     expect(await audioState(page)).toMatchObject({ paused: true })
@@ -140,7 +140,7 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     const before = (await audioState(page)).loadstarts
     await setHidden(page, true)
     await lockScreen(page, 'pause')
-    await page.clock.fastForward(5 * 60_000 + 1_000)
+    await page.clock.fastForward(30 * 60_000 + 1_000)
     await setHidden(page, false)
     await page.click('[aria-label="Afspil"]')
     await expect(page.locator('[aria-label="Pause"]')).toBeVisible()

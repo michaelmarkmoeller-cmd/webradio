@@ -7,6 +7,7 @@ import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
 import { isIOS } from '../utils/platform'
+import { dlog } from '../utils/debugLog'
 
 function sortWithOrder(stations: Station[], order: Record<string, string[]>): Station[] {
   return [...stations].sort((a, b) => {
@@ -63,8 +64,8 @@ const reorderSeq: Record<string, number> = {}
 // (getSilentLoopUrl), så iOS holder appen vågen og WebRadio på låseskærmen; PLAY kobler streamen
 // på igen. Slået-fra lyd (muted) virker IKKE — iOS behandler det som stop (testet på iPhone).
 // Stoppes rigtigt efter 20 sek. mens appen er synlig (PLAY i appen virker altid), ellers efter
-// højst 5 min. fra pausen.
-const SILENT_PAUSE_MAX_MS = 5 * 60_000
+// højst 30 min. fra pausen.
+const SILENT_PAUSE_MAX_MS = 30 * 60_000
 const SILENT_PAUSE_VISIBLE_MS = 20_000
 let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | undefined } | null = null
 
@@ -87,6 +88,7 @@ function clearSilentPause() {
 // Afslutter en lydløs pause med et rigtigt stop (no-op hvis der ingen er)
 function endSilentPause() {
   if (!silentPause) return
+  dlog('endSilentPause')
   clearSilentPause()
   audio().pause()
 }
@@ -102,6 +104,11 @@ function audio() {
   })
   if (!externalPauseListenerAdded) {
     externalPauseListenerAdded = true
+    // MIDLERTIDIG diagnose (AirPods ud/ind)
+    for (const ev of ['play', 'pause', 'playing', 'waiting', 'stalled', 'error', 'ended', 'emptied']) {
+      a.addEventListener(ev, () => dlog(`el:${ev} paused=${a.paused} silent=${!!silentPause} isPlaying=${useRadioStore.getState().isPlaying} src=${a.src.slice(0, 12)}`))
+    }
+    document.addEventListener('visibilitychange', () => dlog(`visibility`))
     // Sync UI when audio is paused externally (AirPods ear detection, phone call, etc.).
     // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
     // before its internal a.pause() — so isPlaying:true here always means external pause.
@@ -189,12 +196,15 @@ function syncMediaSession(station: Station, playing: boolean) {
   if (!('mediaSession' in navigator)) return
   if (!mediaSessionReady) {
     navigator.mediaSession.setActionHandler('play', () => {
+      dlog(`ms:play isPlaying=${useRadioStore.getState().isPlaying} silent=${!!silentPause}`)
       if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('pause', () => {
+      dlog(`ms:pause isPlaying=${useRadioStore.getState().isPlaying} silent=${!!silentPause}`)
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('stop', () => {
+      dlog('ms:stop')
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
@@ -435,6 +445,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 // starte en lydløs pause lige før, omdannes den. Returnerer om der blev spillet ved frakoblingen.
 export function pauseForDisconnect(): boolean {
   const { isPlaying, currentStation } = useRadioStore.getState()
+  dlog(`pauseForDisconnect isPlaying=${isPlaying} silent=${!!silentPause}`)
   const recentSilent = !!silentPause && Date.now() - silentPause.startedAt < 2000
   if (isPlaying) {
     pauseAudio(false)
@@ -462,7 +473,7 @@ function pauseAudio(silent: boolean) {
     silentPause = { startedAt: Date.now(), timer: undefined }
     a.src = getSilentLoopUrl()
     a.loop = true
-    a.play().catch(() => clearSilentPause())
+    a.play().then(() => dlog('loop:play ok')).catch((e) => { dlog(`loop:play FEJL ${e?.name}`); clearSilentPause() })
     armSilentPauseTimer()
     return
   }
