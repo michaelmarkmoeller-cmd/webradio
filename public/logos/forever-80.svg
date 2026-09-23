@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 480 480">
+  <!-- Genskabt 23-09-2026 efter laut.fm/forever80's 80×80-logo (findes ikke i højere opløsning) -->
+  <rect width="480" height="480" fill="#000000"/>
+  <g font-family="Bahnschrift, 'Arial Narrow', sans-serif" font-weight="700" font-stretch="condensed">
+    <text transform="translate(239 90) scale(0.88 1)" text-anchor="middle" font-size="72" fill="#e9e9e9" letter-spacing="2">FOREVER 80</text>
+    <rect x="97" y="120" width="286" height="338" fill="#ffffff" stroke="#c8c8c8" stroke-width="3"/>
+    <!-- "I" med top- og bundstreg som i originalen -->
+    <g fill="#111111">
+      <rect x="143" y="131" width="64" height="22" rx="6"/>
+      <rect x="160" y="131" width="30" height="151" rx="4"/>
+      <rect x="143" y="260" width="64" height="22" rx="6"/>
+    </g>
+    <path fill="#ee162b" d="M263 284 C241 252 208 224 208 173 C208 142 227 126 248 126 C258 126 263 134 263 147
+                            C263 134 269 126 280 126 C301 126 320 142 320 173 C320 224 285 252 263 284 Z"/>
+    <text transform="translate(226 454) scale(1.02 1)" text-anchor="middle" font-size="226" fill="#111111">80</text>
+    <text transform="translate(335 446) scale(0.9 1)" text-anchor="middle" font-size="78" fill="#111111">s</text>
+    <text transform="translate(74 338) rotate(-90) scale(1.5 1)" text-anchor="middle" font-size="52" fill="#ffffff" letter-spacing="3">DANCE</text>
+  </g>
+</svg>

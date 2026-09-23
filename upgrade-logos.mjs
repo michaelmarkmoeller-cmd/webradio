@@ -22,8 +22,6 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125
 // Anden runde (kandidater fra hjemmeside/manifest, laut.fm-API, TuneIn): intet brugbart fundet
 const REJECT = new Set([
   'Radio ANR', 'Retro Radio',
-  // Fravalgt af Michael 23-09-2026 (TuneIn-versionen var et forstørret 80 px-billede)
-  'Forever 80',
   'radio SAW In The Mix', 'radio SAW In The Mix 80er', 'radio SAW In The Mix 90er',
 ])
 
@@ -57,6 +55,8 @@ const MANUAL = {
   'Radio Alfa': { force: true, src: 'https://www.radioalfa.dk/wp-content/uploads/2024/02/Radio-Alfa_Logo-2.png', bg: { r: 255, g: 255, b: 255 }, fill: 0.86, note: 'radioalfa.dk header-logo (300×142, skarpt) — erstatter forstørret TuneIn-billede' },
   'Radio Stad Den Haag': { src: 'https://www.radiostaddenhaag.com/wp-content/uploads/2024/09/rsdhlogo2024@075x.png', bg: { r: 17, g: 17, b: 17 }, fill: 0.9, note: 'radiostaddenhaag.com 2024-logo (960×600) — hostes lokalt (certifikatfejl hos kilden)' },
   'laut.fm Eurobeat': { src: 'https://assets.laut.fm/96917e65938d7e6c8bf516008b8e2ddf', centerSquare: true, fill: 1, note: 'laut.fm 600×338, beskåret til kvadrat fra midten' },
+  // Findes kun i 80×80 (TuneIn-"600 px" er samme billede forstørret) — genskabt som vektor: public/logos/forever-80.svg
+  'Forever 80': { url: `${SITE}/logos/forever-80.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
 }
 
 async function loadAny(src) {
