@@ -22,7 +22,6 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125
 // Anden runde (kandidater fra hjemmeside/manifest, laut.fm-API, TuneIn): intet brugbart fundet
 const REJECT = new Set([
   'Retro Radio',
-  'radio SAW In The Mix', 'radio SAW In The Mix 80er', 'radio SAW In The Mix 90er',
 ])
 
 // Håndplukkede kilder, hvor automatikken ikke fandt (den rigtige) store udgave.
@@ -59,6 +58,10 @@ const MANUAL = {
   'Forever 80': { url: `${SITE}/logos/forever-80.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
   // Tegnet geometrisk ud fra kantmålinger af TuneIn-logoet (300 px): public/logos/radio-anr.svg
   'Radio ANR': { url: `${SITE}/logos/radio-anr.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
+  // Findes kun i 200 px — genskabt med make-saw-inthemix.mjs (SAW-original farvelagt + vektor-diskokugle)
+  'radio SAW In The Mix': { url: `${SITE}/logos/radio-saw-in-the-mix.png`, note: 'genskabt (godkendt af Michael 23-09-2026)' },
+  'radio SAW In The Mix 80er': { url: `${SITE}/logos/radio-saw-in-the-mix-80er.png`, note: 'genskabt (godkendt af Michael 23-09-2026)' },
+  'radio SAW In The Mix 90er': { url: `${SITE}/logos/radio-saw-in-the-mix-90er.png`, note: 'genskabt (godkendt af Michael 23-09-2026)' },
 }
 
 async function loadAny(src) {
