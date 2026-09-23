@@ -233,14 +233,9 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 ## Logoer
 - Alle 80 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
-- Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
-  - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
-  - `big-70s-radio.png` — 160×160 kvadratisk version
-  - `radiomonster-80s/90s/dance/rock.svg` — custom SVG: pixel-målte fra Tophits-logo (robot + farvet bjælke, x=8-91, y=77-91)
-  - `80s80s-*.png` — kanal-specifikke 80s80s-logoer (In The Mix, Party, Maxis)
-  - `sky-radio-christmas.png`, `christmas-vinyl-hd.jpg` — Jul-kategori logoer
+- Hostet i `public/logos/` → serveres via Vercel CDN. Kildefiler som `make-*.mjs`-scriptsene bygger videre på (fx `radio-10-*.jpg`, `radio-538.png`, `80s80s-summerhits.jpg`, `radio-italo-disco-net.png`) og SVG-kilder (`*.svg`) ligger samme sted, selvom Firestore ikke peger på dem — slet dem ikke
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
-- Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
+- Logo-URL'er sættes direkte i Firestore af `localize-logos.mjs --apply` / de enkelte `make-*.mjs`-forløb. `set-logo.mjs` (gammel liste med eksterne URL'er) er fjernet 23-09-2026 — den ville overskrive de lokale logoer
 - **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
 
 ## Kendte fejl
@@ -277,7 +272,6 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 ## Hjælpescripts (rod-mappen)
 - `firebase-init.mjs` — **delt** Firebase-init (læser `.env`, eksporterer en færdig `db`-instans), tilføjet 14-07-2026 (BUG-13). Alle rodmappe-scripts importerer denne (`import { db } from './firebase-init.mjs'`) i stedet for at duplikere `.env`-parsing/`initializeApp`-boilerplate hver især — hold denne opdateret, hvis Firebase-config'en ændres, i stedet for at genindføre duplikeret init i nye scripts
 - `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
-- `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
 - `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
