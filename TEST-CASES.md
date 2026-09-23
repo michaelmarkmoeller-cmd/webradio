@@ -1003,21 +1003,21 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 *Lydløs pause (TC-17-05..18) tilføjet 23-09-2026. TC-17-05..15 automatiseret i `tests/tc-17b.spec.ts` (iPhone-UA i Chromium, falsk ur, simuleret `visibilityState`); TC-17-16..18 kræver rigtig iPhone.*
 
-### TC-17-05: Pause på iOS slår lyden fra, men stopper ikke streamen
+### TC-17-05: Pause på iOS skifter til stilhedsløkke i stedet for at stoppe
 **Forudsætning:** iPhone, en station spiller  
 **Trin:**
 1. Tryk Pause i appen
 
-**Forventet resultat:** Player viser Afspil, MediaSession `paused`. Audio-elementet kører videre med `muted = true`.
+**Forventet resultat:** Player viser Afspil, MediaSession `paused`. Audio-elementet spiller stilhedsløkken (`blob:`-URL, `loop`) — ikke stoppet, ikke muted.
 
 ---
 
-### TC-17-06: PLAY under lydløs pause slår lyden til uden ny forbindelse
+### TC-17-06: PLAY under lydløs pause kobler radiostreamen på igen
 **Forudsætning:** TC-17-05, 10 sek. efter pause  
 **Trin:**
 1. Tryk Afspil
 
-**Forventet resultat:** Lyden slås til, ingen ny stream-forbindelse (intet `loadstart`), MediaSession `playing`.
+**Forventet resultat:** Radiostreamen kobles på igen (nyt `loadstart`), løkken slås fra, MediaSession `playing`.
 
 ---
 
@@ -1026,11 +1026,11 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 **Trin:**
 1. Tryk Pause og bliv i appen i 21 sek.
 
-**Forventet resultat:** Efter 19 sek. stadig lydløs; efter 21 sek. rigtigt stoppet (`paused`, ikke `muted`).
+**Forventet resultat:** Efter 19 sek. spiller stilhedsløkken stadig; efter 21 sek. rigtigt stoppet (`paused`).
 
 ---
 
-### TC-17-08: Låseskærm-pause holder streamen lydløst i live i 5 min., derefter rigtigt stop
+### TC-17-08: Låseskærm-pause holder stilhedsløkken i gang i 5 min., derefter rigtigt stop
 **Forudsætning:** iPhone, skærm låst, en station spiller  
 **Trin:**
 1. Tryk Pause på låseskærmen og vent 5 min.
@@ -1039,12 +1039,12 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-17-09: Låseskærm-PLAY efter 2 min. lydløs pause genoptager uden ny forbindelse
+### TC-17-09: Låseskærm-PLAY efter 2 min. lydløs pause kobler radiostreamen på igen
 **Forudsætning:** TC-17-08  
 **Trin:**
 1. Tryk PLAY på låseskærmen efter 2 min.
 
-**Forventet resultat:** Lyden slås til med det samme, ingen ny forbindelse.
+**Forventet resultat:** Radiostreamen kobles på igen, MediaSession `playing`.
 
 ---
 
@@ -1080,7 +1080,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 **Trin:**
 1. Klik en anden station
 
-**Forventet resultat:** Den nye station spiller med lyd (`muted = false`).
+**Forventet resultat:** Den nye station spiller (ikke stilhedsløkken).
 
 ---
 
@@ -1089,7 +1089,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 **Trin:**
 1. Vent til timeren udløber
 
-**Forventet resultat:** Streamen er rigtigt stoppet — ikke lydløs.
+**Forventet resultat:** Streamen er rigtigt stoppet — ingen stilhedsløkke.
 
 ---
 
@@ -1107,7 +1107,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 **Trin:**
 1. Pause på låseskærm, vent 1-4 min. (skærm fadet ud), væk skærmen, tryk PLAY
 
-**Forventet resultat:** Musikken spiller igen med det samme; player-widget forsvinder ikke.
+**Forventet resultat:** WebRadio bliver på låseskærmen under pausen (ingen fremmed app/cover); PLAY giver musik igen efter 1-2 sek.
 
 ---
 

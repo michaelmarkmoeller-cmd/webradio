@@ -20,7 +20,7 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
-| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Genåbnet 23-09-2026 — lydløs pause deployet, afventer iPhone-test (TC-17-16..18) | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Genåbnet 23-09-2026 — lydløs pause (stilhedsløkke) deployet, afventer iPhone-test (TC-17-16..18) | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-17 | `src/components/StationCard.tsx:83` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
@@ -382,6 +382,10 @@ Intet yderligere arbejde planlagt på BUG-15's kerneproblem, medmindre nye obser
 - **Usikkert:** om iOS 27 holder en side med *muted* audio vågen på samme måde som en med hørbar lyd — kan kun afgøres på rigtig iPhone (TC-17-16..18).
 
 **Verifikation:** `npm run build` ren. TC-17-05..15 (`tests/tc-17b.spec.ts`, iPhone-UA i Chromium, falsk ur, simuleret låst skærm) grønne lokalt og mod produktion; fuld suite 104/104.
+
+**iPhone-test 23-09-2026 (Michael) — muted-versionen virker IKKE:** Spil → lås → PAUSE på låseskærmen → straks vises et fremmed cover (Spotifys seneste nummer), og player-widget'en forsvinder efter ca. 15 sek. Intet starter. Forklaring: iOS behandler en side med *muted* audio som ikke-afspillende — WebRadio mister "Now Playing" med det samme, låseskærmen falder tilbage til den forrige Now Playing-app (Spotify, som ikke spiller) og rydder derefter. Streamen hentede samtidig data til ingen nytte.
+
+**Ny løsning: stilhedsløkke (commit `839ac8a`, godkendt af Michael — "den bruger jo heller ikke unødige data"):** Under pause skifter *samme* audio-element til en lokalt genereret 2 sek. WAV-løkke (`getSilentLoopUrl()` i `src/audio.ts`, blob-URL) med ±1 LSB støj ≈ −90 dBFS — ikke muted, ikke ren digital stilhed, ingen tone (intet subwoofer-brum som BUG-14's 18 Hz). Radiostreamen afbrydes, så intet dataforbrug. PLAY kobler streamen på igen (typisk 1-2 sek.) — virker, fordi siden er holdt vågen. Samme loft (20 sek. synlig / 5 min. skjult) og samme guards. Tests opdateret (stilhedsløkke = `src` er `blob:` + `loop`), 3×11 grønne lokalt, fuld suite 104/104 mod produktion. Afventer iPhone-test.
 
 ---
 

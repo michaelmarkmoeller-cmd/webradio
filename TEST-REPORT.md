@@ -390,18 +390,18 @@
 |-----|-------|--------|-------------|------|
 | TC-17-01 | iOS private browsing — afspilning virker | 🟢 Godkendt | App loader korrekt med iOS UA + webradio localStorage blokeret | 15-06-2026 |
 | TC-17-04 | MediaSession artwork MIME-type korrekt | 🟢 Godkendt | MediaSession registreres korrekt med artwork inkl. type-felt | 15-06-2026 |
-| TC-17-05 | Pause på iOS slår lyden fra, men stopper ikke streamen | 🟢 Godkendt | Player viser Afspil, MediaSession `paused`. Audio-elementet kører videre med `muted = true`. | 23-09-2026 |
-| TC-17-06 | PLAY under lydløs pause slår lyden til uden ny forbindelse | 🟢 Godkendt | Lyden slås til, ingen ny stream-forbindelse (intet `loadstart`), MediaSession `playing`. | 23-09-2026 |
-| TC-17-07 | Pause i appen stoppes rigtigt efter 20 sek., hvis appen forbliver åben | 🟢 Godkendt | Efter 19 sek. stadig lydløs; efter 21 sek. rigtigt stoppet (`paused`, ikke `muted`). | 23-09-2026 |
-| TC-17-08 | Låseskærm-pause holder streamen lydløst i live i 5 min., derefter rigtigt stop | 🟢 Godkendt | Lydløs indtil 5 min.; derefter rigtigt stoppet. | 23-09-2026 |
-| TC-17-09 | Låseskærm-PLAY efter 2 min. lydløs pause genoptager uden ny forbindelse | 🟢 Godkendt | Lyden slås til med det samme, ingen ny forbindelse. | 23-09-2026 |
+| TC-17-05 | Pause på iOS skifter til stilhedsløkke i stedet for at stoppe | 🟢 Godkendt | Player viser Afspil, MediaSession `paused`. Audio-elementet spiller stilhedsløkken (`blob:`-URL, `loop`) — ikke stoppet, ikke muted. | 23-09-2026 |
+| TC-17-06 | PLAY under lydløs pause kobler radiostreamen på igen | 🟢 Godkendt | Radiostreamen kobles på igen (nyt `loadstart`), løkken slås fra, MediaSession `playing`. | 23-09-2026 |
+| TC-17-07 | Pause i appen stoppes rigtigt efter 20 sek., hvis appen forbliver åben | 🟢 Godkendt | Efter 19 sek. spiller stilhedsløkken stadig; efter 21 sek. rigtigt stoppet (`paused`). | 23-09-2026 |
+| TC-17-08 | Låseskærm-pause holder stilhedsløkken i gang i 5 min., derefter rigtigt stop | 🟢 Godkendt | Lydløs indtil 5 min.; derefter rigtigt stoppet. | 23-09-2026 |
+| TC-17-09 | Låseskærm-PLAY efter 2 min. lydløs pause kobler radiostreamen på igen | 🟢 Godkendt | Radiostreamen kobles på igen, MediaSession `playing`. | 23-09-2026 |
 | TC-17-10 | Pause i appen → lås inden 20 sek. → lydløs pause fortsætter op til loftet | 🟢 Godkendt | Stadig lydløs efter 1 min.; PLAY slår lyden til. | 23-09-2026 |
 | TC-17-11 | Åbnes appen under lydløs pause, stoppes streamen 20 sek. senere | 🟢 Godkendt | Player viser Afspil (ikke "spiller"); streamen stoppes rigtigt 20 sek. efter. | 23-09-2026 |
 | TC-17-12 | PLAY efter loftet kobler streamen på igen som normalt | 🟢 Godkendt | Ny forbindelse (`loadstart`), afspilning som før. | 23-09-2026 |
-| TC-17-13 | Stationsskift under lydløs pause giver lyd på den nye station | 🟢 Godkendt | Den nye station spiller med lyd (`muted = false`). | 23-09-2026 |
-| TC-17-14 | Søvntimer stopper streamen rigtigt (ingen lydløs pause) | 🟢 Godkendt | Streamen er rigtigt stoppet — ikke lydløs. | 23-09-2026 |
+| TC-17-13 | Stationsskift under lydløs pause giver lyd på den nye station | 🟢 Godkendt | Den nye station spiller (ikke stilhedsløkken). | 23-09-2026 |
+| TC-17-14 | Søvntimer stopper streamen rigtigt (ingen lydløs pause) | 🟢 Godkendt | Streamen er rigtigt stoppet — ingen stilhedsløkke. | 23-09-2026 |
 | TC-17-15 | Pause på pc stopper streamen med det samme | 🟢 Godkendt | Streamen stoppes (fade-out) som hidtil — ingen lydløs pause. | 23-09-2026 |
-| TC-17-16 | iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel) | 🟡 Ikke testet | Musikken spiller igen med det samme; player-widget forsvinder ikke. |  |
+| TC-17-16 | iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel) | 🟡 Ikke testet | WebRadio bliver på låseskærmen under pausen (ingen fremmed app/cover); PLAY giver musik igen efter 1-2 sek. |  |
 | TC-17-17 | iPhone: pause i appen → lås → PLAY på låseskærmen efter 1 min. (manuel) | 🟡 Ikke testet | Musikken spiller igen med det samme. |  |
 | TC-17-18 | iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel) | 🟡 Ikke testet | Appen åben: auto-resume som før. Låst skærm: bedre eller som før (afhænger af hvordan iOS sender ørefjernelsen videre). |  |
 
