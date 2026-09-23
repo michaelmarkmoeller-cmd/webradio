@@ -125,7 +125,7 @@ Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og imp
 - Stationsnavne bruger dynamisk skriftstørrelse med `line-clamp-2` sikkerhedsnet: ≤12 tegn → `text-sm`, ≤15 → `text-xs`, ≤22 → `text-[11px]`, længere → `text-[10px]`
 - **Stationskort-navnehøjde**: `min-h-[35px]` (fast px, ikke em) sikrer at alle kort i samme række har ens højde uanset navnelængde
 - Stationer vises i device-specifik rækkefølge (drag & drop), fallback til alfabetisk
-- Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
+- Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate — og med logoet gemt lokalt i `public/logos/` (se "Logoer")
 - **`pointer-events: none`** på tekst-container i StationCard — forhindrer iOS 16+ "Kopier/Oversæt/Læs op" callout ved long-press
 - **Stationskort-logo**: badge `w-11 h-11` absolut positioneret `top-2 left-4`, `rounded-lg`, `bg-black/30`, `object-contain` — kvadratisk thumbnail øverst til venstre. Navn-div: `ml-14` når logo er til stede (giver plads til badge), `pr-7` (giver plads til hjerte-knap)
 - **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, vises inline i **kategorirækken** til højre for kategoriteksten (`w-[18px] rounded-sm shrink-0`)
@@ -261,7 +261,8 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 
 ## Logoer
 - Alle 83 stationer har `logoUrl` i Firestore
-- Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
+- **⚠️ ALLE logoer hostes lokalt i `public/logos/` (regel fra 23-09-2026)** — også ved ændringer og nye stationer. Aldrig en ekstern `logoUrl` i Firestore: eksterne URL'er kan skifte, blive hotlink-blokeret (538.nl), få certifikatfejl eller skifte indhold. Kør `node localize-logos.mjs` (henter eksterne logoer **uændret** til `public/logos/`) → commit + push → `node localize-logos.mjs --apply` (peger Firestore på filen, når den leveres som billede med samme bytes). Stationer tilføjet via appens `Tilføj station` får en ekstern URL — flyt dem med samme script. Bonus: logoer fra eget domæne går ikke gennem `/api/artwork`-proxyen til låseskærmen
+- Logoerne stammer oprindeligt fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.) — 55 flyttet til `public/logos/` 23-09-2026, så alle 83 nu ligger lokalt (verificeret med `logo-report.mjs`)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
   - `big-70s-radio.png` — 160×160 kvadratisk version
@@ -272,7 +273,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - Logo-URL'er administreres via `set-logo.mjs` og opdateres direkte i Firestore
 - **Logo-opgradering 23-09-2026** (`upgrade-logos.mjs`): 52 logoer opgraderet til 512–600 px (låseskærm/CarPlay viste små logoer groft) — 37 via større variant hos samme kilde (TuneIn `logog`/`s…g.png` = 600 px, laut.fm `?t=_600x600`), 15 genereret som 512×512 PNG i `public/logos/` (radio SAW-originaler, RadioMonster ud fra Tophits 2000 px + kanalbjælke, Bauer-SVG'er m.fl.). Rettede samtidig 7 forkerte logoer (DR P5 viste P6 Beat, Limfjord Mix viste Limfjord Plus, Radio Alfa viste 00's Hits m.fl.). Prøvekørsel laver før/efter-`preview.html` som Michael godkender i browseren; `REJECT`/`MANUAL` i scriptet holder styr på afviste og håndplukkede. `--apply` skriver til Firestore og kopierer genererede PNG'er — genererede peges først på, når de leveres som billede (vercel.json omskriver ukendte stier til index.html med status 200, så status alene er ikke nok)
 - **Reel opløsning ≠ filstørrelse**: TuneIns `logog`-varianter (600 px) kan være et forstørret lavopløst billede (fx Forever 80 = 80 px forstørret). `upgrade-logos.mjs` måler derfor *reel* opløsning (andel af kantskarpheden der overlever ned-til-s-og-op-igen) og vælger kun kandidater med reelt mere detalje; previewen viser begge tal. Runde 2–3 samme dag: 538 Hitzone/Party, 80s80s Italo Hits, Big 70s Radio, Rock Antenne, Italo Disco New Gen (RMI officielt), Radio Alfa, Radio Stad Den Haag (hentes via curl — certifikatfejl hos kilden), laut.fm Eurobeat, samt **Forever 80 og Radio ANR genskabt som vektorlogoer** (`public/logos/forever-80.svg`, `radio-anr.svg` → `.png`; ANR tegnet geometrisk ud fra kantmålinger, afviger 1,8 %) og **radio SAW In The Mix ×3 genskabt** med `make-saw-inthemix.mjs` (radio SAW's 1400 px-flise farvelagt med kanalfarven + vektor-diskokugle og tekst). **Retro Radio genskabt** (`public/logos/retro-radio.svg` → `retro-radio-512.png`): vektoriseret med potrace ud fra det eneste eksisterende billede (161×46 px) — hakker/tekstur lukket morfologisk og konturer glattet for et rent look, prikkerne i svinget dæmpet (valgt af Michael blandt 3 renhedsgrader). Nyt filnavn så gamle cachede kopier ikke bruges
-- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund, helst ≥ 512 px. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
+- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund, helst ≥ 512 px, **altid hostet lokalt**. Foretrukne kilder at hente fra: TuneIn CDN (`logog.png` = 600 px — tjek reel opløsning), apple-touch-icon, laut.fm CDN, kanalens eget CDN.
 
 ## Kendte fejl
 
@@ -318,6 +319,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
 - `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
+- `localize-logos.mjs [--apply]` — flytter eksterne logoer til `public/logos/` (uændrede bytes) og peger Firestore på dem efter deploy (tilføjet 23-09-2026)
 - `logo-report.mjs [outDir]` — måler alle stationslogoer (pixelstørrelse + reel opløsning) og laver `logo-overview.html` (kort pr. station, filter pr. kategori) + skema i terminalen (tilføjet 23-09-2026)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
 - `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
