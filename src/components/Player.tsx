@@ -20,7 +20,7 @@ function formatListenTime(sec: number): string {
 
 
 export function Player() {
-  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
+  const { currentStation, isPlaying, isBuffering, volume, togglePlay, stopPlayback, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null; cover: NowPlayingCover | null }>({ title: null, genre: null, cover: null })
   // Cover-URL der ikke kunne indlæses — falder tilbage til stationslogoet
   const [brokenCover, setBrokenCover] = useState<string | null>(null)
@@ -127,7 +127,7 @@ export function Player() {
 
   async function handleSonosSelect(room: SonosRoom) {
     // Undgå at samme station spiller både lokalt og på Sonos samtidig
-    if (isPlaying) togglePlay()
+    stopPlayback()
     setSonosMenuOpen(false)
     try {
       await playOnSonos(room, currentStation!.name, currentStation!.streamUrl, currentStation!.logoUrl)

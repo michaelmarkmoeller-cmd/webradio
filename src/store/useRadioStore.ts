@@ -6,6 +6,7 @@ import { getOrCreateAudio } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
+import { isIOS } from '../utils/platform'
 
 function sortWithOrder(stations: Station[], order: Record<string, string[]>): Station[] {
   return [...stations].sort((a, b) => {
@@ -41,6 +42,7 @@ interface RadioStore {
   reorderCategory: (category: Category, orderedIds: string[]) => void
   playStation: (station: Station) => void
   togglePlay: () => void
+  stopPlayback: () => void
   setVolume: (volume: number) => void
   setCategory: (category: Category | 'All' | 'Favorites') => void
   setLoading: (loading: boolean) => void
@@ -54,6 +56,33 @@ let fadeIntervalId: ReturnType<typeof setInterval> | null = null
 let externalPauseListenerAdded = false
 let _shouldResume = false
 const reorderSeq: Record<string, number> = {}
+
+// Lydløs pause (iOS, 23-09-2026): stopper vi streamen ved pause, lægger iOS appen i dvale efter
+// 10-15 sek. med slukket skærm, og et PLAY fra låseskærmen kan så ikke nå at koble streamen på
+// igen (BUG-15). I stedet kører streamen videre med lyden slået fra, og PLAY slår blot lyden til.
+// Stoppes rigtigt efter 20 sek. mens appen er synlig (PLAY i appen virker altid), ellers efter
+// højst 5 min. fra pausen.
+const SILENT_PAUSE_MAX_MS = 5 * 60_000
+const SILENT_PAUSE_VISIBLE_MS = 20_000
+let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | undefined } | null = null
+
+function armSilentPauseTimer() {
+  if (!silentPause) return
+  clearTimeout(silentPause.timer)
+  const left = silentPause.startedAt + SILENT_PAUSE_MAX_MS - Date.now()
+  const ms = document.visibilityState === 'visible' ? Math.min(SILENT_PAUSE_VISIBLE_MS, left) : left
+  silentPause.timer = setTimeout(endSilentPause, Math.max(0, ms))
+}
+
+// Afslutter en lydløs pause med et rigtigt stop (no-op hvis der ingen er)
+function endSilentPause() {
+  if (!silentPause) return
+  clearTimeout(silentPause.timer)
+  silentPause = null
+  const a = audio()
+  a.pause()
+  a.muted = false
+}
 
 // Returns the singleton Audio element.
 // First call (inside a click handler) creates it within the user gesture — required on iOS Safari.
@@ -94,6 +123,7 @@ function audio() {
     //   isPlaying:true  + a.paused:true  → iOS killed audio in background → arm click-resume
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
+      armSilentPauseTimer()  // lydløs pause: 20 sek. når synlig, ellers resten af de 5 min.
       if (document.visibilityState !== 'visible') return
       _shouldResume = false  // Clear any stale flag on every foreground; only re-arm if needed
       const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
@@ -109,7 +139,7 @@ function audio() {
         // The listener runs in bubble phase — after element handlers (togglePlay, playStation)
         // — so it only acts if those haven't already resumed audio themselves.
         _shouldResume = true
-      } else if (!isPlaying && !a.paused) {
+      } else if (!isPlaying && !a.paused && !silentPause) {
         useRadioStore.setState({ isPlaying: true, isBuffering: false, listenStartedAt: Date.now(), listenAccumulatedMs })
         if (currentStation) syncMediaSession(currentStation, true)
       }
@@ -137,7 +167,7 @@ function audio() {
     // fires (it's a queued macrotask), so isPlaying:false here always means external resume.
     a.addEventListener('play', () => {
       const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
-      if (isPlaying) return
+      if (isPlaying || silentPause) return  // lydløs pause: iOS genoptog efter fx et opkald — forbliv pauset
       useRadioStore.setState({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now(), listenAccumulatedMs })
       if (currentStation) syncMediaSession(currentStation, true)
     })
@@ -161,6 +191,7 @@ function syncMediaSession(station: Station, playing: boolean) {
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+      endSilentPause()
       audio().pause()
     })
     mediaSessionReady = true
@@ -282,6 +313,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 
   playStation: (station) => {
     const a = audio()
+    endSilentPause()
+    a.muted = false
     if (fadeIntervalId) {
       clearInterval(fadeIntervalId)
       fadeIntervalId = null
@@ -312,26 +345,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 
   togglePlay: () => {
-    const { isPlaying, currentStation, listenAccumulatedMs, listenStartedAt } = get()
+    const { isPlaying, currentStation } = get()
     const a = audio()
     if (isPlaying) {
-      const { volume } = get()
-      const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
-      set({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
-      if (currentStation) syncMediaSession(currentStation, false)
-      // Fade volume to zero before pause to avoid audio click artifact
-      const fromVol = a.volume
-      let step = 0
-      fadeIntervalId = setInterval(() => {
-        step++
-        try { a.volume = Math.max(0, fromVol * (1 - step / 8)) } catch { /* iOS: volume read-only */ }
-        if (step >= 8) {
-          clearInterval(fadeIntervalId!)
-          fadeIntervalId = null
-          a.pause()
-          try { a.volume = volume } catch {}
-        }
-      }, 10)
+      pauseAudio(isIOS)
     } else {
       // Cancel any in-progress fade before resuming
       if (fadeIntervalId) {
@@ -339,6 +356,18 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         fadeIntervalId = null
         try { a.volume = get().volume } catch {}
       }
+      // Lydløs pause: streamen kører stadig — slå blot lyden til (ingen ny forbindelse, så det
+      // virker også fra låseskærmen). Er den afbrudt i mellemtiden (fx opkald), reconnectes normalt.
+      if (silentPause && currentStation && !a.paused && !a.error && Date.now() - silentPause.startedAt < SILENT_PAUSE_MAX_MS) {
+        clearTimeout(silentPause.timer)
+        silentPause = null
+        a.muted = false
+        set({ isPlaying: true, isBuffering: a.readyState < 3, listenStartedAt: Date.now() })
+        syncMediaSession(currentStation, true)
+        return
+      }
+      endSilentPause()
+      a.muted = false
       // Live streams can't resume from a buffered position — reconnect from "now".
       // Stop any stale/half-open connection first, so a previous failed resume
       // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
@@ -353,6 +382,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now() })
       if (currentStation) syncMediaSession(currentStation, true)
     }
+  },
+
+  // Rigtigt stop uden lydløs pause — til søvntimer og Sonos, hvor streamen ikke skal køre videre
+  stopPlayback: () => {
+    if (get().isPlaying) pauseAudio(false)
+    endSilentPause()
   },
 
   setVolume: (volume) => {
@@ -389,9 +424,38 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     sleepTimerInterval = setTimeout(() => {
       sleepTimerInterval = null
       const state = useRadioStore.getState()
-      if (state.isPlaying) state.togglePlay()
+      state.stopPlayback()
       set({ sleepTimerEnd: null, sleepTimerMinutes: null })
       toast('Sov godt', { icon: '🌙' })
     }, end - Date.now())
   },
 }))
+
+// Pause. silent=true (iOS): lydløs pause — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
+// og streamen stoppes som hidtil.
+function pauseAudio(silent: boolean) {
+  const { currentStation, listenAccumulatedMs, listenStartedAt, volume } = useRadioStore.getState()
+  const a = audio()
+  const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
+  useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
+  if (currentStation) syncMediaSession(currentStation, false)
+  if (silent && currentStation && !a.paused) {
+    a.muted = true
+    silentPause = { startedAt: Date.now(), timer: undefined }
+    armSilentPauseTimer()
+    return
+  }
+  // Fade volume to zero before pause to avoid audio click artifact
+  const fromVol = a.volume
+  let step = 0
+  fadeIntervalId = setInterval(() => {
+    step++
+    try { a.volume = Math.max(0, fromVol * (1 - step / 8)) } catch { /* iOS: volume read-only */ }
+    if (step >= 8) {
+      clearInterval(fadeIntervalId!)
+      fadeIntervalId = null
+      a.pause()
+      try { a.volume = volume } catch {}
+    }
+  }, 10)
+}
