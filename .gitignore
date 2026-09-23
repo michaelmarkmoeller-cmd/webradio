@@ -33,3 +33,6 @@ homey-scripts/
 
 # Playwright test-output (artefakter, ikke kildekode)
 test-results/
+
+# Midlertidig plan fra localize-logos.mjs (slettes efter --apply)
+localize-logos-plan.json
