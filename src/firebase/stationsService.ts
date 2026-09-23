@@ -16,15 +16,15 @@ import type { Station, StationFormData, Category } from '../types'
 const COLLECTION = 'stations'
 
 const SEED_STATIONS: Omit<Station, 'id'>[] = [
-  { name: '80s80s Radio',    streamUrl: 'https://streams.80s80s.de/80s80s/mp3-192/stream.mp3',      category: "80's" },
+  { name: '80s80s Radio',    streamUrl: 'https://streams.80s80s.de/web/mp3-192/stream.mp3',         category: "80's" },
   { name: 'Underground 80s', streamUrl: 'https://ice5.somafm.com/u80s-256-mp3',                     category: "80's" },
-  { name: '90s90s Radio',    streamUrl: 'https://streams.90s90s.de/90s90s/mp3-192/stream.mp3',      category: "90's" },
+  { name: '90s90s Radio',    streamUrl: 'https://streams.90s90s.de/pop/mp3-192/stream.mp3',         category: "90's" },
   { name: '90s Eurodance',   streamUrl: 'https://streams.90s90s.de/eurodance/mp3-192/stream.mp3',   category: "90's" },
   { name: 'Radio SAW 70er',  streamUrl: 'https://stream.radiosaw.de/saw-70er/mp3-192/stream.radiosaw.de/', category: "70's" },
   { name: 'PopTron',         streamUrl: 'https://ice5.somafm.com/poptron-128-mp3',                  category: 'Pop'  },
   { name: 'Rock Antenne',    streamUrl: 'https://stream.rockantenne.de/rockantenne/stream/mp3',      category: 'Rock' },
-  { name: 'DR P4 Nordjylland', streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                 category: 'Dansk'},
-  { name: 'DR P3',           streamUrl: 'https://live-icy.gss.dr.dk/A/A03H.mp3',                   category: 'Dansk'},
+  { name: 'DR P4 Nordjylland', streamUrl: 'https://live-icy.gss.dr.dk/A/A10H.mp3',                 category: 'Dansk'},
+  { name: 'DR P3',           streamUrl: 'https://live-icy.gss.dr.dk/A/A05H.mp3',                   category: 'Dansk'},
 ]
 
 let seeded = false

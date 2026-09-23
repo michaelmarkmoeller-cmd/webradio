@@ -3,6 +3,7 @@ import { useRadioStore } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import toast from 'react-hot-toast'
+import { getNowPlayingSource, fetchNowPlaying } from '../utils/nowPlaying'
 import { playOnSonos, setVolumeOnSonos, stopSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
 
 const SONOS_VOLUME_STEP = 5
@@ -39,7 +40,17 @@ export function Player() {
     if (!currentStation || !isPlaying) return
     let cancelled = false
     const controller = new AbortController()
+    // Stationer hvis stream kun sender stationsnavnet som ICY-titel henter i stedet
+    // "nu spiller" direkte fra netværkets eget API (se utils/nowPlaying.ts)
+    const nowPlayingSource = getNowPlayingSource(currentStation.streamUrl)
     async function fetchMeta() {
+      if (nowPlayingSource) {
+        try {
+          const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
+          if (!cancelled) setMeta({ title: np.title, genre: null })
+        } catch { }
+        return
+      }
       if (icySupportedRef.current === false) return
       try {
         const res = await fetch(
