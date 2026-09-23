@@ -190,7 +190,7 @@ Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det alm
 - Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
 - Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
 - Ikke afklaret endnu: **Danske 80'er Hits** (`DK_HQ_RP04.aac`) sender hverken navn eller metadata — Michael lytter selv efter
-- `check-streams.mjs` følger ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — ikke rettet endnu
+- `check-streams.mjs` fulgte ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — rettet 23-09-2026: følger nu op til 5 redirects, kun 2xx tæller som OK, og `insecureHTTPParser: true` gør at Node kan læse streamabc-servernes statuslinje (før talte de kun som OK pga. den indledende 302)
 
 ## Kendte stream-problemer
 - **laut.fm streams** indsætter pre-roll reklamer ved ny tilkobling (platform-level, kan ikke forhindres)
@@ -288,7 +288,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 ## Hjælpescripts (rod-mappen)
 - `firebase-init.mjs` — **delt** Firebase-init (læser `.env`, eksporterer en færdig `db`-instans), tilføjet 14-07-2026 (BUG-13). Alle rodmappe-scripts importerer denne (`import { db } from './firebase-init.mjs'`) i stedet for at duplikere `.env`-parsing/`initializeApp`-boilerplate hver især — hold denne opdateret, hvis Firebase-config'en ændres, i stedet for at genindføre duplikeret init i nye scripts
-- `check-streams.mjs` — checker HTTP-tilgængelighed på alle streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
+- `check-streams.mjs` — checker HTTP-tilgængelighed på alle streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt; følger redirects (23-09-2026)
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)

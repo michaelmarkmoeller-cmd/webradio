@@ -5,8 +5,9 @@ import net from 'net'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from './firebase-init.mjs'
 
-// Full HTTP check — tries to get a valid audio response
-function checkStreamHttp(url, timeoutMs = 8000, withIcy = true) {
+// Full HTTP check — tries to get a valid audio response. Follows redirects, so a 3xx
+// pointing at a dead endpoint (e.g. 302 → 404) counts as a failure, not OK.
+function checkStreamHttp(url, timeoutMs = 8000, withIcy = true, redirectsLeft = 5) {
   if (url.startsWith('http://')) {
     return Promise.resolve({ ok: false, error: 'mixed-content: http:// blocked in HTTPS app' })
   }
@@ -29,13 +30,26 @@ function checkStreamHttp(url, timeoutMs = 8000, withIcy = true) {
         method: 'GET',
         headers,
         timeout: timeoutMs,
+        // streamabc/QuantumCast servers (80s80s, radio SAW, BOB! …) send a status line
+        // Node's strict parser rejects ("Missing expected CR after response line")
+        insecureHTTPParser: true,
       },
       (res) => {
         const bitrate = res.headers['icy-br'] || res.headers['x-audiocast-bitrate'] || null
         const contentType = res.headers['content-type'] || ''
         req.destroy()
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          if (redirectsLeft <= 0) {
+            resolve({ ok: false, statusCode: res.statusCode, error: 'for mange redirects' })
+            return
+          }
+          // A redirect to http:// is rejected by the mixed-content check in the recursive call
+          const target = new URL(res.headers.location, url).href
+          resolve(checkStreamHttp(target, timeoutMs, withIcy, redirectsLeft - 1))
+          return
+        }
         resolve({
-          ok: res.statusCode >= 200 && res.statusCode < 400,
+          ok: res.statusCode >= 200 && res.statusCode < 300,
           statusCode: res.statusCode,
           bitrate: bitrate ? parseInt(bitrate, 10) : null,
           contentType,
