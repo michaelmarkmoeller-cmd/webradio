@@ -26,7 +26,8 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 ## Projektstruktur
 ```
 api/
-└── icy-meta.ts                  # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
+├── icy-meta.ts                  # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
+└── now-playing.ts               # Vercel serverless — proxy til Bauer DK's nu-spiller-API (CORS kun radioplay.dk)
 src/
 ├── components/
 │   ├── Player.tsx               # Player (20vh) — Now Playing, lyttetimer, volume, ICY-metadata, sleep timer
