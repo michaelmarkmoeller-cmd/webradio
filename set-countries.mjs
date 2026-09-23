@@ -49,7 +49,7 @@ const countryMap = {
   '538 Hitzone':                 'nl',
   '538 Party':                   'nl',
   'PopTron':                     'us',
-  'Radio 10 Top 4000':           'nl',
+  'Radio 10 Pop':                'nl',
   'Radio SAW':                   'de',
   'radio SAW In The Mix':        'de',
   'RadioMonster Dance':          'fr',

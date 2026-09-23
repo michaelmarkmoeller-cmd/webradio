@@ -12,7 +12,7 @@ const MANUAL_BITRATES = {
   'Rock Antenne':       128, // rockantenne.de main stream
   'Sky Radio 80s Hits': 128, // streamtheworld standard
   'Radio 10 90s Hits':  128,
-  'Radio 10 Top 4000':  128,
+  'Radio 10 Pop':       128,
   '538 Party':          128,
   '538 Hitzone':        128,
   'Veronica Top 1000':  128,

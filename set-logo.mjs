@@ -51,7 +51,7 @@ const LOGOS = {
   // Veronica / Radio 10 (kanal-specifikke logoer fra Talpa/Contentful CDN)
   'Veronica Top 1000':         'https://www.radioveronica.nl/veronica/favicon.ico',
   'Radio 10 90s Hits':         'https://images.ctfassets.net/fpk5n836jg85/252ZxnFfthteIYOfsBgqFK/23404090945eb25843a8693bfc0a8c57/Brand_Radio_10__Type_90-s_Hits.jpg',
-  'Radio 10 Top 4000':         'https://images.ctfassets.net/fpk5n836jg85/65TqNtq7Df2iebZzFSTVnd/4b4f64226a111e358081e73b70bd739e/Brand_Radio_10__Type_Top_4000.jpg',
+  'Radio 10 Pop':              'https://webradio-chi.vercel.app/logos/radio-10-pop-navn.png',
   'Radio 10 60s & 70s':        'https://images.ctfassets.net/fpk5n836jg85/JepIiUVvENVE6FoJnSccC/6afc5ae514f42fc82624e05f9f1ec42c/NEW_Brand-Radio-10_Type-60s-70s.jpg',
 
   // Sky Radio
