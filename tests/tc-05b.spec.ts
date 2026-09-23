@@ -159,7 +159,8 @@ test.describe('TC-05: Nu spiller fra netværks-API', () => {
     })
     // Stationslogo som fallback efter coveret — ingen app-ikoner, der kan "vinde" på størrelse
     expect(md?.artwork.length).toBe(2)
-    expect(md?.artwork[1].src).toContain('/api/artwork?url=')
+    // Logoet ligger på eget domæne (alle logoer lokale siden 23-09-2026) → ingen proxy
+    expect(md?.artwork[1].src).toMatch(new RegExp(`^${origin}/logos/`))
     expect(md?.artwork.some(a => a.src.includes('/icons/icon-'))).toBe(false)
   })
 

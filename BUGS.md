@@ -20,7 +20,7 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
-| BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Lukket — hakke-symptom rettet, kerneproblem accepteret som platformsbegrænsning | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Genåbnet 23-09-2026 — lydløs pause deployet, afventer iPhone-test (TC-17-16..18) | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-17 | `src/components/StationCard.tsx:83` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
@@ -370,6 +370,18 @@ Dette retter formentlig den hakkende/skrattende genafspilning, Michael observere
 - Den eksisterende `_shouldResume`-mekanisme (arm'et via `visibilitychange`, udløst af næste klik i appen) fanger situationen korrekt, når man selv genåbner appen — det er ikke en fejl, blot en begrænsning i, hvad der kan opnås fra selve låseskærmen/baggrunden uden brugerens aktive tilstedeværelse i appen.
 
 Intet yderligere arbejde planlagt på BUG-15's kerneproblem, medmindre nye observationer dukker op. **BUG-15 er lukket.**
+
+**Genåbnet 23-09-2026 — ny observation (Michael, iPhone 17 Pro Max, iOS 27.0):** Pause på låseskærmen → PLAY virker, hvis man trykker, *før* låseskærmen fader ud (BigFM Dance). Trykker man efter (10-15 sek.), sker intet, og player-widget'en forsvinder. Det bekræfter mekanismen: så længe siden stadig er vågen, lykkes genforbindelsen — men når streamen er stoppet, lægger iOS siden i dvale kort efter skærmen slukker, og PLAY kan så ikke nå at koble på igen.
+
+**Løsning: lydløs pause (kun iOS, commit `06accb1`, valgt af Michael — "udvidelsen" med 5 min. loft):**
+- Pause på iOS stopper ikke streamen: `a.muted = true`, streamen kører videre. UI og MediaSession viser pause. PLAY slår blot lyden til igen — ingen ny forbindelse, så det virker også fra låseskærmen, og man er stadig live.
+- Stoppes rigtigt efter **20 sek.**, mens appen er synlig (PLAY i appen virker altid), ellers efter højst **5 min.** fra pausen. `visibilitychange` genberegner timeren i begge retninger (`armSilentPauseTimer()`). Pause i appen efterfulgt af lås inden 20 sek. er derfor også dækket.
+- Ingen tone/brum (modsat BUG-14's 18 Hz-keepalive) — ren stilhed. Omkostning: data (ca. 60-140 MB/time afhængigt af bitrate) og lidt strøm i højst 5 min. Opkald og notifikationer lyder som normalt; iOS afbryder selv streamen ved opkald.
+- Søvntimer og Sonos-cast stopper altid rigtigt via ny store-action `stopPlayback()`. Pc uændret (fade-out + stop).
+- Guards: `play`-lytteren ignorerer iOS' auto-resume (fx efter opkald) under lydløs pause, og `visibilitychange`-reconcileren viser ikke "spiller", selvom elementet kører lydløst. Er streamen afbrudt/fejlet under pausen, kobles der på normalt ved PLAY. `playStation()` afslutter altid en lydløs pause og slår lyden til.
+- **Usikkert:** om iOS 27 holder en side med *muted* audio vågen på samme måde som en med hørbar lyd — kan kun afgøres på rigtig iPhone (TC-17-16..18).
+
+**Verifikation:** `npm run build` ren. TC-17-05..15 (`tests/tc-17b.spec.ts`, iPhone-UA i Chromium, falsk ur, simuleret låst skærm) grønne lokalt og mod produktion; fuld suite 104/104.
 
 ---
 

@@ -44,6 +44,8 @@ async function loadAndPlay(page: Page) {
   await page.waitForSelector('.rounded-xl.border.px-4', { timeout: 15000 })
   await page.locator('.rounded-xl.border.px-4').first().click()
   await page.waitForSelector('[aria-label="Pause"]', { timeout: 10000 })
+  // Første forbindelses loadstart skal være talt, før testene læser tælleren
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __loadstarts?: number }).__loadstarts ?? 1)).toBeGreaterThan(0)
 }
 
 // ─────────────────────────────────────────────
@@ -129,9 +131,9 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     await setHidden(page, false)
     await page.click('[aria-label="Afspil"]')
     await expect(page.locator('[aria-label="Pause"]')).toBeVisible()
-    const s = await audioState(page)
-    expect(s).toMatchObject({ paused: false, muted: false })
-    expect(s.loadstarts).toBeGreaterThan(before)
+    expect(await audioState(page)).toMatchObject({ paused: false, muted: false })
+    // loadstart er et asynkront event — vent på det
+    await expect.poll(async () => (await audioState(page)).loadstarts).toBeGreaterThan(before)
   })
 
   test('TC-17-13: Stationsskift under lydløs pause giver lyd på den nye station', async ({ page }) => {

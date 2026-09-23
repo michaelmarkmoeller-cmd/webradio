@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-09-23 (TC-05-08..16 tilføjet: nu spiller fra netværks-API inkl. Bauer DK + albumcover)  
-**Antal test cases:** 98 fordelt på 17 grupper
+**Antal test cases:** 112 fordelt på 17 grupper
 
 ---
 
@@ -1001,4 +1001,132 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-06-15 — 86 test cases, 17 grupper*
+*Lydløs pause (TC-17-05..18) tilføjet 23-09-2026. TC-17-05..15 automatiseret i `tests/tc-17b.spec.ts` (iPhone-UA i Chromium, falsk ur, simuleret `visibilityState`); TC-17-16..18 kræver rigtig iPhone.*
+
+### TC-17-05: Pause på iOS slår lyden fra, men stopper ikke streamen
+**Forudsætning:** iPhone, en station spiller  
+**Trin:**
+1. Tryk Pause i appen
+
+**Forventet resultat:** Player viser Afspil, MediaSession `paused`. Audio-elementet kører videre med `muted = true`.
+
+---
+
+### TC-17-06: PLAY under lydløs pause slår lyden til uden ny forbindelse
+**Forudsætning:** TC-17-05, 10 sek. efter pause  
+**Trin:**
+1. Tryk Afspil
+
+**Forventet resultat:** Lyden slås til, ingen ny stream-forbindelse (intet `loadstart`), MediaSession `playing`.
+
+---
+
+### TC-17-07: Pause i appen stoppes rigtigt efter 20 sek., hvis appen forbliver åben
+**Forudsætning:** iPhone, en station spiller  
+**Trin:**
+1. Tryk Pause og bliv i appen i 21 sek.
+
+**Forventet resultat:** Efter 19 sek. stadig lydløs; efter 21 sek. rigtigt stoppet (`paused`, ikke `muted`).
+
+---
+
+### TC-17-08: Låseskærm-pause holder streamen lydløst i live i 5 min., derefter rigtigt stop
+**Forudsætning:** iPhone, skærm låst, en station spiller  
+**Trin:**
+1. Tryk Pause på låseskærmen og vent 5 min.
+
+**Forventet resultat:** Lydløs indtil 5 min.; derefter rigtigt stoppet.
+
+---
+
+### TC-17-09: Låseskærm-PLAY efter 2 min. lydløs pause genoptager uden ny forbindelse
+**Forudsætning:** TC-17-08  
+**Trin:**
+1. Tryk PLAY på låseskærmen efter 2 min.
+
+**Forventet resultat:** Lyden slås til med det samme, ingen ny forbindelse.
+
+---
+
+### TC-17-10: Pause i appen → lås inden 20 sek. → lydløs pause fortsætter op til loftet
+**Forudsætning:** iPhone, en station spiller  
+**Trin:**
+1. Pause i appen, lås efter 10 sek., vent 1 min., tryk PLAY på låseskærmen
+
+**Forventet resultat:** Stadig lydløs efter 1 min.; PLAY slår lyden til.
+
+---
+
+### TC-17-11: Åbnes appen under lydløs pause, stoppes streamen 20 sek. senere
+**Forudsætning:** TC-17-08, 1 min. inde  
+**Trin:**
+1. Lås op og åbn appen
+
+**Forventet resultat:** Player viser Afspil (ikke "spiller"); streamen stoppes rigtigt 20 sek. efter.
+
+---
+
+### TC-17-12: PLAY efter loftet kobler streamen på igen som normalt
+**Forudsætning:** Lydløs pause udløbet (5 min.)  
+**Trin:**
+1. Åbn appen og tryk Afspil
+
+**Forventet resultat:** Ny forbindelse (`loadstart`), afspilning som før.
+
+---
+
+### TC-17-13: Stationsskift under lydløs pause giver lyd på den nye station
+**Forudsætning:** Lydløs pause aktiv  
+**Trin:**
+1. Klik en anden station
+
+**Forventet resultat:** Den nye station spiller med lyd (`muted = false`).
+
+---
+
+### TC-17-14: Søvntimer stopper streamen rigtigt (ingen lydløs pause)
+**Forudsætning:** iPhone, søvntimer 10 min.  
+**Trin:**
+1. Vent til timeren udløber
+
+**Forventet resultat:** Streamen er rigtigt stoppet — ikke lydløs.
+
+---
+
+### TC-17-15: Pause på pc stopper streamen med det samme
+**Forudsætning:** Pc, en station spiller  
+**Trin:**
+1. Tryk Pause
+
+**Forventet resultat:** Streamen stoppes (fade-out) som hidtil — ingen lydløs pause.
+
+---
+
+### TC-17-16: iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel)
+**Forudsætning:** Rigtig iPhone, skærm slukket  
+**Trin:**
+1. Pause på låseskærm, vent 1-4 min. (skærm fadet ud), væk skærmen, tryk PLAY
+
+**Forventet resultat:** Musikken spiller igen med det samme; player-widget forsvinder ikke.
+
+---
+
+### TC-17-17: iPhone: pause i appen → lås → PLAY på låseskærmen efter 1 min. (manuel)
+**Forudsætning:** Rigtig iPhone  
+**Trin:**
+1. Pause i appen, lås inden 20 sek., vent 1 min., tryk PLAY
+
+**Forventet resultat:** Musikken spiller igen med det samme.
+
+---
+
+### TC-17-18: iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel)
+**Forudsætning:** Rigtig iPhone + AirPods  
+**Trin:**
+1. Tag AirPods ud, sæt dem i igen — først med appen åben, derefter med låst skærm (vent 1 min.)
+
+**Forventet resultat:** Appen åben: auto-resume som før. Låst skærm: bedre eller som før (afhænger af hvordan iOS sender ørefjernelsen videre).
+
+---
+
+*Sidst opdateret: 2026-09-23 — 112 test cases, 17 grupper*
