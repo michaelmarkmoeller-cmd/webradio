@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio } from '../audio'
+import { getOrCreateAudio, getSilentLoopUrl } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
@@ -59,7 +59,9 @@ const reorderSeq: Record<string, number> = {}
 
 // Lydløs pause (iOS, 23-09-2026): stopper vi streamen ved pause, lægger iOS appen i dvale efter
 // 10-15 sek. med slukket skærm, og et PLAY fra låseskærmen kan så ikke nå at koble streamen på
-// igen (BUG-15). I stedet kører streamen videre med lyden slået fra, og PLAY slår blot lyden til.
+// igen (BUG-15). I stedet skifter audio-elementet til en lokal løkke med næsten-stilhed
+// (getSilentLoopUrl), så iOS holder appen vågen og WebRadio på låseskærmen; PLAY kobler streamen
+// på igen. Slået-fra lyd (muted) virker IKKE — iOS behandler det som stop (testet på iPhone).
 // Stoppes rigtigt efter 20 sek. mens appen er synlig (PLAY i appen virker altid), ellers efter
 // højst 5 min. fra pausen.
 const SILENT_PAUSE_MAX_MS = 5 * 60_000
@@ -74,14 +76,19 @@ function armSilentPauseTimer() {
   silentPause.timer = setTimeout(endSilentPause, Math.max(0, ms))
 }
 
-// Afslutter en lydløs pause med et rigtigt stop (no-op hvis der ingen er)
-function endSilentPause() {
+// Afslutter en lydløs pause uden at røre afspilningen (no-op hvis der ingen er)
+function clearSilentPause() {
   if (!silentPause) return
   clearTimeout(silentPause.timer)
   silentPause = null
-  const a = audio()
-  a.pause()
-  a.muted = false
+  audio().loop = false
+}
+
+// Afslutter en lydløs pause med et rigtigt stop (no-op hvis der ingen er)
+function endSilentPause() {
+  if (!silentPause) return
+  clearSilentPause()
+  audio().pause()
 }
 
 // Returns the singleton Audio element.
@@ -167,7 +174,7 @@ function audio() {
     // fires (it's a queued macrotask), so isPlaying:false here always means external resume.
     a.addEventListener('play', () => {
       const { isPlaying, listenAccumulatedMs, currentStation } = useRadioStore.getState()
-      if (isPlaying || silentPause) return  // lydløs pause: iOS genoptog efter fx et opkald — forbliv pauset
+      if (isPlaying || silentPause) return  // stilhedsløkken (lydløs pause) er ikke rigtig afspilning
       useRadioStore.setState({ isPlaying: true, isBuffering: true, listenStartedAt: Date.now(), listenAccumulatedMs })
       if (currentStation) syncMediaSession(currentStation, true)
     })
@@ -314,7 +321,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   playStation: (station) => {
     const a = audio()
     endSilentPause()
-    a.muted = false
     if (fadeIntervalId) {
       clearInterval(fadeIntervalId)
       fadeIntervalId = null
@@ -356,18 +362,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         fadeIntervalId = null
         try { a.volume = get().volume } catch {}
       }
-      // Lydløs pause: streamen kører stadig — slå blot lyden til (ingen ny forbindelse, så det
-      // virker også fra låseskærmen). Er den afbrudt i mellemtiden (fx opkald), reconnectes normalt.
-      if (silentPause && currentStation && !a.paused && !a.error && Date.now() - silentPause.startedAt < SILENT_PAUSE_MAX_MS) {
-        clearTimeout(silentPause.timer)
-        silentPause = null
-        a.muted = false
-        set({ isPlaying: true, isBuffering: a.readyState < 3, listenStartedAt: Date.now() })
-        syncMediaSession(currentStation, true)
-        return
-      }
-      endSilentPause()
-      a.muted = false
+      // Lydløs pause: appen er holdt vågen af stilhedsløkken, så genforbindelsen herunder virker
+      // også fra låseskærmen
+      clearSilentPause()
       // Live streams can't resume from a buffered position — reconnect from "now".
       // Stop any stale/half-open connection first, so a previous failed resume
       // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
@@ -431,7 +428,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   },
 }))
 
-// Pause. silent=true (iOS): lydløs pause — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
+// Pause. silent=true (iOS): lydløs pause med stilhedsløkke — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
 // og streamen stoppes som hidtil.
 function pauseAudio(silent: boolean) {
   const { currentStation, listenAccumulatedMs, listenStartedAt, volume } = useRadioStore.getState()
@@ -440,8 +437,10 @@ function pauseAudio(silent: boolean) {
   useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
   if (currentStation) syncMediaSession(currentStation, false)
   if (silent && currentStation && !a.paused) {
-    a.muted = true
     silentPause = { startedAt: Date.now(), timer: undefined }
+    a.src = getSilentLoopUrl()
+    a.loop = true
+    a.play().catch(() => clearSilentPause())
     armSilentPauseTimer()
     return
   }
