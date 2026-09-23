@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react'
-import { useRadioStore } from '../store/useRadioStore'
+import { useRadioStore, setMediaSessionTrack } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import toast from 'react-hot-toast'
-import { getNowPlayingSource, fetchNowPlaying } from '../utils/nowPlaying'
+import { getNowPlayingSource, fetchNowPlaying, type NowPlayingCover } from '../utils/nowPlaying'
 import { playOnSonos, setVolumeOnSonos, stopSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
 
 const SONOS_VOLUME_STEP = 5
@@ -21,7 +21,9 @@ function formatListenTime(sec: number): string {
 
 export function Player() {
   const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
-  const [meta, setMeta] = useState<{ title: string | null; genre: string | null }>({ title: null, genre: null })
+  const [meta, setMeta] = useState<{ title: string | null; genre: string | null; cover: NowPlayingCover | null }>({ title: null, genre: null, cover: null })
+  // Cover-URL der ikke kunne indlæses — falder tilbage til stationslogoet
+  const [brokenCover, setBrokenCover] = useState<string | null>(null)
   const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
   const sleepMenuRef = useRef<HTMLDivElement>(null)
   const [sonosMenuOpen, setSonosMenuOpen] = useState(false)
@@ -47,7 +49,7 @@ export function Player() {
       if (nowPlayingSource) {
         try {
           const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
-          if (!cancelled) setMeta({ title: np.title, genre: null })
+          if (!cancelled) setMeta({ title: np.title, genre: null, cover: np.cover })
         } catch { }
         return
       }
@@ -62,13 +64,20 @@ export function Player() {
         if (cancelled) return
         if (data.icySupported === false) { icySupportedRef.current = false; return }
         icySupportedRef.current = true
-        setMeta({ title: data.title ?? null, genre: data.genre ?? null })
+        setMeta({ title: data.title ?? null, genre: data.genre ?? null, cover: null })
       } catch { }
     }
     fetchMeta()
     const interval = setInterval(fetchMeta, 30000)
     return () => { cancelled = true; controller.abort(); clearInterval(interval) }
   }, [currentStation?.id, isPlaying])
+
+  // Sangtitel + cover til OS'ets "Now Playing" (låseskærm, CarPlay, medietaster)
+  const cover = meta.cover && meta.cover.src !== brokenCover ? meta.cover : null
+  useEffect(() => {
+    if (!currentStation) return
+    setMediaSessionTrack(currentStation.id, meta.title, cover)
+  }, [currentStation?.id, meta.title, cover?.src])
 
   // Refresh countdown display every 30s while timer is active
   useEffect(() => {
@@ -270,8 +279,17 @@ export function Player() {
 
       {/* Row 3 — Logo + station info + play button */}
       <div className="flex items-center gap-4">
-        {/* Logo */}
-        {currentStation.logoUrl ? (
+        {/* Albumcover for aktuelt nummer når netværket leverer et — ellers stationslogo */}
+        {cover ? (
+          <img
+            key={cover.src}
+            src={cover.src}
+            alt={meta.title ?? currentStation.name}
+            onError={() => setBrokenCover(cover.src)}
+            className="h-12 w-12 rounded-xl object-cover shrink-0"
+            style={{ boxShadow: `0 4px 16px ${accent}40` }}
+          />
+        ) : currentStation.logoUrl ? (
           <img
             src={currentStation.logoUrl}
             alt={currentStation.name}

@@ -43,7 +43,8 @@ export default async function handler(req: any, res: any) {
 
     // Kort delt cache — alle lyttere på samme station deler ét opslag hos Bauer
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=15')
-    return res.json({ title, end: copenhagenToIso(data?.EventFinish) })
+    const cover = typeof data?.ImageUrl === 'string' && data.ImageUrl.startsWith('https://') ? data.ImageUrl : null
+    return res.json({ title, cover, end: copenhagenToIso(data?.EventFinish) })
   } catch {
     return res.json({ title: null, end: null })
   }

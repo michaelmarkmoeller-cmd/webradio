@@ -13,15 +13,19 @@ async function playStation(page: Page, name: string) {
   await page.waitForSelector('[aria-label="Pause"]', { timeout: 10000 })
 }
 
-function irisBody(artist: string, title: string, airtime: Date, durationSec = 240) {
+function irisBody(artist: string, title: string, airtime: Date, durationSec = 240, coverXl?: string) {
   return JSON.stringify({
     result: { found: '1', entry: [{
       airtime: airtime.toISOString(),
       duration: String(durationSec),
-      song: { found: '1', entry: [{ title, artist: { found: '1', entry: [{ name: artist }] } }] },
+      song: { found: '1', entry: [{ title, artist: { found: '1', entry: [{ name: artist }] }, cover_art_url_xl: coverXl }] },
     }] },
   })
 }
+
+const TEST_COVER = 'https://tc05-cover.test/cover-600.jpg'
+// 1×1 PNG — så cover-billedet kan "indlæses" uden netværk
+const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
 
 // ─────────────────────────────────────────────
 // TC-05 (fortsat): "Nu spiller" fra netværks-API (80s80s/90s90s/BOB!/bigFM/Klassik)
@@ -104,6 +108,53 @@ test.describe('TC-05: Nu spiller fra netværks-API', () => {
     await playStation(page, 'NOVA')
     await page.waitForTimeout(2000)
     await expect(page.locator('.fixed.bottom-0').locator('text=TC05 Gammel Dansk Sang')).not.toBeVisible()
+  })
+
+  test('TC-05-14: Albumcover vises i player i stedet for stationslogo', async ({ page }) => {
+    await page.route('**/tc05-cover.test/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 }))
+    await page.route('**/iris-80s80s.loverad.io/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: irisBody('TC05 Artist', 'TC05 Song', new Date(), 240, TEST_COVER) })
+    })
+    await loadApp(page)
+    await playStation(page, '80s80s Radio')
+    const img = page.locator('.fixed.bottom-0 img.h-12')
+    await expect(img).toHaveAttribute('src', TEST_COVER, { timeout: 5000 })
+    await expect(img).toHaveAttribute('alt', 'TC05 Artist - TC05 Song')
+  })
+
+  test('TC-05-15: Cover der ikke kan indlæses falder tilbage til stationslogo', async ({ page }) => {
+    await page.route('**/tc05-cover.test/**', (route) => route.fulfill({ status: 404, body: '' }))
+    await page.route('**/iris-80s80s.loverad.io/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: irisBody('TC05 Artist', 'TC05 Song', new Date(), 240, TEST_COVER) })
+    })
+    await loadApp(page)
+    await playStation(page, '80s80s Radio')
+    await expect(page.locator('.fixed.bottom-0').locator('text=TC05 Artist - TC05 Song')).toBeVisible({ timeout: 5000 })
+    const img = page.locator('.fixed.bottom-0 img.h-12')
+    await expect(img).not.toHaveAttribute('src', TEST_COVER, { timeout: 5000 })
+    await expect(img).toHaveAttribute('alt', '80s80s Radio')
+  })
+
+  test('TC-05-16: Låseskærm (MediaSession) viser sangtitel, station og cover', async ({ page }) => {
+    await page.route('**/tc05-cover.test/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 }))
+    await page.route('**/iris-80s80s.loverad.io/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: irisBody('TC05 Artist', 'TC05 Song', new Date(), 240, TEST_COVER) })
+    })
+    await loadApp(page)
+    await playStation(page, '80s80s Radio')
+    await expect(page.locator('.fixed.bottom-0').locator('text=TC05 Artist - TC05 Song')).toBeVisible({ timeout: 5000 })
+    const md = await page.evaluate(() => {
+      const m = navigator.mediaSession.metadata
+      return m ? { title: m.title, artist: m.artist, artwork: m.artwork.map(a => ({ src: a.src, sizes: a.sizes, type: a.type })) } : null
+    })
+    expect(md?.title).toBe('TC05 Artist - TC05 Song')
+    expect(md?.artist).toBe('80s80s Radio')
+    expect(md?.artwork[0]).toEqual({ src: TEST_COVER, sizes: '600x600', type: 'image/jpeg' })
+    // Stationslogo + app-ikoner bevares som fallback efter coveret
+    expect(md?.artwork.length).toBeGreaterThanOrEqual(3)
   })
 
 })

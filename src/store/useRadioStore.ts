@@ -170,16 +170,39 @@ function syncMediaSession(station: Station, playing: boolean) {
     { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
   ]
   if (station.logoUrl) {
-    const ext = station.logoUrl.split('.').pop()?.toLowerCase() ?? ''
-    const mimeType = ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : 'image/png'
-    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: mimeType })
+    artwork.unshift({ src: station.logoUrl, sizes: '256x256', type: imageMimeType(station.logoUrl) })
+  }
+  // Aktuelt nummer (sat af Player via setMediaSessionTrack) — kun hvis det hører til denne station
+  const track = mediaSessionTrack?.stationId === station.id ? mediaSessionTrack : null
+  if (track?.cover) {
+    artwork.unshift({ src: track.cover.src, sizes: track.cover.sizes, type: imageMimeType(track.cover.src) })
   }
   navigator.mediaSession.metadata = new MediaMetadata({
-    title: station.name,
-    artist: 'WebRadio',
+    title: track?.title ?? station.name,
+    artist: track?.title ? station.name : 'WebRadio',
     artwork,
   })
   navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
+}
+
+function imageMimeType(url: string): string {
+  const ext = url.split('?')[0].split('.').pop()?.toLowerCase() ?? ''
+  if (ext === 'svg') return 'image/svg+xml'
+  if (ext === 'webp') return 'image/webp'
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg'
+  return 'image/png'
+}
+
+let mediaSessionTrack: { stationId: string; title: string | null; cover: { src: string; sizes: string } | null } | null = null
+
+// Kaldes af Player, når sangtitel/cover for den aktuelle station ændrer sig. Opdaterer kun
+// OS'ets "Now Playing"-metadata (låseskærm, CarPlay) — rører ikke afspilningen.
+export function setMediaSessionTrack(stationId: string, title: string | null, cover: { src: string; sizes: string } | null) {
+  const prev = mediaSessionTrack
+  if (prev?.stationId === stationId && prev.title === title && prev.cover?.src === cover?.src) return
+  mediaSessionTrack = { stationId, title, cover }
+  const { currentStation, isPlaying } = useRadioStore.getState()
+  if (currentStation?.id === stationId && mediaSessionReady) syncMediaSession(currentStation, isPlaying)
 }
 
 export const useRadioStore = create<RadioStore>((set, get) => ({
