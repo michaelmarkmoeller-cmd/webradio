@@ -97,7 +97,7 @@ function endSilentPause() {
 function audio() {
   const a = getOrCreateAudio({
     onPlaying: () => useRadioStore.setState({ isBuffering: false }),
-    onWaiting: () => useRadioStore.setState({ isBuffering: true }),
+    onWaiting: () => { if (!silentPause) useRadioStore.setState({ isBuffering: true }) },  // stilhedsløkken er ikke "Forbinder"
     onError:   () => useRadioStore.setState({ isBuffering: false, isPlaying: false }),
   })
   if (!externalPauseListenerAdded) {
@@ -427,6 +427,28 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     }, end - Date.now())
   },
 }))
+
+// Frakoblet lydenhed (AirPods/headset ud, CarPlay, Bluetooth) — kaldes af devicechange i App.tsx.
+// Altid et rigtigt stop med radiostreamen stående på elementet: iOS stopper selv en stilhedsløkke ved
+// frakobling (så lydløs pause hjælper ikke her), og iOS' egen auto-resume ved genindsættelse virker
+// kun, når elementet er pauset med streamen. Nåede MediaSession-pausen (fra samme frakobling) at
+// starte en lydløs pause lige før, omdannes den. Returnerer om der blev spillet ved frakoblingen.
+export function pauseForDisconnect(): boolean {
+  const { isPlaying, currentStation } = useRadioStore.getState()
+  const recentSilent = !!silentPause && Date.now() - silentPause.startedAt < 2000
+  if (isPlaying) {
+    pauseAudio(false)
+  } else if (silentPause) {
+    endSilentPause()
+    if (currentStation) {
+      const a = audio()
+      a.preload = 'none'  // stream klar på elementet uden at hente data
+      a.src = currentStation.streamUrl
+    }
+    useRadioStore.setState({ isBuffering: false })
+  }
+  return isPlaying || recentSilent
+}
 
 // Pause. silent=true (iOS): lydløs pause med stilhedsløkke — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
 // og streamen stoppes som hidtil.

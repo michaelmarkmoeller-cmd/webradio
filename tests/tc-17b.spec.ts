@@ -26,6 +26,10 @@ async function instrument(page: Page) {
     const orig = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession)
     navigator.mediaSession.setActionHandler = (action, h) => { if (h) handlers[action] = h as () => void; orig(action, h) }
     Object.defineProperty(document, 'visibilityState', { get: () => (w.__hidden ? 'hidden' : 'visible') })
+    // Simulerede lydenheder: antallet styres af testen (headset ud = færre enheder)
+    w.__devices = 3
+    navigator.mediaDevices.enumerateDevices = async () =>
+      Array.from({ length: w.__devices as number }, (_, i) => ({ deviceId: String(i), kind: 'audiooutput', label: '', groupId: '' }) as MediaDeviceInfo)
   })
 }
 
@@ -39,6 +43,10 @@ const setHidden = (page: Page, hidden: boolean) => page.evaluate((h) => {
   (window as unknown as { __hidden: boolean }).__hidden = h
   document.dispatchEvent(new Event('visibilitychange'))
 }, hidden)
+const setDevices = (page: Page, n: number) => page.evaluate((c) => {
+  (window as unknown as { __devices: number }).__devices = c
+  navigator.mediaDevices.dispatchEvent(new Event('devicechange'))
+}, n)
 const lockScreen = (page: Page, action: 'play' | 'pause') =>
   page.evaluate((a) => (window as unknown as { __ms: Record<string, () => void> }).__ms[a](), action)
 
@@ -146,6 +154,41 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     await page.locator('.rounded-xl.border.px-4').nth(1).click()
     await expect(page.locator('[aria-label="Pause"]')).toBeVisible()
     expect(await audioState(page)).toMatchObject({ paused: false, silent: false })
+  })
+
+  test('TC-17-19: Headset ud under afspilning giver rigtigt stop, ikke lydløs pause', async ({ page }) => {
+    await setDevices(page, 2)
+    await expect(page.locator('[aria-label="Afspil"]')).toBeVisible()
+    await page.clock.runFor(200)  // fade-out før stop
+    expect(await audioState(page)).toMatchObject({ paused: true, silent: false })
+    await expect(page.locator('text=Forbinder')).toHaveCount(0)
+  })
+
+  test('TC-17-20: Headset ind igen inden 10 sek. genoptager radiostreamen', async ({ page }) => {
+    await setDevices(page, 2)
+    await page.clock.runFor(3_000)
+    await setDevices(page, 3)
+    await expect(page.locator('[aria-label="Pause"]')).toBeVisible()
+    expect(await audioState(page)).toMatchObject({ paused: false, silent: false, ms: 'playing' })
+  })
+
+  test('TC-17-21: MediaSession-pause fra samme frakobling omdannes til rigtigt stop med streamen klar', async ({ page }) => {
+    await lockScreen(page, 'pause')  // iOS sender pause, lige før devicechange
+    expect(await audioState(page)).toMatchObject({ silent: true })
+    await setDevices(page, 2)
+    await expect.poll(async () => (await audioState(page)).silent).toBe(false)
+    expect(await audioState(page)).toMatchObject({ paused: true })
+    await page.clock.runFor(2_000)
+    await setDevices(page, 3)
+    await expect(page.locator('[aria-label="Pause"]')).toBeVisible()
+    expect(await audioState(page)).toMatchObject({ paused: false, silent: false })
+  })
+
+  test('TC-17-22: "Forbinder" vises ikke under lydløs pause', async ({ page }) => {
+    await page.click('[aria-label="Pause"]')
+    await page.evaluate(() => (window as unknown as { __audio: HTMLAudioElement }).__audio.dispatchEvent(new Event('waiting')))
+    await expect(page.locator('[aria-label="Afspil"]')).toBeVisible()
+    await expect(page.locator('text=Forbinder')).toHaveCount(0)
   })
 
   test('TC-17-14: Søvntimer stopper streamen rigtigt (ingen lydløs pause)', async ({ page }) => {

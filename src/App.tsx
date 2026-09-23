@@ -5,7 +5,7 @@ import { subscribeToStations } from './firebase/stationsService'
 import { subscribeFavorites } from './firebase/favoritesService'
 import { subscribeToStationOrder } from './firebase/stationOrderService'
 import { getDeviceId } from './utils/deviceId'
-import { useRadioStore } from './store/useRadioStore'
+import { useRadioStore, pauseForDisconnect } from './store/useRadioStore'
 import { CategoryFilter } from './components/CategoryFilter'
 import { StationGrid } from './components/StationGrid'
 import { Player } from './components/Player'
@@ -83,9 +83,8 @@ export default function App() {
 
       // Genuine drop in connected devices — pause immediately so music stops when leaving CarPlay/car
       disconnectAt = Date.now()
-      const { isPlaying, togglePlay } = useRadioStore.getState()
-      wasPlayingAtDisconnect = isPlaying
-      if (isPlaying) togglePlay()
+      // Rigtigt stop — ikke lydløs pause (se pauseForDisconnect)
+      wasPlayingAtDisconnect = pauseForDisconnect()
       pendingReconnect = true
       timer = setTimeout(() => { pendingReconnect = false }, 10_000)
     }
