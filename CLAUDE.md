@@ -92,7 +92,7 @@ public/
 - `stationOrders/{deviceId}` — felter: `{ [category]: string[] }` — ordnet liste af station-IDs per kategori
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato) på `/{document=**}`
 - Auto-seed: 9 stationer indsættes automatisk hvis databasen er tom
-- **80 stationer** i databasen pr. juni 2026 — alle har logoer
+- **82 stationer** i databasen pr. 23-09-2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (9)
@@ -173,12 +173,24 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - Forbinder til stream-URL med `Icy-MetaData: 1` header
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
-- **58 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.) — verificeret 23-09-2026 mod produktions-endpointet
+- **58 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.) — verificeret 23-09-2026 mod produktions-endpointet, *før* stations-oprydningen samme dag (se "Stations-oprydning 23-09-2026" nedenfor) — tallet er ikke genmålt for de nu 82 stationer
 - **Reel årsag til manglende ICY-support hos de fleste af de resterende 22 (rettet forståelse 23-09-2026):** Det er **ikke** en bevidst blokering fra stationernes side. Node/Vercels `fetch` (undici) kan ikke parse den forældede rå Shoutcast-statuslinje `ICY 200 OK` (i stedet for `HTTP/1.1 200 OK`), som en del ICY-servere stadig sender — den kaster `TypeError: Response does not match the HTTP/1.1 protocol (Missing expected CR after response line)`, som `api/icy-meta.ts`'s catch-all fanger og returnerer som `icySupported: false`. Streamen virker fint i browseren (som ikke har samme parser-begrænsning) og har reelt en gyldig `icy-metaint`-header — bekræftet ved direkte `curl`/rå-header-tjek. Ramt af dette: 80s80s-familien, radio SAW-familien, R.SA Italo Disco Hits, Radio BOB!-familien, Klassik Radio Christmas, 90s90s Radio, samt (nyt 23-09-2026) **90s Eurodance, bigFM Dance og Sunshine Live** — alle disse tre viste sig at køre på samme QuantumCast/streamabc.net-infrastruktur (Regiocast/AudioTAinment) som Radio SAW-familien og ramte samme parser-fejl. En reel fix kræver et rå TCP-baseret ICY-kald i stedet for `fetch()` (som `test-all-streams.mjs` allerede gør for sin egen tilgængeligheds-check) — ikke implementeret endnu, se [[project-backlog]].
 - Player poller hvert 30. sek når der spiller
 - Alle fejlgrene (ikke-OK svar, ugyldig/for stor `icy-metaint`, for kort buffer, uventet exception) returnerer eksplicit `icySupported: false` (rettet 14-07-2026, BUG-09) — forhindrer at `Player.tsx` fejlagtigt bliver ved med at polle en station, hvis stream reelt ikke leverer brugbar ICY-metadata
 - `isPrivateHost`-tjekket resolver hostnavnet via `dns.promises.lookup()` og validerer den faktiske IP (ikke kun hostname-strengen) — lukker SSRF-bypass via decimal/oktal/hex-encodede loopback-/private-adresser samt IPv4-mappede IPv6-adresser (rettet 14-07-2026, BUG-07)
 - `Player.tsx` rydder `meta`-state (sangtitel/genre) ubetinget ved hvert stations-/afspilningsskift (rettet 14-07-2026, BUG-16) — forhindrer at en tidligere stations sangtitel bliver stående, når man skifter til en station uden ICY-understøttelse
+
+## Stations-oprydning 23-09-2026
+Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det almindelige tilgængeligheds-tjek ikke fanger:
+- **DR P3 / P4 Nordjylland / P5** pegede på P1 / P3 / P6 Beat (DR har omnummereret kanalkoder) → nu `A05H` / `A10H` / `A25H`
+- **Radio 10 60s & 70s** pegede på Radio 10 Disco Classics → `TLPSTR18`
+- **80s80s Radio**: `/80s80s/`-mount sendte kun Prince → `/web/` (= "80s80s DIGITAL", hovedkanalen på 80s80s.de)
+- **R.SA Italo Disco Hits** (nedlagt, sendte 60er Oldies) → erstattet af **Disco Paradise Italo** (320 kbps, US)
+- **95.5 Charivari Italo-Hits** (død URL) → erstattet af **Italo Disco New Gen** (RMI, 320 kbps, PL)
+- Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
+- Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
+- Ikke afklaret endnu: **Danske 80'er Hits** (`DK_HQ_RP04.aac`) sender hverken navn eller metadata — Michael lytter selv efter
+- `check-streams.mjs` følger ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — ikke rettet endnu
 
 ## Kendte stream-problemer
 - **laut.fm streams** indsætter pre-roll reklamer ved ny tilkobling (platform-level, kan ikke forhindres)
@@ -231,7 +243,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 80 stationer har `logoUrl` i Firestore
+- Alle 82 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
@@ -276,7 +288,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 ## Hjælpescripts (rod-mappen)
 - `firebase-init.mjs` — **delt** Firebase-init (læser `.env`, eksporterer en færdig `db`-instans), tilføjet 14-07-2026 (BUG-13). Alle rodmappe-scripts importerer denne (`import { db } from './firebase-init.mjs'`) i stedet for at duplikere `.env`-parsing/`initializeApp`-boilerplate hver især — hold denne opdateret, hvis Firebase-config'en ændres, i stedet for at genindføre duplikeret init i nye scripts
-- `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
+- `check-streams.mjs` — checker HTTP-tilgængelighed på alle streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
 - `set-logo.mjs` — sætter/opdaterer `logoUrl` på alle stationer i Firestore
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
@@ -285,6 +297,9 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `add-dance-stations-jun2026.mjs` — tilføjede 10 Dance-stationer inkl. ny kategori (juni 2026)
 - `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
+- `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
+- `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
+- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
