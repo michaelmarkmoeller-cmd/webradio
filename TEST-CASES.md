@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-09-23 (TC-05-08..16 tilføjet: nu spiller fra netværks-API inkl. Bauer DK + albumcover)  
-**Antal test cases:** 112 fordelt på 17 grupper
+**Antal test cases:** 116 fordelt på 17 grupper
 
 ---
 
@@ -1030,12 +1030,12 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-17-08: Låseskærm-pause holder stilhedsløkken i gang i 5 min., derefter rigtigt stop
+### TC-17-08: Låseskærm-pause holder stilhedsløkken i gang i 30 min., derefter rigtigt stop
 **Forudsætning:** iPhone, skærm låst, en station spiller  
 **Trin:**
-1. Tryk Pause på låseskærmen og vent 5 min.
+1. Tryk Pause på låseskærmen og vent 30 min.
 
-**Forventet resultat:** Lydløs indtil 5 min.; derefter rigtigt stoppet.
+**Forventet resultat:** Stilhedsløkken kører indtil 30 min.; derefter rigtigt stoppet.
 
 ---
 
@@ -1067,7 +1067,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 ---
 
 ### TC-17-12: PLAY efter loftet kobler streamen på igen som normalt
-**Forudsætning:** Lydløs pause udløbet (5 min.)  
+**Forudsætning:** Lydløs pause udløbet (30 min.)  
 **Trin:**
 1. Åbn appen og tryk Afspil
 
@@ -1129,4 +1129,37 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-09-23 — 112 test cases, 17 grupper*
+### TC-17-19: Headset ud under afspilning giver rigtigt stop, ikke lydløs pause
+**Forudsætning:** En station spiller (simuleret iPhone)
+**Trin:**
+1. Frakobl en lydenhed (`devicechange` med færre enheder)
+
+**Forventet resultat:** Rigtigt stop (`paused`, ikke stilhedsløkken); "Forbinder" vises ikke.
+
+---
+### TC-17-20: Headset ind igen inden 10 sek. genoptager radiostreamen
+**Forudsætning:** TC-17-19
+**Trin:**
+1. Tilkobl enheden igen efter 3 sek.
+
+**Forventet resultat:** Radiostreamen spiller igen, MediaSession `playing`.
+
+---
+### TC-17-21: MediaSession-pause fra samme frakobling omdannes til rigtigt stop med streamen klar
+**Forudsætning:** En station spiller
+**Trin:**
+1. MediaSession-pause efterfulgt af `devicechange` (frakobling), derefter tilkobling
+
+**Forventet resultat:** Stilhedsløkken afsluttes, elementet er pauset; tilkobling genoptager radiostreamen.
+
+---
+### TC-17-22: "Forbinder" vises ikke under lydløs pause
+**Forudsætning:** Lydløs pause aktiv
+**Trin:**
+1. Audio-elementet sender `waiting`
+
+**Forventet resultat:** Statuslinjen viser ikke "Forbinder".
+
+---
+
+*Sidst opdateret: 2026-09-23 — 116 test cases, 17 grupper (TC-17-19..22 headset-frakobling automatiseret i `tests/tc-17b.spec.ts`)*

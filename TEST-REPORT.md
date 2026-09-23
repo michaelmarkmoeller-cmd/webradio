@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-09-23 (TC-05-08..16 + lydløs pause TC-17-05..18 tilføjet; fuld suite kørt mod produktion)  
+**Sidst opdateret:** 2026-09-23 (TC-05-08..16 + lydløs pause/headset TC-17-05..22 tilføjet; iPhone-test TC-17-16..18; fuld suite 108/108 mod produktion)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 112
+**Antal test cases:** 116
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 109 | 0 | 3 | 112 |
+| 115 | 1 | 0 | 116 |
 
 ---
 
@@ -393,7 +393,7 @@
 | TC-17-05 | Pause på iOS skifter til stilhedsløkke i stedet for at stoppe | 🟢 Godkendt | Player viser Afspil, MediaSession `paused`. Audio-elementet spiller stilhedsløkken (`blob:`-URL, `loop`) — ikke stoppet, ikke muted. | 23-09-2026 |
 | TC-17-06 | PLAY under lydløs pause kobler radiostreamen på igen | 🟢 Godkendt | Radiostreamen kobles på igen (nyt `loadstart`), løkken slås fra, MediaSession `playing`. | 23-09-2026 |
 | TC-17-07 | Pause i appen stoppes rigtigt efter 20 sek., hvis appen forbliver åben | 🟢 Godkendt | Efter 19 sek. spiller stilhedsløkken stadig; efter 21 sek. rigtigt stoppet (`paused`). | 23-09-2026 |
-| TC-17-08 | Låseskærm-pause holder stilhedsløkken i gang i 5 min., derefter rigtigt stop | 🟢 Godkendt | Lydløs indtil 5 min.; derefter rigtigt stoppet. | 23-09-2026 |
+| TC-17-08 | Låseskærm-pause holder stilhedsløkken i gang i 30 min., derefter rigtigt stop | 🟢 Godkendt | Stilhedsløkken kører indtil 30 min.; derefter rigtigt stoppet. | 23-09-2026 |
 | TC-17-09 | Låseskærm-PLAY efter 2 min. lydløs pause kobler radiostreamen på igen | 🟢 Godkendt | Radiostreamen kobles på igen, MediaSession `playing`. | 23-09-2026 |
 | TC-17-10 | Pause i appen → lås inden 20 sek. → lydløs pause fortsætter op til loftet | 🟢 Godkendt | Stadig lydløs efter 1 min.; PLAY slår lyden til. | 23-09-2026 |
 | TC-17-11 | Åbnes appen under lydløs pause, stoppes streamen 20 sek. senere | 🟢 Godkendt | Player viser Afspil (ikke "spiller"); streamen stoppes rigtigt 20 sek. efter. | 23-09-2026 |
@@ -401,17 +401,21 @@
 | TC-17-13 | Stationsskift under lydløs pause giver lyd på den nye station | 🟢 Godkendt | Den nye station spiller (ikke stilhedsløkken). | 23-09-2026 |
 | TC-17-14 | Søvntimer stopper streamen rigtigt (ingen lydløs pause) | 🟢 Godkendt | Streamen er rigtigt stoppet — ingen stilhedsløkke. | 23-09-2026 |
 | TC-17-15 | Pause på pc stopper streamen med det samme | 🟢 Godkendt | Streamen stoppes (fade-out) som hidtil — ingen lydløs pause. | 23-09-2026 |
-| TC-17-16 | iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel) | 🟡 Ikke testet | WebRadio bliver på låseskærmen under pausen (ingen fremmed app/cover); PLAY giver musik igen efter 1-2 sek. |  |
-| TC-17-17 | iPhone: pause i appen → lås → PLAY på låseskærmen efter 1 min. (manuel) | 🟡 Ikke testet | Musikken spiller igen med det samme. |  |
-| TC-17-18 | iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel) | 🟡 Ikke testet | Appen åben: auto-resume som før. Låst skærm: bedre eller som før (afhænger af hvordan iOS sender ørefjernelsen videre). |  |
+| TC-17-16 | iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel) | 🟢 Godkendt | WebRadio bliver på låseskærmen under pausen; PLAY giver musik igen (bekræftet af Michael, iPhone 17 Pro Max, iOS 27.0) | 23-09-2026 |
+| TC-17-17 | iPhone: pause i appen → lås → PLAY på låseskærmen efter 1 min. (manuel) | 🟢 Godkendt | Musikken spiller igen (bekræftet af Michael) | 23-09-2026 |
+| TC-17-18 | iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel) | 🔴 Fejlet | Appen åben: virker, men kun ved tryk på headsettets PLAY (ingen automatisk genstart). Låst skærm: streamen går i stå (`stalled`) efter `ms:play` — åben, se BUGS.md BUG-15 | 23-09-2026 |
+| TC-17-19 | Headset ud under afspilning giver rigtigt stop, ikke lydløs pause | 🟢 Godkendt | Rigtigt stop (`paused`, ikke stilhedsløkken); "Forbinder" vises ikke. | 23-09-2026 |
+| TC-17-20 | Headset ind igen inden 10 sek. genoptager radiostreamen | 🟢 Godkendt | Radiostreamen spiller igen, MediaSession `playing`. | 23-09-2026 |
+| TC-17-21 | MediaSession-pause fra samme frakobling omdannes til rigtigt stop med streamen klar | 🟢 Godkendt | Stilhedsløkken afsluttes, elementet er pauset; tilkobling genoptager radiostreamen. | 23-09-2026 |
+| TC-17-22 | "Forbinder" vises ikke under lydløs pause | 🟢 Godkendt | Statuslinjen viser ikke "Forbinder". | 23-09-2026 |
 
-**Resultat: 13/16 godkendt** (3 manuelle iPhone-tests afventer)
+**Resultat: 19/20 godkendt, 1 fejlet** (TC-17-18 — AirPods med låst skærm, åben)
 
 ---
 
 ## Samlet resultat
 
-> **Resultat: 109/112 godkendt, 3 ikke testet** (TC-17-16..18 kræver rigtig iPhone — lydløs pause). Fuld suite kørt mod produktion 23-09-2026 efter deploy af lydløs pause: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 115/116 godkendt, 1 fejlet** (TC-17-18: AirPods ud/ind med låst skærm — åben, fortsættes 24-09-2026). Fuld suite kørt mod produktion 23-09-2026 efter seneste deploy (`7e74b9f`): 108/108 automatiserede Playwright-tests grønne. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 
