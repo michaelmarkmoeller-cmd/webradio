@@ -318,6 +318,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
 - `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
+- `logo-report.mjs [outDir]` — måler alle stationslogoer (pixelstørrelse + reel opløsning) og laver `logo-overview.html` (kort pr. station, filter pr. kategori) + skema i terminalen (tilføjet 23-09-2026)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
 - `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
