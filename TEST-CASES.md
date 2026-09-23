@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-09-23 (TC-05-08..11 tilføjet: nu spiller fra netværks-API)  
-**Antal test cases:** 93 fordelt på 17 grupper
+**Senest opdateret:** 2026-09-23 (TC-05-08..13 tilføjet: nu spiller fra netværks-API inkl. Bauer DK)  
+**Antal test cases:** 95 fordelt på 17 grupper
 
 ---
 
@@ -397,6 +397,24 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 1. Afspil Klassik Radio Christmas
 
 **Forventet resultat:** "Kunstner - Titel" vises; en semikolon-dublet i API'ets `song`-felt ("Titel;Titel") vises kun én gang.
+
+---
+
+### TC-05-12: Bauer DK-station henter sangtitel via /api/now-playing
+**Forudsætning:** En Bauer DK-station (fx Danske 80'er Hits)  
+**Trin:**
+1. Afspil Danske 80'er Hits
+
+**Forventet resultat:** Player viser "Kunstner - Titel" hentet via `/api/now-playing?station=deh` (proxy til Bauers listenapi, som kun tillader CORS fra radioplay.dk).
+
+---
+
+### TC-05-13: Forældet Bauer-nummer vises ikke
+**Forudsætning:** Bauers seneste nummer sluttede for mere end 2 min siden (fx mens værten taler)  
+**Trin:**
+1. Afspil NOVA
+
+**Forventet resultat:** Ingen sangtitel vises.
 
 ---
 
