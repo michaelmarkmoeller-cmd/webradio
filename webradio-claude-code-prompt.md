@@ -1,6 +1,6 @@
 # WebRadio App – Projektoversigt (juni 2026)
 
-Dette dokument beskriver appens nuværende tilstand. For Claude Code-kontekst, se `CLAUDE.md`.
+Dette dokument beskriver appens tilstand i **juni 2026** og opdateres ikke løbende. Den aktuelle, vedligeholdte beskrivelse er `CLAUDE.md` (fx nu-spiller fra netværks-API, albumcover på låseskærmen, 83 stationer og lokalt hostede logoer fra september 2026).
 
 ---
 
@@ -117,7 +117,7 @@ webradio/
 │   ├── app-icon.svg
 │   ├── apple-touch-icon.png
 │   ├── icons/
-│   └── logos/                       # Lokalt hostede stationslogoer
+│   └── logos/                       # ALLE stationslogoer hostes lokalt her (regel fra 23-09-2026)
 ├── CLAUDE.md                        # Fuld teknisk dokumentation til Claude Code
 ├── .env                             # Firebase credentials (ikke i Git)
 └── .env.example
@@ -131,7 +131,7 @@ webradio/
 |---|---|
 | `list-stations.mjs` | List alle stationer med URL og logo |
 | `check-streams.mjs` | Checker bitrate og tilgængelighed |
-| `set-logo.mjs` | Opdater logoUrl i Firestore |
+| `localize-logos.mjs` | Flyt eksterne logoer til `public/logos/` + opdatér logoUrl (erstatter `set-logo.mjs`, fjernet 23-09-2026) |
 | `set-countries.mjs` | Sæt country (ISO-kode) på stationer |
 | `generate-icons.mjs` | Generer PNG-ikoner fra app-icon.svg |
 | `fix-big70s-stream.mjs` | One-off: rettede Big 70s Radio stream-URL |

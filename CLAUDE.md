@@ -207,6 +207,7 @@ Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det alm
 - Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
 - Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
 - **Danske 80'er Hits** pegede på Bauers internationale "80's Hits" (`DK_HQ_RP04.aac`) → `DK_HQ_RP05.aac` (verificeret mod radioplay.dk's egne stationsdata, station-ID 188). Den frigjorte RP04-URL er tilføjet som ny station **80's Hits** (kategori 80's, Bauer station-ID 198) → 83 stationer. Bauer-streams sender intet `icy-name` — slå op i `__NEXT_DATA__` på `radioplay.dk/<kanal>` (`stationStreams`) for at finde den rigtige mount
+- **Radio 10 Top 4000 omdøbt til Radio 10 Pop** (23-09-2026) — samme dokument og stream (`TLPSTR24`), kun `name` ændret
 - `check-streams.mjs` fulgte ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — rettet 23-09-2026: følger nu op til 5 redirects, kun 2xx tæller som OK, og `insecureHTTPParser: true` gør at Node kan læse streamabc-servernes statuslinje (før talte de kun som OK pga. den indledende 302)
 
 ## Kendte stream-problemer
@@ -315,6 +316,17 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
 - `localize-logos.mjs [--apply]` — flytter eksterne logoer til `public/logos/` (uændrede bytes) og peger Firestore på dem efter deploy (tilføjet 23-09-2026)
 - `logo-report.mjs [outDir]` — måler alle stationslogoer (pixelstørrelse + reel opløsning) og laver `logo-overview.html` (kort pr. station, filter pr. kategori) + skema i terminalen (tilføjet 23-09-2026)
+- `upgrade-logos.mjs [--apply]` — finder skarpere logoer (større variant hos samme kilde, reel-opløsningsmåling, `MANUAL`/`REJECT`) og laver før/efter-`preview.html` til godkendelse (23-09-2026)
+- Logo-generatorer (23-09-2026) — alle skriver til `public/logos/` som standard, eller til en mappe som 1. argument; de med flere koncepter tager variant som 2. argument og laver alle varianter til sammenligning uden:
+  - `make-saw-inthemix.mjs` — radio SAW In The Mix ×3 (SAW-flise farvelagt + vektor-diskokugle)
+  - `make-radio10-logos.mjs` — Radio 10 60s & 70s / 90s Hits / Pop med "RADIO 10" + kanalnavn (kilde: `radio-10-*.jpg`)
+  - `make-538-logos.mjs` — Radio 538 (DANCE) / 538 Hitzone / 538 Party i 538.nl-flisestil (kilde: `radio-538.png`)
+  - `make-80s80s-summerhits.mjs` — 80s80s-skilt klippet ud af `80s80s-radio.png` på `80s80s-summerhits.jpg` (valgt: `a`)
+  - `make-christmas-vinyl.mjs` — Christmas Vinyl HD, vinyl-julekugle (valgt: `a`)
+  - `make-eurobeat-logos.mjs` — laut.fm Eurobeat, Super Eurobeat-stil (valgt: `b`)
+  - `make-italo-disco-net-logos.mjs` — Radio Italo Disco Net, eget trikolore-hjerte + Italo/DISCO (valgt: `b`)
+  - Retro Radio, Forever 80 og Radio ANR er vektoriseret/tegnet med engangs-scripts i scratchpad (potrace m.fl.) — SVG-kilderne ligger i `public/logos/`
+- ⚠️ `add-italo-mix.mjs` og `add-new-stations-jun2026.mjs` henviser til logofiler, der er slettet ved oprydningen 23-09-2026 — kør dem ikke igen uden at rette logoerne (stationerne findes allerede)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
 - `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 

@@ -1,5 +1,7 @@
 # WebRadio – Codex kontekst
 
+> Synkroniseret kopi af `CLAUDE.md` (23-09-2026). `CLAUDE.md` er den primære — opdatér den først og kopiér hertil.
+
 ## Samarbejdsregler
 - Spørg altid hvis der er tvivl om hvad brugeren mener, eller hvis opgaven kræver yderligere uddybning før den kan løses korrekt.
 - **Sessionstart:** Kør altid `git fetch origin` + `git pull origin main` når projektet åbnes — brugeren arbejder på flere PC'er og de lokale filer kan være bagud.
@@ -26,7 +28,10 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 ## Projektstruktur
 ```
 api/
-└── icy-meta.ts                  # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
+├── _lib/privateHost.ts          # Fælles SSRF-tjek (isPrivateHost) — `_`-præfiks = ikke en Vercel-funktion
+├── artwork.ts                   # Vercel serverless — same-origin proxy for låseskærms-artwork (iOS-krav)
+├── icy-meta.ts                  # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
+└── now-playing.ts               # Vercel serverless — proxy til Bauer DK's nu-spiller-API (CORS kun radioplay.dk)
 src/
 ├── components/
 │   ├── Player.tsx               # Player (20vh) — Now Playing, lyttetimer, volume, ICY-metadata, sleep timer
@@ -65,6 +70,8 @@ public/
 - Stationsnavn og logo vises i OS-mediekontroller
 - `navigator.mediaSession.setActionHandler` for play/pause/stop
 - `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
+- **Sangtitel + albumcover på låseskærm/CarPlay** (23-09-2026): `Player.tsx` kalder `setMediaSessionTrack(stationId, title, cover)` når metadata ændres (både netværks-API og ICY). `syncMediaSession` bruger det kun hvis `stationId` matcher aktuel station: `title` = "Kunstner - Titel", `artist` = stationsnavn, albumcover forrest i `artwork`. Uden titel: `title` = stationsnavn, `artist` = "WebRadio" som før. Rører kun metadata — play/pause/action handlers er uændrede. Opdateres ikke før MediaSession er initialiseret (første afspilning)
+- **Artwork leveres fra eget domæne via `/api/artwork?url=`** (rettet 23-09-2026): iOS viste app-ikonet på låseskærmen i stedet for albumcoveret, selvom Apple Music-billederne har CORS `*`. `artworkSrc()` i `useRadioStore.ts` sender alle eksterne cover-/logo-URL'er gennem `api/artwork.ts` (kun https, SSRF-tjek via `api/_lib/privateHost.ts` pr. redirect-hop, kun `image/*`, max 2 MB, `Cache-Control` 1 døgn/7 dage). App-ikonerne (192/512) tilføjes **kun** når hverken cover eller logo findes — ellers kunne OS'et vælge det større 512×512-ikon frem for et mindre cover (Bauer 320) eller logo (256). `api/*.ts` kører som ESM (`""type"": ""module""`) → relative imports skal have `.js`-endelse
 
 **Sidst afspillede station**: `playStation()` gemmer stationens Firestore-ID i `localStorage` (`webradio_last_station_id`). `setStations()` gendanner ved første load (når `currentStation === null`): sætter stationen som `currentStation` i pauset tilstand og navigerer til dens kategori.
 
@@ -92,7 +99,7 @@ public/
 - `stationOrders/{deviceId}` — felter: `{ [category]: string[] }` — ordnet liste af station-IDs per kategori
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato) på `/{document=**}`
 - Auto-seed: 9 stationer indsættes automatisk hvis databasen er tom
-- **80 stationer** i databasen pr. juni 2026 — alle har logoer
+- **83 stationer** i databasen pr. 23-09-2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (9)
@@ -120,7 +127,7 @@ Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og imp
 - Stationsnavne bruger dynamisk skriftstørrelse med `line-clamp-2` sikkerhedsnet: ≤12 tegn → `text-sm`, ≤15 → `text-xs`, ≤22 → `text-[11px]`, længere → `text-[10px]`
 - **Stationskort-navnehøjde**: `min-h-[35px]` (fast px, ikke em) sikrer at alle kort i samme række har ens højde uanset navnelængde
 - Stationer vises i device-specifik rækkefølge (drag & drop), fallback til alfabetisk
-- Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate
+- Nye radiokanaler tilføjes altid med højeste tilgængelige bitrate — og med logoet gemt lokalt i `public/logos/` (se "Logoer")
 - **`pointer-events: none`** på tekst-container i StationCard — forhindrer iOS 16+ "Kopier/Oversæt/Læs op" callout ved long-press
 - **Stationskort-logo**: badge `w-11 h-11` absolut positioneret `top-2 left-4`, `rounded-lg`, `bg-black/30`, `object-contain` — kvadratisk thumbnail øverst til venstre. Navn-div: `ml-14` når logo er til stede (giver plads til badge), `pr-7` (giver plads til hjerte-knap)
 - **Stationskort-flag**: ISO 3166-1 alpha-2 kode i `country`-feltet → flag fra `flagcdn.com/w40/{code}.png`, vises inline i **kategorirækken** til højre for kategoriteksten (`w-[18px] rounded-sm shrink-0`)
@@ -173,16 +180,41 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - Forbinder til stream-URL med `Icy-MetaData: 1` header
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
-- **32 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.)
-- 80s80s- og radio SAW-familierne blokerer server-til-server forbindelser
+- **58 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.) — verificeret 23-09-2026 mod produktions-endpointet, *før* stations-oprydningen samme dag (se "Stations-oprydning 23-09-2026" nedenfor) — tallet er ikke genmålt for de nu 82 stationer
+- **Hvorfor de resterende stationer ikke viser sangtitel (endeligt afklaret 23-09-2026 — erstatter både "blokering"- og "undici-parser"-forklaringen):** streamabc/QuantumCast-stationerne (80s80s-, radio SAW-, 90s90s-, Radio BOB!-familien, bigFM Dance, Sunshine Live, Klassik Radio Christmas) sender **kun stationsnavnet** som `StreamTitle` (fx `'radio SAW Simulcast'`) efterfulgt af tomme metadata-blokke — aldrig en sangtitel. Undici/`fetch` kan godt nok ikke parse deres statuslinje (`Missing expected CR after response line`; Node `https` med `insecureHTTPParser: true` kan), men en parser-fix ville kun give stationsnavnet som "sangtitel" — derfor **ikke** implementeret. Deres rigtige nu-spiller-info kommer fra netværkernes egne API'er (fx viser 80s80s.de "Roxy Music – Avalon"), ikke fra streamen. Bauer DK-stationerne (NOVA, Pop FM, The Voice, Radio 100, Radio Soft, Danske 80'er Hits) og RauteMusik sender slet ingen `StreamTitle`. DR P3 sender programbeskrivelse i stedet for sang. Løst for 21 stationer 23-09-2026 via netværks-API'er (13 streamabc + 8 Bauer DK) — se "Nu spiller fra netværks-API" nedenfor
 - Player poller hvert 30. sek når der spiller
 - Alle fejlgrene (ikke-OK svar, ugyldig/for stor `icy-metaint`, for kort buffer, uventet exception) returnerer eksplicit `icySupported: false` (rettet 14-07-2026, BUG-09) — forhindrer at `Player.tsx` fejlagtigt bliver ved med at polle en station, hvis stream reelt ikke leverer brugbar ICY-metadata
 - `isPrivateHost`-tjekket resolver hostnavnet via `dns.promises.lookup()` og validerer den faktiske IP (ikke kun hostname-strengen) — lukker SSRF-bypass via decimal/oktal/hex-encodede loopback-/private-adresser samt IPv4-mappede IPv6-adresser (rettet 14-07-2026, BUG-07)
 - `Player.tsx` rydder `meta`-state (sangtitel/genre) ubetinget ved hvert stations-/afspilningsskift (rettet 14-07-2026, BUG-16) — forhindrer at en tidligere stations sangtitel bliver stående, når man skifter til en station uden ICY-understøttelse
 
+## Nu spiller fra netværks-API (tilføjet 23-09-2026)
+`src/utils/nowPlaying.ts` — for stationer hvis stream ikke sender en brugbar ICY-titel (kun stationsnavn, eller slet ingen) henter `Player.tsx` i stedet "Kunstner - Titel" direkte fra netværkets eget API (ingen nøgle; Iris/streamabc har CORS `*` og kaldes direkte fra browseren, Bauer går via proxy). `/api/icy-meta` kaldes slet ikke for disse stationer.
+- Kilden udledes af stream-URL'ens **host + første path-segment (mount)** — en station der genoprettes med samme URL får automatisk sangtitel igen. Ingen Firestore-felt
+- **Loverad/Iris** (`<base>/flow.json?station=<id>&offset=1&count=1`): 80s80s (`web`=62, `mix`=558, `maxis`=596, `summerhits`=569, `italohits`=283, `italodiscomix`=834), 90s90s (`pop`=141, `eurodance`=188), Radio BOB! (`bob-national`=69, `bob-classicrock`=16), Sunshine Live (`live`=3 — ID fra `station_id` i sidens embedded stream-liste, ikke `data-channel`), bigFM (`asw.api.iris.radiorepo.io/v2/playlist`, `dance`=57). Kanal-ID'er står som `data-channel` på netværkets forside
+- **Bauer Media DK / Radioplay** via `/api/now-playing?station=<kode>` (`api/now-playing.ts`): proxy til `listenapi.planetradio.co.uk/api9.2/nowplaying/<kode>`, fordi Bauers CORS kun tillader radioplay.dk. Kun fast host + kode valideret mod `/^[a-z0-9]{2,5}$/` (ingen SSRF). Bauer returnerer dansk lokaltid uden tidszone → proxyen konverterer `EventFinish` til ISO. Delt edge-cache 15 sek. Host `live-bauerdk.sharp-stream.com`, mount → kode: `nova_dk_mp3`=nov, `popfm_dk_mp3`=pop, `popfm80.mp3`=pf8, `thevoice_dk_mp3`=the, `radio100_dk_mp3`=rhu, `radiosoft_dk_mp3`=dso, `DK_HQ_RP05.aac`=deh, `DK_HQ_RP04.aac`=eih. Alle koder: `listenapi.planetradio.co.uk/api9.2/stations/DK`
+- **streamabc metadata** (`api.streamabc.net/metadata/channel/<key>.json`): Klassik Radio Christmas (`klassikr-christmas`) — `song`/`artist` kan indeholde `;`-dublet, første del bruges
+- Nummer der sluttede for mere end 2 min siden vises ikke (nyheder/reklamer mellem numre). API-fejl → ingen titel, ingen toast
+- **Albumcover** (tilføjet 23-09-2026): `fetchNowPlaying` returnerer også `cover: { src, sizes }` — Iris `cover_art_url_xl` (Apple Music 600×600, fallback `_l` 225×225), Bauer `ImageUrl` (320×320, via proxyen), Klassik `cover` (falder selv tilbage til kanalens logo). Kun `https://`-billeder. `Player.tsx` viser coveret i stedet for stationslogoet; `onError` → logoet igen (`brokenCover`)
+- **Ikke dækket:** radio SAW-familien (kun STOMP-websocket for hovedkanalen — fravalgt), RauteMusik Club/House (streamen sender tom `StreamTitle` — også efter den 15 sek. preroll-reklame, der indsættes ved hver tilkobling — og `api.rautemusik.fm` kræver API-nøgle; undersøgt 23-09-2026, opgivet)
+- Ny station på et af netværkene: tilføj mount→ID i `nowPlaying.ts`. API'erne er uofficielle og kan ændre sig
+
+## Stations-oprydning 23-09-2026
+Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det almindelige tilgængeligheds-tjek ikke fanger:
+- **DR P3 / P4 Nordjylland / P5** pegede på P1 / P3 / P6 Beat (DR har omnummereret kanalkoder) → nu `A05H` / `A10H` / `A25H`
+- **Radio 10 60s & 70s** pegede på Radio 10 Disco Classics → `TLPSTR18`
+- **80s80s Radio**: `/80s80s/`-mount sendte kun Prince → `/web/` (= "80s80s DIGITAL", hovedkanalen på 80s80s.de)
+- **90s90s Radio**: `/90s90s/`-mount var 90s00s Millennium-kanalen → `/pop/` (= "90s90s DIGITAL")
+- **R.SA Italo Disco Hits** (nedlagt, sendte 60er Oldies) → erstattet af **Disco Paradise Italo** (320 kbps, US)
+- **95.5 Charivari Italo-Hits** (død URL) → erstattet af **Italo Disco New Gen** (RMI, 320 kbps, PL)
+- Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
+- Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
+- **Danske 80'er Hits** pegede på Bauers internationale "80's Hits" (`DK_HQ_RP04.aac`) → `DK_HQ_RP05.aac` (verificeret mod radioplay.dk's egne stationsdata, station-ID 188). Den frigjorte RP04-URL er tilføjet som ny station **80's Hits** (kategori 80's, Bauer station-ID 198) → 83 stationer. Bauer-streams sender intet `icy-name` — slå op i `__NEXT_DATA__` på `radioplay.dk/<kanal>` (`stationStreams`) for at finde den rigtige mount
+- **Radio 10 Top 4000 omdøbt til Radio 10 Pop** (23-09-2026) — samme dokument og stream (`TLPSTR24`), kun `name` ændret
+- `check-streams.mjs` fulgte ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — rettet 23-09-2026: følger nu op til 5 redirects, kun 2xx tæller som OK, og `insecureHTTPParser: true` gør at Node kan læse streamabc-servernes statuslinje (før talte de kun som OK pga. den indledende 302)
+
 ## Kendte stream-problemer
 - **laut.fm streams** indsætter pre-roll reklamer ved ny tilkobling (platform-level, kan ikke forhindres)
-- **80s80s- og radio SAW-familierne** blokerer server-til-server forbindelser (ingen ICY metadata)
+- **80s80s-, radio SAW-familien m.fl.**: ingen sangtitel — streamene sender kun stationsnavnet i ICY-metadata (ikke en blokering, og ikke noget en parser-fix kan løse). Se "ICY stream-metadata" ovenfor
 - **Big 70s Radio**: stream ændret fra `stream.laut.fm/big-70s` (404) til `stream.laut.fm/radio70`
 
 ## Sonos-integration
@@ -231,12 +263,15 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 80 stationer har `logoUrl` i Firestore
-- Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
+- Alle 83 stationer har `logoUrl` i Firestore
+- **⚠️ ALLE logoer hostes lokalt i `public/logos/` (regel fra 23-09-2026)** — også ved ændringer og nye stationer. Aldrig en ekstern `logoUrl` i Firestore: eksterne URL'er kan skifte, blive hotlink-blokeret (538.nl), få certifikatfejl eller skifte indhold. Kør `node localize-logos.mjs` (henter eksterne logoer **uændret** til `public/logos/`) → commit + push → `node localize-logos.mjs --apply` (peger Firestore på filen, når den leveres som billede med samme bytes). Stationer tilføjet via appens `Tilføj station` får en ekstern URL — flyt dem med samme script. Bonus: logoer fra eget domæne går ikke gennem `/api/artwork`-proxyen til låseskærmen
+- Logoerne stammer oprindeligt fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.) — 55 flyttet til `public/logos/` 23-09-2026, så alle 83 nu ligger lokalt (verificeret med `logo-report.mjs`)
 - Hostet i `public/logos/` → serveres via Vercel CDN. Kildefiler som `make-*.mjs`-scriptsene bygger videre på (fx `radio-10-*.jpg`, `radio-538.png`, `80s80s-summerhits.jpg`, `radio-italo-disco-net.png`) og SVG-kilder (`*.svg`) ligger samme sted, selvom Firestore ikke peger på dem — slet dem ikke
 - Firebase Storage er **ikke** i brug — Storage-regler tillader ikke client-side uploads
 - Logo-URL'er sættes direkte i Firestore af `localize-logos.mjs --apply` / de enkelte `make-*.mjs`-forløb. `set-logo.mjs` (gammel liste med eksterne URL'er) er fjernet 23-09-2026 — den ville overskrive de lokale logoer
-- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund. Foretrukne kilder: TuneIn CDN (`s{id}q.png`), apple-touch-icon, laut.fm CDN, kanalens eget CDN. Sidst: host lokalt.
+- **Logo-opgradering 23-09-2026** (`upgrade-logos.mjs`): 52 logoer opgraderet til 512–600 px (låseskærm/CarPlay viste små logoer groft) — 37 via større variant hos samme kilde (TuneIn `logog`/`s…g.png` = 600 px, laut.fm `?t=_600x600`), 15 genereret som 512×512 PNG i `public/logos/` (radio SAW-originaler, RadioMonster ud fra Tophits 2000 px + kanalbjælke, Bauer-SVG'er m.fl.). Rettede samtidig 7 forkerte logoer (DR P5 viste P6 Beat, Limfjord Mix viste Limfjord Plus, Radio Alfa viste 00's Hits m.fl.). Prøvekørsel laver før/efter-`preview.html` som Michael godkender i browseren; `REJECT`/`MANUAL` i scriptet holder styr på afviste og håndplukkede. `--apply` skriver til Firestore og kopierer genererede PNG'er — genererede peges først på, når de leveres som billede (vercel.json omskriver ukendte stier til index.html med status 200, så status alene er ikke nok)
+- **Reel opløsning ≠ filstørrelse**: TuneIns `logog`-varianter (600 px) kan være et forstørret lavopløst billede (fx Forever 80 = 80 px forstørret). `upgrade-logos.mjs` måler derfor *reel* opløsning (andel af kantskarpheden der overlever ned-til-s-og-op-igen) og vælger kun kandidater med reelt mere detalje; previewen viser begge tal. Runde 2–3 samme dag: 538 Hitzone/Party, 80s80s Italo Hits, Big 70s Radio, Rock Antenne, Italo Disco New Gen (RMI officielt), Radio Alfa, Radio Stad Den Haag (hentes via curl — certifikatfejl hos kilden), laut.fm Eurobeat, samt **Forever 80 og Radio ANR genskabt som vektorlogoer** (`public/logos/forever-80.svg`, `radio-anr.svg` → `.png`; ANR tegnet geometrisk ud fra kantmålinger, afviger 1,8 %) og **radio SAW In The Mix ×3 genskabt** med `make-saw-inthemix.mjs` (radio SAW's 1400 px-flise farvelagt med kanalfarven + vektor-diskokugle og tekst). **Radio Italo Disco Net** (`make-italo-disco-net-logos.mjs`, 23-09-2026): stationens trikolore-hjerte skåret fri + "Italo" i håndskrift, "DISCO" i krom og solstråler i grøn/hvid/rød på natblå (koncept B af 3). **laut.fm Eurobeat** (`make-eurobeat-logos.mjs`, 23-09-2026): nyt vektorlogo i Super Eurobeat-cd-stil — solstråler gul/orange/rød, stablet kursiv EURO/BEAT med sort kontur (koncept B af 3). **Christmas Vinyl HD** (`make-christmas-vinyl.mjs`, 23-09-2026): nyt vektorlogo — vinylplade som julekugle i guldsnor på julerød baggrund med sne, "Christmas" + "VINYL HD" (koncept A af 3). **538-kanallogoer med navn** (`make-538-logos.mjs`, 23-09-2026): 538.nl's flise-stil — pillen fra Radio 538-logoet på lilla + DANCE / HITZONE / PARTY med fed hvid versal (86 % af bredden). **80s80s Summerhits** (`make-80s80s-summerhits.mjs`, 23-09-2026): det gule solbrillefoto som baggrund + 80s80s' eget sorte skilt klippet ud af 80s80s Radio-logoet, "RADIO" erstattet af "SUMMERHITS" (variant A af 3). **Radio 10-kanallogoer med navn** (`make-radio10-logos.mjs`, 23-09-2026): Radio 10's egne kanalbilleder ("10" + plade/cd/knap) med "RADIO 10" + kanalnavn (60s & 70s / 90s Hits / Pop) i den tomme grønne flade — stor nok til at kunne læses på stationskortet (44 px). "RADIO 10" og lange navne fylder 90 % af bredden. **Retro Radio genskabt** (`public/logos/retro-radio.svg` → `retro-radio-512.png`): vektoriseret med potrace ud fra det eneste eksisterende billede (161×46 px) — hakker/tekstur lukket morfologisk og konturer glattet for et rent look, prikkerne i svinget dæmpet (valgt af Michael blandt 3 renhedsgrader). Nyt filnavn så gamle cachede kopier ikke bruges
+- **Logostandard**: kvadratisk (1:1), ikke-transparent baggrund, helst ≥ 512 px, **altid hostet lokalt**. Foretrukne kilder at hente fra: TuneIn CDN (`logog.png` = 600 px — tjek reel opløsning), apple-touch-icon, laut.fm CDN, kanalens eget CDN.
 
 ## Kendte fejl
 
@@ -259,19 +294,20 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
 - `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
 - `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
+- `tests/tc-05b.spec.ts` — TC-05-08..16: nu spiller fra netværks-API inkl. Bauer + albumcover/MediaSession (9 tests, page.route mock). URL kan overstyres med `WEBRADIO_URL` (fx lokal dev-server før deploy)
 - `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
 - `tests/tc-09.spec.ts` — TC-09: rediger rækkefølge, inkl. scroll-vs-reorder-arm-forsinkelse (9 tests, alle automatiserbare siden BUG-01-omlægningen)
 - `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **89 test cases** fordelt på 17 grupper
-- `TEST-REPORT.md` — testrapport: **89/89 godkendt**
+- `TEST-CASES.md` — fuld testspecifikation: **98 test cases** fordelt på 17 grupper
+- `TEST-REPORT.md` — testrapport: **98/98 godkendt** (23-09-2026)
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
 - `firebase-init.mjs` — **delt** Firebase-init (læser `.env`, eksporterer en færdig `db`-instans), tilføjet 14-07-2026 (BUG-13). Alle rodmappe-scripts importerer denne (`import { db } from './firebase-init.mjs'`) i stedet for at duplikere `.env`-parsing/`initializeApp`-boilerplate hver især — hold denne opdateret, hvis Firebase-config'en ændres, i stedet for at genindføre duplikeret init i nye scripts
-- `check-streams.mjs` — checker HTTP-tilgængelighed på alle 80 streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt
+- `check-streams.mjs` — checker HTTP-tilgængelighed på alle streams via Firestore (browser-lignende headers), kører nu med 8 samtidige tjek (parallelliseret 14-07-2026, BUG-12) i stedet for sekventielt; følger redirects (23-09-2026)
 - `list-stations.mjs` — lister alle stationer med kategori, stream-URL og logo-URL
 - `generate-icons.mjs` — genererer PNG app-ikoner fra `public/app-icon.svg` (kræver sharp)
 - `add-new-stations-jun2026.mjs` — tilføjede 3 Dansk + 5 Jul stationer (juni 2026)
@@ -279,10 +315,26 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `add-dance-stations-jun2026.mjs` — tilføjede 10 Dance-stationer inkl. ny kategori (juni 2026)
 - `set-countries.mjs` — sætter `country` (ISO-kode) på alle stationer i Firestore
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
+- `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
+- `localize-logos.mjs [--apply]` — flytter eksterne logoer til `public/logos/` (uændrede bytes) og peger Firestore på dem efter deploy (tilføjet 23-09-2026)
+- `logo-report.mjs [outDir]` — måler alle stationslogoer (pixelstørrelse + reel opløsning) og laver `logo-overview.html` (kort pr. station, filter pr. kategori) + skema i terminalen (tilføjet 23-09-2026)
+- `upgrade-logos.mjs [--apply]` — finder skarpere logoer (større variant hos samme kilde, reel-opløsningsmåling, `MANUAL`/`REJECT`) og laver før/efter-`preview.html` til godkendelse (23-09-2026)
+- Logo-generatorer (23-09-2026) — alle skriver til `public/logos/` som standard, eller til en mappe som 1. argument; de med flere koncepter tager variant som 2. argument og laver alle varianter til sammenligning uden:
+  - `make-saw-inthemix.mjs` — radio SAW In The Mix ×3 (SAW-flise farvelagt + vektor-diskokugle)
+  - `make-radio10-logos.mjs` — Radio 10 60s & 70s / 90s Hits / Pop med "RADIO 10" + kanalnavn (kilde: `radio-10-*.jpg`)
+  - `make-538-logos.mjs` — Radio 538 (DANCE) / 538 Hitzone / 538 Party i 538.nl-flisestil (kilde: `radio-538.png`)
+  - `make-80s80s-summerhits.mjs` — 80s80s-skilt klippet ud af `80s80s-radio.png` på `80s80s-summerhits.jpg` (valgt: `a`)
+  - `make-christmas-vinyl.mjs` — Christmas Vinyl HD, vinyl-julekugle (valgt: `a`)
+  - `make-eurobeat-logos.mjs` — laut.fm Eurobeat, Super Eurobeat-stil (valgt: `b`)
+  - `make-italo-disco-net-logos.mjs` — Radio Italo Disco Net, eget trikolore-hjerte + Italo/DISCO (valgt: `b`)
+  - Retro Radio, Forever 80 og Radio ANR er vektoriseret/tegnet med engangs-scripts i scratchpad (potrace m.fl.) — SVG-kilderne ligger i `public/logos/`
+- ⚠️ `add-italo-mix.mjs` og `add-new-stations-jun2026.mjs` henviser til logofiler, der er slettet ved oprydningen 23-09-2026 — kør dem ikke igen uden at rette logoerne (stationerne findes allerede)
+- `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
+- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
 2. Test med `npm run dev` og verificer i browser **inden** push
-3. Kør `npx tsc --noEmit` for at tjekke TypeScript
+3. Kør `npm run build` (= `tsc -b && vite build`) for at tjekke TypeScript — **ikke** `npx tsc --noEmit`: rod-`tsconfig.json` har kun `references` og tjekker derfor ingen filer (fandt en build-fejl, som `--noEmit` lod passere, 23-09-2026)
 4. `git add <filer> && git commit -m "beskrivelse" && git push`
 5. Vercel deployer automatisk inden for ~30 sekunder

@@ -57,7 +57,7 @@ npm run dev
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
-       match /stations/{stationId} {
+       match /{document=**} {
          allow read, write: if true;
        }
      }
@@ -75,7 +75,7 @@ npm run dev
    VITE_FIREBASE_APP_ID=...
    ```
 
-Ved første opstart med en tom Firestore-database seedes 9 standard-stationer automatisk.
+Ved første opstart med en tom Firestore-database seedes 9 standard-stationer automatisk. Reglen skal dække alle collections (`stations`, `favorites`, `stationOrders`).
 
 ---
 
