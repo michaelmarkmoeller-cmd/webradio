@@ -8,6 +8,7 @@ import { db } from './firebase-init.mjs'
 import sharp from 'sharp'
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 const APPLY = process.argv.includes('--apply')
 const OUT_DIR = process.env.LOGO_PREVIEW_DIR ?? 'logo-preview'
@@ -20,9 +21,9 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125
 // Forslag afvist ved visuel gennemgang 23-09-2026 (forkert station/kanal, eller ikke bedre)
 // Anden runde (kandidater fra hjemmeside/manifest, laut.fm-API, TuneIn): intet brugbart fundet
 const REJECT = new Set([
-  'Radio Stad Den Haag', 'Radio ANR', 'Retro Radio',
-  // Fravalgt af Michael 23-09-2026 (TuneIn-versionerne blev ikke valgt)
-  'Forever 80', 'laut.fm Eurobeat',
+  'Radio ANR', 'Retro Radio',
+  // Fravalgt af Michael 23-09-2026 (TuneIn-versionen var et forstørret 80 px-billede)
+  'Forever 80',
   'radio SAW In The Mix', 'radio SAW In The Mix 80er', 'radio SAW In The Mix 90er',
 ])
 
@@ -51,6 +52,11 @@ const MANUAL = {
   '80s80s Italo Hits': { url: 'https://cdn-profiles.tunein.com/s307738/images/logog.png', note: 'TuneIn "80s80s ITALO DISCO" (samme logo som før)' },
   'Big 70s Radio': { url: 'https://assets.laut.fm/0883f770dab240771e733732875df77d', note: 'laut.fm API-logo for radio70' },
   'Rock Antenne': { url: 'https://www.rockantenne.de/logos/station-rock-antenne/android-chrome-512x512.png', note: 'rockantenne.de eget 512 px-ikon' },
+  // Tredje runde 23-09-2026 — officielle sider, filtreret på REEL opløsning (ikke kun filstørrelse)
+  'Italo Disco New Gen': { force: true, src: 'https://radiomaxitalo.com/wp-content/uploads/2025/12/RMI-New-Logo-New.png', bg: { r: 34, g: 34, b: 34 }, fill: 0.94, note: 'RMI officielt logo (radiomaxitalo.com) — erstatter forstørret TuneIn-billede' },
+  'Radio Alfa': { force: true, src: 'https://www.radioalfa.dk/wp-content/uploads/2024/02/Radio-Alfa_Logo-2.png', bg: { r: 255, g: 255, b: 255 }, fill: 0.86, note: 'radioalfa.dk header-logo (300×142, skarpt) — erstatter forstørret TuneIn-billede' },
+  'Radio Stad Den Haag': { src: 'https://www.radiostaddenhaag.com/wp-content/uploads/2024/09/rsdhlogo2024@075x.png', bg: { r: 17, g: 17, b: 17 }, fill: 0.9, note: 'radiostaddenhaag.com 2024-logo (960×600) — hostes lokalt (certifikatfejl hos kilden)' },
+  'laut.fm Eurobeat': { src: 'https://assets.laut.fm/96917e65938d7e6c8bf516008b8e2ddf', centerSquare: true, fill: 1, note: 'laut.fm 600×338, beskåret til kvadrat fra midten' },
 }
 
 async function loadAny(src) {
@@ -79,6 +85,11 @@ async function manualPng(opts) {
   const img = await loadAny(opts.src)
   if (!img) return null
   let buf = img.buf
+  if (opts.centerSquare) {
+    const m = await sharp(buf).metadata()
+    const side = Math.min(m.width, m.height)
+    buf = await sharp(buf).extract({ left: Math.floor((m.width - side) / 2), top: Math.floor((m.height - side) / 2), width: side, height: side }).png().toBuffer()
+  }
   if (opts.crop) {
     const m = await sharp(buf).metadata()
     const cx = Math.round(m.width * opts.crop), cy = Math.round(m.height * opts.crop)
@@ -88,15 +99,52 @@ async function manualPng(opts) {
   return { png: await squarePng({ ...img, buf }, { bg, fill: opts.fill }), source: img }
 }
 
+// Nogle stationssider har en ufuldstændig certifikatkæde, som Node afviser (fx radiostaddenhaag.com) — hent via curl
+function curlBuffer(url) {
+  try { return execFileSync('curl', ['-s', '-f', '-L', '-m', '15', '-A', UA['User-Agent'], url], { maxBuffer: 20 * 1024 * 1024 }) } catch { return null }
+}
+
 async function load(url) {
   try {
-    const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000) })
-    if (!r.ok) return null
-    const buf = Buffer.from(await r.arrayBuffer())
+    let buf = null
+    try {
+      const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000) })
+      if (!r.ok) return null
+      buf = Buffer.from(await r.arrayBuffer())
+    } catch { buf = curlBuffer(url) }
+    if (!buf) return null
     const m = await sharp(buf, { density: 300 }).metadata()
     if (!m.width || !m.height) return null
-    return { url, buf, width: m.width, height: m.height, format: m.format, alpha: !!m.hasAlpha }
+    return { url, buf, width: m.width, height: m.height, format: m.format, alpha: !!m.hasAlpha, eff: await effectiveRes(buf) }
   } catch { return null }
+}
+
+// Reel opløsning: filstørrelsen siger intet om et forstørret lavopløst billede (fx TuneIn-600 px af et 80 px-logo).
+// Mål kantskarphed (Laplace-varians / billedvarians) ved 512 px, og find mindste s hvor ≥ 85 % af den
+// overlever ned-til-s-og-op-igen — dér holder billedets reelle detalje op.
+async function sharpness(buf) {
+  const g = await sharp(buf, { density: 300 }).flatten({ background: '#808080' }).resize(512, 512, { fit: 'fill', kernel: 'lanczos3' })
+    .toColourspace('b-w').raw().toBuffer({ resolveWithObject: true })
+  const { width: w, height: h, channels: ch } = g.info, d = g.data
+  const px = (x, y) => d[(y * w + x) * ch]
+  let s1 = 0, s2 = 0, l1 = 0, l2 = 0, n = 0
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const v = px(x, y), lap = px(x - 1, y) + px(x + 1, y) + px(x, y - 1) + px(x, y + 1) - 4 * v
+    s1 += v; s2 += v * v; l1 += lap; l2 += lap * lap; n++
+  }
+  const varI = s2 / n - (s1 / n) ** 2
+  return varI > 0 ? (l2 / n - (l1 / n) ** 2) / varI : 0
+}
+async function effectiveRes(buf) {
+  const flat = await sharp(buf, { density: 300 }).flatten({ background: '#808080' }).png().toBuffer()
+  const full = Math.max(await sharpness(flat), 1e-9)
+  const m = await sharp(flat).metadata()
+  for (const s of [96, 128, 160, 200, 256, 320, 400]) {
+    if (s >= Math.min(m.width, m.height)) return Math.min(m.width, m.height)
+    const small = await sharp(flat).resize(s, s, { fit: 'fill', kernel: 'lanczos3' }).png().toBuffer()
+    if ((await sharpness(small)) / full >= 0.85) return s
+  }
+  return Math.min(512, Math.min(m.width, m.height))
 }
 
 const minSide = (img) => Math.min(img.width, img.height)
@@ -164,22 +212,23 @@ async function plan() {
 
   for (const s of stations) {
     const current = s.logoUrl ? await load(s.logoUrl) : null
-    const oldSize = current ? `${current.width}x${current.height}${current.format === 'svg' ? ' svg' : ''}` : 'kan ikke hentes'
+    const oldSize = current ? `${current.width}x${current.height}${current.format === 'svg' ? ' svg' : ''} (reel ≈${current.eff})` : 'kan ikke hentes'
     const base = { id: s.id, name: s.name, category: s.category, oldUrl: s.logoUrl ?? null, oldSize }
 
-    const alreadyGood = current && minSide(current) >= GOOD_ENOUGH && isSquare(current) && current.format !== 'svg'
+    const alreadyGood = current && current.eff >= 320 && isSquare(current) && current.format !== 'svg'
     const manual = MANUAL[s.name]
-    if (manual && !alreadyGood) {
+    // force: logoet har god filstørrelse, men er reelt et forstørret lavopløst billede
+    if (manual && (!alreadyGood || manual.force)) {
       let action = null
       if (manual.url) {
         const img = await load(manual.url)
-        if (img) action = { kind: 'url', newUrl: manual.url, size: `${img.width}x${img.height}`, note: manual.note }
+        if (img) action = { kind: 'url', newUrl: manual.url, size: `${img.width}x${img.height} (reel ≈${img.eff})`, note: manual.note }
       } else {
         const out = await manualPng(manual)
         if (out) {
           const file = `${slug(s.name)}.png`
           fs.writeFileSync(path.join(OUT_DIR, 'generated', file), out.png)
-          action = { kind: 'generated', file, newUrl: `${SITE}/logos/${file}`, size: `${TARGET}x${TARGET}`, source: manual.src, sourceSize: `${out.source.width}x${out.source.height}`, note: manual.note }
+          action = { kind: 'generated', file, newUrl: `${SITE}/logos/${file}`, size: `${TARGET}x${TARGET} (reel ≈${await effectiveRes(out.png)})`, source: manual.src, sourceSize: `${out.source.width}x${out.source.height}`, note: manual.note }
         }
       }
       results.push({ ...base, action })
@@ -202,13 +251,14 @@ async function plan() {
     if (current && current.format === 'svg') loaded.push({ ...current, width: TARGET, height: TARGET, note: 'SVG → PNG (vektor, skaleres skarpt)' })
 
     // Bedste: kvadratisk og stor nok → brug URL'en direkte. Ellers største brugbare → generér kvadrat.
-    const better = loaded.filter((i) => minSide(i) > (current ? minSide(current) : 0) || i.format === 'svg')
-    const square = better.filter((i) => isSquare(i) && i.format !== 'svg').sort((a, b) => minSide(b) - minSide(a))[0]
+    // Kun kandidater med reelt mere detalje end det nuværende logo (ikke bare en større fil)
+    const better = loaded.filter((i) => i.eff > (current ? current.eff : 0) || i.format === 'svg')
+    const square = better.filter((i) => isSquare(i) && i.format !== 'svg').sort((a, b) => b.eff - a.eff)[0]
     const any = better.sort((a, b) => Math.max(b.width, b.height) - Math.max(a.width, a.height))[0]
 
     let action = null
-    if (square && minSide(square) >= GOOD_ENOUGH) {
-      action = { kind: 'url', newUrl: square.url, size: `${square.width}x${square.height}`, note: square.note }
+    if (square && square.eff >= 320) {
+      action = { kind: 'url', newUrl: square.url, size: `${square.width}x${square.height} (reel ≈${square.eff})`, note: square.note }
     } else if (any && (any.format === 'svg' || Math.max(any.width, any.height) >= GOOD_ENOUGH)) {
       const file = `${slug(s.name)}.png`
       fs.writeFileSync(path.join(OUT_DIR, 'generated', file), await squarePng(any))
