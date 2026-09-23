@@ -174,17 +174,27 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - Læser `icy-metaint` bytes + metadata-blok → parser `StreamTitle` og `icy-genre` header
 - Returnerer `{ title, genre }` — `null` hvis streamen ikke understøtter ICY
 - **58 ud af 80 stationer** understøtter ICY metadata (DR, SomaFM, RadioMonster, Rock Antenne, 538, laut.fm m.fl.) — verificeret 23-09-2026 mod produktions-endpointet, *før* stations-oprydningen samme dag (se "Stations-oprydning 23-09-2026" nedenfor) — tallet er ikke genmålt for de nu 82 stationer
-- **Hvorfor de resterende stationer ikke viser sangtitel (endeligt afklaret 23-09-2026 — erstatter både "blokering"- og "undici-parser"-forklaringen):** streamabc/QuantumCast-stationerne (80s80s-, radio SAW-, 90s90s-, Radio BOB!-familien, bigFM Dance, Sunshine Live, Klassik Radio Christmas) sender **kun stationsnavnet** som `StreamTitle` (fx `'radio SAW Simulcast'`) efterfulgt af tomme metadata-blokke — aldrig en sangtitel. Undici/`fetch` kan godt nok ikke parse deres statuslinje (`Missing expected CR after response line`; Node `https` med `insecureHTTPParser: true` kan), men en parser-fix ville kun give stationsnavnet som "sangtitel" — derfor **ikke** implementeret. Deres rigtige nu-spiller-info kommer fra netværkernes egne API'er (fx viser 80s80s.de "Roxy Music – Avalon"), ikke fra streamen. Bauer DK-stationerne (NOVA, Pop FM, The Voice, Radio 100, Radio Soft, Danske 80'er Hits) og RauteMusik sender slet ingen `StreamTitle`. DR P3 sender programbeskrivelse i stedet for sang. Mulig vej frem: hent nu-spiller fra netværks-API'er — undersøges, se [[project-backlog]]
+- **Hvorfor de resterende stationer ikke viser sangtitel (endeligt afklaret 23-09-2026 — erstatter både "blokering"- og "undici-parser"-forklaringen):** streamabc/QuantumCast-stationerne (80s80s-, radio SAW-, 90s90s-, Radio BOB!-familien, bigFM Dance, Sunshine Live, Klassik Radio Christmas) sender **kun stationsnavnet** som `StreamTitle` (fx `'radio SAW Simulcast'`) efterfulgt af tomme metadata-blokke — aldrig en sangtitel. Undici/`fetch` kan godt nok ikke parse deres statuslinje (`Missing expected CR after response line`; Node `https` med `insecureHTTPParser: true` kan), men en parser-fix ville kun give stationsnavnet som "sangtitel" — derfor **ikke** implementeret. Deres rigtige nu-spiller-info kommer fra netværkernes egne API'er (fx viser 80s80s.de "Roxy Music – Avalon"), ikke fra streamen. Bauer DK-stationerne (NOVA, Pop FM, The Voice, Radio 100, Radio Soft, Danske 80'er Hits) og RauteMusik sender slet ingen `StreamTitle`. DR P3 sender programbeskrivelse i stedet for sang. Løst for 12 af dem 23-09-2026 via netværks-API'er — se "Nu spiller fra netværks-API" nedenfor
 - Player poller hvert 30. sek når der spiller
 - Alle fejlgrene (ikke-OK svar, ugyldig/for stor `icy-metaint`, for kort buffer, uventet exception) returnerer eksplicit `icySupported: false` (rettet 14-07-2026, BUG-09) — forhindrer at `Player.tsx` fejlagtigt bliver ved med at polle en station, hvis stream reelt ikke leverer brugbar ICY-metadata
 - `isPrivateHost`-tjekket resolver hostnavnet via `dns.promises.lookup()` og validerer den faktiske IP (ikke kun hostname-strengen) — lukker SSRF-bypass via decimal/oktal/hex-encodede loopback-/private-adresser samt IPv4-mappede IPv6-adresser (rettet 14-07-2026, BUG-07)
 - `Player.tsx` rydder `meta`-state (sangtitel/genre) ubetinget ved hvert stations-/afspilningsskift (rettet 14-07-2026, BUG-16) — forhindrer at en tidligere stations sangtitel bliver stående, når man skifter til en station uden ICY-understøttelse
+
+## Nu spiller fra netværks-API (tilføjet 23-09-2026)
+`src/utils/nowPlaying.ts` — for stationer hvis stream kun sender stationsnavnet som ICY-titel henter `Player.tsx` i stedet "Kunstner - Titel" direkte fra netværkets eget API (alle CORS `*`, ingen nøgle, kaldes fra browseren — ingen serverless). `/api/icy-meta` kaldes slet ikke for disse stationer.
+- Kilden udledes af stream-URL'ens **host + første path-segment (mount)** — en station der genoprettes med samme URL får automatisk sangtitel igen. Ingen Firestore-felt
+- **Loverad/Iris** (`<base>/flow.json?station=<id>&offset=1&count=1`): 80s80s (`web`=62, `mix`=558, `maxis`=596, `summerhits`=569, `italohits`=283, `italodiscomix`=834), 90s90s (`pop`=141, `eurodance`=188), Radio BOB! (`bob-national`=69, `bob-classicrock`=16), bigFM (`asw.api.iris.radiorepo.io/v2/playlist`, `dance`=57). Kanal-ID'er står som `data-channel` på netværkets forside
+- **streamabc metadata** (`api.streamabc.net/metadata/channel/<key>.json`): Klassik Radio Christmas (`klassikr-christmas`) — `song`/`artist` kan indeholde `;`-dublet, første del bruges
+- Nummer der sluttede for mere end 2 min siden vises ikke (nyheder/reklamer mellem numre). API-fejl → ingen titel, ingen toast
+- **Ikke dækket:** radio SAW-familien (kun STOMP-websocket for hovedkanalen — fravalgt), Sunshine Live (simulcast-ID ikke fundet), Bauer DK + RauteMusik (ikke undersøgt)
+- Ny station på et af netværkene: tilføj mount→ID i `nowPlaying.ts`. API'erne er uofficielle og kan ændre sig
 
 ## Stations-oprydning 23-09-2026
 Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det almindelige tilgængeligheds-tjek ikke fanger:
 - **DR P3 / P4 Nordjylland / P5** pegede på P1 / P3 / P6 Beat (DR har omnummereret kanalkoder) → nu `A05H` / `A10H` / `A25H`
 - **Radio 10 60s & 70s** pegede på Radio 10 Disco Classics → `TLPSTR18`
 - **80s80s Radio**: `/80s80s/`-mount sendte kun Prince → `/web/` (= "80s80s DIGITAL", hovedkanalen på 80s80s.de)
+- **90s90s Radio**: `/90s90s/`-mount var 90s00s Millennium-kanalen → `/pop/` (= "90s90s DIGITAL")
 - **R.SA Italo Disco Hits** (nedlagt, sendte 60er Oldies) → erstattet af **Disco Paradise Italo** (320 kbps, US)
 - **95.5 Charivari Italo-Hits** (død URL) → erstattet af **Italo Disco New Gen** (RMI, 320 kbps, PL)
 - Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
@@ -276,14 +286,15 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
 - `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
 - `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
+- `tests/tc-05b.spec.ts` — TC-05-08..11: nu spiller fra netværks-API (4 tests, page.route mock). URL kan overstyres med `WEBRADIO_URL` (fx lokal dev-server før deploy)
 - `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
 - `tests/tc-09.spec.ts` — TC-09: rediger rækkefølge, inkl. scroll-vs-reorder-arm-forsinkelse (9 tests, alle automatiserbare siden BUG-01-omlægningen)
 - `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **89 test cases** fordelt på 17 grupper
-- `TEST-REPORT.md` — testrapport: **89/89 godkendt**
+- `TEST-CASES.md` — fuld testspecifikation: **93 test cases** fordelt på 17 grupper
+- `TEST-REPORT.md` — testrapport: **93/93 godkendt** (23-09-2026)
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
@@ -299,7 +310,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
 - `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
-- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
+- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt

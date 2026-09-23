@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-07-22 (TC-09-09 tilføjet efter BUG-17)  
+**Sidst opdateret:** 2026-09-23 (TC-05-08..11 tilføjet; fuld suite kørt mod produktion)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 89
+**Antal test cases:** 93
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 89 | 0 | 0 | 89 |
+| 93 | 0 | 0 | 93 |
 
 ---
 
@@ -92,6 +92,10 @@
 | TC-05-05 | Sangtitel med apostrof vises korrekt | 🟢 Godkendt | Apostrof i sangtitel afkorter ikke titlen | 15-06-2026 |
 | TC-05-06 | Tom ICY-blok stopper ikke polling | 🟢 Godkendt | Polling fortsætter ved `{title: null, icySupported: true}` | 15-06-2026 |
 | TC-05-07 | ICY fetch afbrydes ved stationsskift | 🟢 Godkendt | Igangværende fetch til gammel station aborteres ved skift | 15-06-2026 |
+| TC-05-08 | Sangtitel fra netværks-API vises i stedet for ICY | 🟢 Godkendt | 80s80s Radio viser "Kunstner - Titel" fra Iris-API; ICY-stationsnavn vises ikke, /api/icy-meta kaldes ikke | 23-09-2026 |
+| TC-05-09 | Forældet nummer fra netværks-API vises ikke | 🟢 Godkendt | Nummer der sluttede for 1 time siden vises ikke | 23-09-2026 |
+| TC-05-10 | Fejl fra netværks-API | 🟢 Godkendt | HTTP 500 fra API → ingen titel, afspilning fortsætter | 23-09-2026 |
+| TC-05-11 | Klassik Radio Christmas bruger streamabc-metadata-API | 🟢 Godkendt | "Kunstner - Titel" vises, ;-dublet fjernes (dato fastlåst til december for Jul-synlighed) | 23-09-2026 |
 
 **Resultat: 7/7 godkendt**
 
@@ -393,7 +397,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 89/89 godkendt** (0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 93/93 godkendt** (fuld suite kørt mod produktion 23-09-2026: 88/88 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 

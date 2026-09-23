@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-07-22 (TC-09-09 tilføjet efter BUG-17)  
-**Antal test cases:** 89 fordelt på 17 grupper
+**Senest opdateret:** 2026-09-23 (TC-05-08..11 tilføjet: nu spiller fra netværks-API)  
+**Antal test cases:** 93 fordelt på 17 grupper
 
 ---
 
@@ -361,6 +361,42 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 2. Klik hurtigt på en anden station
 
 **Forventet resultat:** Den igangværende ICY-fetch til den gamle station afbrydes (vises som cancelled/aborted i Network-tab).
+
+---
+
+### TC-05-08: Sangtitel fra netværks-API vises i stedet for ICY
+**Forudsætning:** En streamabc-station med kendt nu-spiller-kilde (fx 80s80s Radio, se `src/utils/nowPlaying.ts`)  
+**Trin:**
+1. Afspil 80s80s Radio
+
+**Forventet resultat:** Player viser "Kunstner - Titel" fra netværkets API (Iris/loverad). Stationsnavnet ("80s80s Digital Web") vises ikke som sangtitel, og `/api/icy-meta` kaldes ikke.
+
+---
+
+### TC-05-09: Forældet nummer fra netværks-API vises ikke
+**Forudsætning:** Netværks-API returnerer et nummer der sluttede for mere end 2 min siden  
+**Trin:**
+1. Afspil 80s80s Radio
+
+**Forventet resultat:** Ingen sangtitel vises (hellere ingen end en forældet, fx under nyheder/reklamer).
+
+---
+
+### TC-05-10: Fejl fra netværks-API
+**Forudsætning:** Netværks-API svarer med fejl (fx HTTP 500)  
+**Trin:**
+1. Afspil 80s80s Radio
+
+**Forventet resultat:** Ingen sangtitel, ingen fejl-toast, afspilningen fortsætter.
+
+---
+
+### TC-05-11: Klassik Radio Christmas bruger streamabc-metadata-API
+**Forudsætning:** Julesæson (Jul-kategorien synlig)  
+**Trin:**
+1. Afspil Klassik Radio Christmas
+
+**Forventet resultat:** "Kunstner - Titel" vises; en semikolon-dublet i API'ets `song`-felt ("Titel;Titel") vises kun én gang.
 
 ---
 
