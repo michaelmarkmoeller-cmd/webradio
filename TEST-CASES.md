@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-09-23 (TC-05-08..13 tilføjet: nu spiller fra netværks-API inkl. Bauer DK)  
-**Antal test cases:** 95 fordelt på 17 grupper
+**Senest opdateret:** 2026-09-23 (TC-05-08..16 tilføjet: nu spiller fra netværks-API inkl. Bauer DK + albumcover)  
+**Antal test cases:** 98 fordelt på 17 grupper
 
 ---
 
@@ -418,6 +418,33 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
+### TC-05-14: Albumcover vises i player
+**Forudsætning:** Netværks-API leverer cover for aktuelt nummer (fx 80s80s Radio)  
+**Trin:**
+1. Afspil 80s80s Radio
+
+**Forventet resultat:** Albumcoveret vises i player-baren i stedet for stationslogoet (48×48, afrundet).
+
+---
+
+### TC-05-15: Cover der ikke kan indlæses → stationslogo
+**Forudsætning:** Cover-URL'en fejler (fx 404)  
+**Trin:**
+1. Afspil 80s80s Radio
+
+**Forventet resultat:** Stationslogoet vises igen; sangtitlen vises fortsat.
+
+---
+
+### TC-05-16: Låseskærm/CarPlay viser sangtitel, station og cover
+**Forudsætning:** En station med sangtitel + cover spiller  
+**Trin:**
+1. Afspil 80s80s Radio
+2. Lås telefonen / se CarPlay "Now Playing" (automatiseret: læs `navigator.mediaSession.metadata`)
+
+**Forventet resultat:** Titel = "Kunstner - Titel", undertitel = stationsnavn, billede = albumcover (stationslogo + app-ikoner som fallback bagved).
+
+---
 ## TC-06: Søvntimer
 
 ### TC-06-01: Sleep-menu åbner med valgmuligheder

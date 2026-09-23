@@ -66,6 +66,7 @@ public/
 - Stationsnavn og logo vises i OS-mediekontroller
 - `navigator.mediaSession.setActionHandler` for play/pause/stop
 - `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
+- **Sangtitel + albumcover på låseskærm/CarPlay** (23-09-2026): `Player.tsx` kalder `setMediaSessionTrack(stationId, title, cover)` når metadata ændres (både netværks-API og ICY). `syncMediaSession` bruger det kun hvis `stationId` matcher aktuel station: `title` = "Kunstner - Titel", `artist` = stationsnavn, albumcover forrest i `artwork`. Uden titel: `title` = stationsnavn, `artist` = "WebRadio" som før. Rører kun metadata — play/pause/action handlers er uændrede. Opdateres ikke før MediaSession er initialiseret (første afspilning)
 
 **Sidst afspillede station**: `playStation()` gemmer stationens Firestore-ID i `localStorage` (`webradio_last_station_id`). `setStations()` gendanner ved første load (når `currentStation === null`): sætter stationen som `currentStation` i pauset tilstand og navigerer til dens kategori.
 
@@ -188,6 +189,7 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - **Bauer Media DK / Radioplay** via `/api/now-playing?station=<kode>` (`api/now-playing.ts`): proxy til `listenapi.planetradio.co.uk/api9.2/nowplaying/<kode>`, fordi Bauers CORS kun tillader radioplay.dk. Kun fast host + kode valideret mod `/^[a-z0-9]{2,5}$/` (ingen SSRF). Bauer returnerer dansk lokaltid uden tidszone → proxyen konverterer `EventFinish` til ISO. Delt edge-cache 15 sek. Host `live-bauerdk.sharp-stream.com`, mount → kode: `nova_dk_mp3`=nov, `popfm_dk_mp3`=pop, `popfm80.mp3`=pf8, `thevoice_dk_mp3`=the, `radio100_dk_mp3`=rhu, `radiosoft_dk_mp3`=dso, `DK_HQ_RP05.aac`=deh, `DK_HQ_RP04.aac`=eih. Alle koder: `listenapi.planetradio.co.uk/api9.2/stations/DK`
 - **streamabc metadata** (`api.streamabc.net/metadata/channel/<key>.json`): Klassik Radio Christmas (`klassikr-christmas`) — `song`/`artist` kan indeholde `;`-dublet, første del bruges
 - Nummer der sluttede for mere end 2 min siden vises ikke (nyheder/reklamer mellem numre). API-fejl → ingen titel, ingen toast
+- **Albumcover** (tilføjet 23-09-2026): `fetchNowPlaying` returnerer også `cover: { src, sizes }` — Iris `cover_art_url_xl` (Apple Music 600×600, fallback `_l` 225×225), Bauer `ImageUrl` (320×320, via proxyen), Klassik `cover` (falder selv tilbage til kanalens logo). Kun `https://`-billeder. `Player.tsx` viser coveret i stedet for stationslogoet; `onError` → logoet igen (`brokenCover`)
 - **Ikke dækket:** radio SAW-familien (kun STOMP-websocket for hovedkanalen — fravalgt), RauteMusik Club/House (streamen sender tom `StreamTitle` — også efter den 15 sek. preroll-reklame, der indsættes ved hver tilkobling — og `api.rautemusik.fm` kræver API-nøgle; undersøgt 23-09-2026, opgivet)
 - Ny station på et af netværkene: tilføj mount→ID i `nowPlaying.ts`. API'erne er uofficielle og kan ændre sig
 
@@ -288,15 +290,15 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
 - `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
 - `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
-- `tests/tc-05b.spec.ts` — TC-05-08..13: nu spiller fra netværks-API inkl. Bauer (6 tests, page.route mock). URL kan overstyres med `WEBRADIO_URL` (fx lokal dev-server før deploy)
+- `tests/tc-05b.spec.ts` — TC-05-08..16: nu spiller fra netværks-API inkl. Bauer + albumcover/MediaSession (9 tests, page.route mock). URL kan overstyres med `WEBRADIO_URL` (fx lokal dev-server før deploy)
 - `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
 - `tests/tc-09.spec.ts` — TC-09: rediger rækkefølge, inkl. scroll-vs-reorder-arm-forsinkelse (9 tests, alle automatiserbare siden BUG-01-omlægningen)
 - `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **95 test cases** fordelt på 17 grupper
-- `TEST-REPORT.md` — testrapport: **95/95 godkendt** (23-09-2026)
+- `TEST-CASES.md` — fuld testspecifikation: **98 test cases** fordelt på 17 grupper
+- `TEST-REPORT.md` — testrapport: **98/98 godkendt** (23-09-2026)
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)

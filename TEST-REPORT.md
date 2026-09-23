@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-09-23 (TC-05-08..13 tilføjet; fuld suite kørt mod produktion)  
+**Sidst opdateret:** 2026-09-23 (TC-05-08..16 tilføjet; fuld suite kørt mod produktion)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 95
+**Antal test cases:** 98
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 95 | 0 | 0 | 95 |
+| 98 | 0 | 0 | 98 |
 
 ---
 
@@ -397,7 +397,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 95/95 godkendt** (fuld suite kørt mod produktion 23-09-2026: 90/90 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 98/98 godkendt** (fuld suite kørt mod produktion 23-09-2026: 93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 
