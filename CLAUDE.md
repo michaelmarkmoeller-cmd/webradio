@@ -317,6 +317,6 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 ## Workflow ved ændringer
 1. Rediger kode lokalt
 2. Test med `npm run dev` og verificer i browser **inden** push
-3. Kør `npx tsc --noEmit` for at tjekke TypeScript
+3. Kør `npm run build` (= `tsc -b && vite build`) for at tjekke TypeScript — **ikke** `npx tsc --noEmit`: rod-`tsconfig.json` har kun `references` og tjekker derfor ingen filer (fandt en build-fejl, som `--noEmit` lod passere, 23-09-2026)
 4. `git add <filer> && git commit -m "beskrivelse" && git push`
 5. Vercel deployer automatisk inden for ~30 sekunder
