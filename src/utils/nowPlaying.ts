@@ -34,6 +34,11 @@ const IRIS_NETWORKS: IrisNetwork[] = [
     mounts: { 'bob-national': '69', 'bob-classicrock': '16' },
   },
   {
+    host: 'stream.sunshine-live.de',
+    base: 'https://iris-sunshinelive.loverad.io',
+    mounts: { live: '3' },
+  },
+  {
     host: 'stream.bigfm.de',
     base: 'https://asw.api.iris.radiorepo.io/v2/playlist',
     mounts: { dance: '57' },
