@@ -21,7 +21,7 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125
 // Forslag afvist ved visuel gennemgang 23-09-2026 (forkert station/kanal, eller ikke bedre)
 // Anden runde (kandidater fra hjemmeside/manifest, laut.fm-API, TuneIn): intet brugbart fundet
 const REJECT = new Set([
-  'Radio ANR', 'Retro Radio',
+  'Retro Radio',
   'radio SAW In The Mix', 'radio SAW In The Mix 80er', 'radio SAW In The Mix 90er',
 ])
 
@@ -57,6 +57,8 @@ const MANUAL = {
   'laut.fm Eurobeat': { src: 'https://assets.laut.fm/96917e65938d7e6c8bf516008b8e2ddf', centerSquare: true, fill: 1, note: 'laut.fm 600×338, beskåret til kvadrat fra midten' },
   // Findes kun i 80×80 (TuneIn-"600 px" er samme billede forstørret) — genskabt som vektor: public/logos/forever-80.svg
   'Forever 80': { url: `${SITE}/logos/forever-80.png`, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
+  // Tegnet geometrisk ud fra kantmålinger af TuneIn-logoet (300 px): public/logos/radio-anr.svg
+  'Radio ANR': { url: `${SITE}/logos/radio-anr.png`, force: true, note: 'genskabt vektorlogo (godkendt af Michael 23-09-2026)' },
 }
 
 async function loadAny(src) {

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 300 300">
+  <!-- Radio ANR — genskabt geometrisk 23-09-2026 ud fra kantmålinger af TuneIn-logoet (300×300) -->
+  <rect width="300" height="300" fill="#ffffff"/>
+  <g fill="#4db748">
+    <!-- A (flad top, skrå sider ±0,31) -->
+    <path d="M2.1 200.5 L33.2 100.5 H77.9 L109 200.5 Z"/>
+    <!-- N (stolper + diagonal; venstre side skråt afskåret parallelt med A'ets højre ben, udskæringer tegnes hvide nedenfor) -->
+    <path d="M105.5 100.5 H202.2 V200.5 H116.3 L105.5 165 Z"/>
+    <!-- R -->
+    <path d="M210.1 100.5 H273 Q297.6 100.5 297.6 124 V131 Q297.2 146 285.7 150.5 L276.4 155 L290.4 160
+             Q294.6 161.5 294.9 166 L298.9 200.5 H272.2 L265.4 166.5 Q264.8 162.6 260.6 162.6 H236.4 V200.5 H210.1 Z"/>
+  </g>
+  <g fill="#ffffff">
+    <!-- A: nederste åbning -->
+    <path d="M28.3 200.6 L37.9 168.5 Q38.6 166 41.2 166 H70.6 Q73 166 73.6 168.5 L81.3 200.6 Z"/>
+    <!-- A: taleboble (ellipse + hale ned mod venstre) -->
+    <ellipse cx="55.1" cy="131.6" rx="21.6" ry="14.6"/>
+    <path d="M40.2 139 V155.2 Q40.4 158.4 42.8 157 L51.5 145.2 Z"/>
+    <!-- N: mellemrum mellem venstre stolpe og diagonal (åbent forneden) -->
+    <path d="M131.5 124 Q131.5 121.6 133.6 121.6 H134.2 L155.9 200.6 H131.5 Z"/>
+    <!-- N: mellemrum mellem diagonal og højre stolpe (åbent foroven) -->
+    <path d="M153.5 100.4 H177.7 V181.5 Q177.7 184.2 175 184.2 H174 Z"/>
+    <!-- R: indre bue -->
+    <path d="M236.4 117.6 H255.4 Q269.9 117.6 269.9 132.9 Q269.9 148.4 255.4 148.4 H236.4 Z"/>
+  </g>
+</svg>
