@@ -92,7 +92,7 @@ public/
 - `stationOrders/{deviceId}` — felter: `{ [category]: string[] }` — ordnet liste af station-IDs per kategori
 - Regler: `allow read, write: if true` (permanent, ingen udløbsdato) på `/{document=**}`
 - Auto-seed: 9 stationer indsættes automatisk hvis databasen er tom
-- **82 stationer** i databasen pr. 23-09-2026 — alle har logoer
+- **83 stationer** i databasen pr. 23-09-2026 — alle har logoer
 - **Offline persistence**: aktiveret via `initializeFirestore` + `persistentLocalCache()` i `config.ts` — stationer caches i IndexedDB, appen loader øjeblikkeligt ved genstart
 
 ## Kategorier (9)
@@ -199,7 +199,7 @@ Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det alm
 - **95.5 Charivari Italo-Hits** (død URL) → erstattet af **Italo Disco New Gen** (RMI, 320 kbps, PL)
 - Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
 - Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
-- **Danske 80'er Hits** pegede på Bauers internationale "80's Hits" (`DK_HQ_RP04.aac`) → `DK_HQ_RP05.aac` (verificeret mod radioplay.dk's egne stationsdata, station-ID 188). Bauer-streams sender intet `icy-name` — slå op i `__NEXT_DATA__` på `radioplay.dk/<kanal>` (`stationStreams`) for at finde den rigtige mount
+- **Danske 80'er Hits** pegede på Bauers internationale "80's Hits" (`DK_HQ_RP04.aac`) → `DK_HQ_RP05.aac` (verificeret mod radioplay.dk's egne stationsdata, station-ID 188). Den frigjorte RP04-URL er tilføjet som ny station **80's Hits** (kategori 80's, Bauer station-ID 198) → 83 stationer. Bauer-streams sender intet `icy-name` — slå op i `__NEXT_DATA__` på `radioplay.dk/<kanal>` (`stationStreams`) for at finde den rigtige mount
 - `check-streams.mjs` fulgte ikke redirects og talte derfor den døde Charivari-URL (302 → 404) som OK — rettet 23-09-2026: følger nu op til 5 redirects, kun 2xx tæller som OK, og `insecureHTTPParser: true` gør at Node kan læse streamabc-servernes statuslinje (før talte de kun som OK pga. den indledende 302)
 
 ## Kendte stream-problemer
@@ -253,7 +253,7 @@ Samme variabler skal sættes i Vercel under Environment Variables.
 - `index.html` har `apple-touch-icon`, `manifest`, `theme-color` og `apple-mobile-web-app`-meta
 
 ## Logoer
-- Alle 82 stationer har `logoUrl` i Firestore
+- Alle 83 stationer har `logoUrl` i Firestore
 - Logoer hentes fra stationernes egne CDN'er (TuneIn, laut.fm, 80s80s, backend.radiosaw.de, osv.)
 - Hostet lokalt i `public/logos/` → serveres via Vercel CDN:
   - `rock-antenne.png`, `retro-radio.png` — PNG-logoer
@@ -310,7 +310,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `fix-big70s-stream.mjs` — opdaterede Big 70s Radio stream-URL (juni 2026)
 - `check-icy-names.mjs` — læser `icy-name` fra alle stationers streams (rå TCP/TLS, håndterer `ICY 200 OK`) — fanger forbyttede/forkerte kanaler, som `check-streams.mjs` ikke kan se (den tjekker kun at URL'en svarer)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
-- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
+- `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
 ## Workflow ved ændringer
 1. Rediger kode lokalt
