@@ -18,8 +18,11 @@ const SITE = 'https://webradio-chi.vercel.app'
 const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125.0' }
 
 // Forslag afvist ved visuel gennemgang 23-09-2026 (forkert station/kanal, eller ikke bedre)
+// Anden runde (kandidater fra hjemmeside/manifest, laut.fm-API, TuneIn): intet brugbart fundet
 const REJECT = new Set([
-  "80's Hits", '80s80s Italo Hits', 'Forever 80', 'laut.fm Eurobeat', 'Radio Stad Den Haag', 'Rock Antenne',
+  'Radio Stad Den Haag', 'Radio ANR', 'Retro Radio',
+  // Fravalgt af Michael 23-09-2026 (TuneIn-versionerne blev ikke valgt)
+  'Forever 80', 'laut.fm Eurobeat',
   'radio SAW In The Mix', 'radio SAW In The Mix 80er', 'radio SAW In The Mix 90er',
 ])
 
@@ -42,6 +45,12 @@ const MANUAL = {
   "Danske 80'er Hits": { src: 'https://assets.planetradio.co.uk/img/ConfigWebHeaderLogoSVGImageUrl/188.svg', bgFrom: 'https://assets.planetradio.co.uk/img/ConfigWebListenBarLogoImageUrl/188.jpg', fill: 0.7, note: 'Bauers SVG-logo på kanalens farve' },
   'Radio BOB!': { src: 'https://cdn-radiotime-logos.tunein.com/s96189g.png', bg: { r: 255, g: 255, b: 255 }, fill: 0.86, note: 'eget bredt TuneIn-logo (584×294) på lys baggrund ("BOB!" er sort)' },
   'Veronica Top 1000': { url: 'https://cdn-profiles.tunein.com/s6717/images/logog.jpg', note: 'Radio Veronica-hovedlogo (TuneIn)' },
+  // Anden runde 23-09-2026
+  '538 Hitzone': { src: 'https://www.538.nl/icons/icon-512x512.png', fill: 1, note: '538.nl eget ikon (hostes lokalt — 538.nl blokerer ofte hotlinks)' },
+  '538 Party': { src: 'https://www.538.nl/icons/icon-512x512.png', fill: 1, note: '538.nl eget ikon (hostes lokalt — 538.nl blokerer ofte hotlinks)' },
+  '80s80s Italo Hits': { url: 'https://cdn-profiles.tunein.com/s307738/images/logog.png', note: 'TuneIn "80s80s ITALO DISCO" (samme logo som før)' },
+  'Big 70s Radio': { url: 'https://assets.laut.fm/0883f770dab240771e733732875df77d', note: 'laut.fm API-logo for radio70' },
+  'Rock Antenne': { url: 'https://www.rockantenne.de/logos/station-rock-antenne/android-chrome-512x512.png', note: 'rockantenne.de eget 512 px-ikon' },
 }
 
 async function loadAny(src) {
@@ -158,8 +167,9 @@ async function plan() {
     const oldSize = current ? `${current.width}x${current.height}${current.format === 'svg' ? ' svg' : ''}` : 'kan ikke hentes'
     const base = { id: s.id, name: s.name, category: s.category, oldUrl: s.logoUrl ?? null, oldSize }
 
+    const alreadyGood = current && minSide(current) >= GOOD_ENOUGH && isSquare(current) && current.format !== 'svg'
     const manual = MANUAL[s.name]
-    if (manual) {
+    if (manual && !alreadyGood) {
       let action = null
       if (manual.url) {
         const img = await load(manual.url)
@@ -181,7 +191,7 @@ async function plan() {
       console.log(`– ${s.name.padEnd(28)} ${oldSize.padEnd(14)} → afvist ved gennemgang`)
       continue
     }
-    if (current && minSide(current) >= GOOD_ENOUGH && isSquare(current) && current.format !== 'svg') continue
+    if (alreadyGood) continue
 
     const cands = []
     for (const url of sameSourceVariants(s.logoUrl ?? '')) cands.push({ url, note: 'samme kilde, større variant' })
