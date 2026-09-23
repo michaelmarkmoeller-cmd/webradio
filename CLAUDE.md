@@ -26,6 +26,8 @@ En webradio-app der afspiller live radiostreams via browser. Stationer organiser
 ## Projektstruktur
 ```
 api/
+├── _lib/privateHost.ts          # Fælles SSRF-tjek (isPrivateHost) — `_`-præfiks = ikke en Vercel-funktion
+├── artwork.ts                   # Vercel serverless — same-origin proxy for låseskærms-artwork (iOS-krav)
 ├── icy-meta.ts                  # Vercel serverless — læser ICY stream-metadata (sangtitel, genre)
 └── now-playing.ts               # Vercel serverless — proxy til Bauer DK's nu-spiller-API (CORS kun radioplay.dk)
 src/
@@ -67,6 +69,7 @@ public/
 - `navigator.mediaSession.setActionHandler` for play/pause/stop
 - `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
 - **Sangtitel + albumcover på låseskærm/CarPlay** (23-09-2026): `Player.tsx` kalder `setMediaSessionTrack(stationId, title, cover)` når metadata ændres (både netværks-API og ICY). `syncMediaSession` bruger det kun hvis `stationId` matcher aktuel station: `title` = "Kunstner - Titel", `artist` = stationsnavn, albumcover forrest i `artwork`. Uden titel: `title` = stationsnavn, `artist` = "WebRadio" som før. Rører kun metadata — play/pause/action handlers er uændrede. Opdateres ikke før MediaSession er initialiseret (første afspilning)
+- **Artwork leveres fra eget domæne via `/api/artwork?url=`** (rettet 23-09-2026): iOS viste app-ikonet på låseskærmen i stedet for albumcoveret, selvom Apple Music-billederne har CORS `*`. `artworkSrc()` i `useRadioStore.ts` sender alle eksterne cover-/logo-URL'er gennem `api/artwork.ts` (kun https, SSRF-tjek via `api/_lib/privateHost.ts` pr. redirect-hop, kun `image/*`, max 2 MB, `Cache-Control` 1 døgn/7 dage). App-ikonerne (192/512) tilføjes **kun** når hverken cover eller logo findes — ellers kunne OS'et vælge det større 512×512-ikon frem for et mindre cover (Bauer 320) eller logo (256). `api/*.ts` kører som ESM (`""type"": ""module""`) → relative imports skal have `.js`-endelse
 
 **Sidst afspillede station**: `playStation()` gemmer stationens Firestore-ID i `localStorage` (`webradio_last_station_id`). `setStations()` gendanner ved første load (når `currentStation === null`): sætter stationen som `currentStation` i pauset tilstand og navigerer til dens kategori.
 
