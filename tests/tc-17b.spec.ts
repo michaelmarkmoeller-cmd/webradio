@@ -17,6 +17,8 @@ async function instrument(page: Page) {
     w.__hidden = false
     window.Audio = function (src?: string) {
       const a = new Orig(src)
+      // Første element = radiostreamen; det næste er bridge-elementet med stilhedsløkken (iOS)
+      if (w.__audio) { w.__bridge = a; return a }
       a.addEventListener('loadstart', () => { w.__loadstarts = (w.__loadstarts as number) + 1 })
       w.__audio = a
       return a
@@ -189,6 +191,19 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     await page.evaluate(() => (window as unknown as { __audio: HTMLAudioElement }).__audio.dispatchEvent(new Event('waiting')))
     await expect(page.locator('[aria-label="Afspil"]')).toBeVisible()
     await expect(page.locator('text=Forbinder')).toHaveCount(0)
+  })
+
+  test('TC-17-23: Headset-PLAY med låst skærm uden stilhedsløkke holder siden vågen via bridge-elementet, til streamen spiller', async ({ page }) => {
+    await page.click('[aria-label="Pause"]')
+    await page.clock.runFor(21_000)  // lydløs pause udløber → rigtigt stop
+    expect(await audioState(page)).toMatchObject({ paused: true })
+    await setHidden(page, true)
+    await lockScreen(page, 'play')
+    const bridgePaused = () => page.evaluate(() => (window as unknown as { __bridge: HTMLAudioElement }).__bridge.paused)
+    await expect.poll(bridgePaused).toBe(false)
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __audio: HTMLAudioElement }).__audio.readyState), { timeout: 15000 }).toBeGreaterThan(2)
+    await expect.poll(bridgePaused).toBe(true)
+    expect(await audioState(page)).toMatchObject({ paused: false, silent: false, ms: 'playing' })
   })
 
   test('TC-17-14: Søvntimer stopper streamen rigtigt (ingen lydløs pause)', async ({ page }) => {

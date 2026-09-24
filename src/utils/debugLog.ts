@@ -10,7 +10,7 @@ let timer: ReturnType<typeof setTimeout> | null = null
 
 export function dlog(msg: string) {
   if (!isIOS) return
-  buf.push(`${new Date().toISOString().slice(11, 23)} [${document.visibilityState[0]}] ${msg}`)
+  buf.push(`${new Date().toISOString().slice(5, 23)} [${document.visibilityState[0]}] ${msg}`)
   if (!timer) timer = setTimeout(flush, 1500)
 }
 

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, getSilentLoopUrl } from '../audio'
+import { getOrCreateAudio, getSilentLoopUrl, getBridgeAudio } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
@@ -104,6 +104,7 @@ function audio() {
   })
   if (!externalPauseListenerAdded) {
     externalPauseListenerAdded = true
+    if (isIOS) getBridgeAudio()  // låses op i det første klik (FORSØG 24-09-2026)
     // MIDLERTIDIG diagnose (AirPods ud/ind)
     for (const ev of ['play', 'pause', 'playing', 'waiting', 'stalled', 'error', 'ended', 'emptied']) {
       a.addEventListener(ev, () => dlog(`el:${ev} paused=${a.paused} silent=${!!silentPause} isPlaying=${useRadioStore.getState().isPlaying} src=${a.src.slice(0, 12)}`))
@@ -137,7 +138,7 @@ function audio() {
     //   isPlaying:true  + a.paused:true  → iOS killed audio in background → arm click-resume
     //   isPlaying:false + a.paused:false → false-positive pause event → show playing
     document.addEventListener('visibilitychange', () => {
-      armSilentPauseTimer()  // lydløs pause: 20 sek. når synlig, ellers resten af de 5 min.
+      armSilentPauseTimer()  // lydløs pause: 20 sek. når synlig, ellers resten af de 30 min.
       if (document.visibilityState !== 'visible') return
       _shouldResume = false  // Clear any stale flag on every foreground; only re-arm if needed
       const { isPlaying, listenAccumulatedMs, listenStartedAt, currentStation } = useRadioStore.getState()
@@ -374,7 +375,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       }
       // Lydløs pause: appen er holdt vågen af stilhedsløkken, så genforbindelsen herunder virker
       // også fra låseskærmen
+      const wasSilent = !!silentPause
       clearSilentPause()
+      if (isIOS && !wasSilent && document.visibilityState === 'hidden') startBridge(a)
       // Live streams can't resume from a buffered position — reconnect from "now".
       // Stop any stale/half-open connection first, so a previous failed resume
       // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
@@ -461,6 +464,26 @@ export function pauseForDisconnect(): boolean {
   return isPlaying || recentSilent
 }
 
+// FORSØG 24-09-2026: PLAY mens siden er skjult og ingen stilhedsløkke kører (AirPods ud → headset-PLAY
+// med låst skærm) — iOS strupper netværket, og streamen går i stå. Stilhedsløkken på et ekstra element
+// holder siden "afspillende", til streamen spiller (eller højst 20 sek.).
+function startBridge(a: HTMLAudioElement) {
+  const b = getBridgeAudio()
+  let done = false
+  const stop = (why: string) => {
+    if (done) return
+    done = true
+    a.removeEventListener('playing', onPlaying)
+    clearTimeout(t)
+    b.pause()
+    dlog(`bridge:stop ${why}`)
+  }
+  const onPlaying = () => stop('playing')
+  a.addEventListener('playing', onPlaying)
+  const t = setTimeout(() => stop('timeout'), 20_000)
+  b.play().then(() => dlog('bridge:play ok')).catch((e) => { dlog(`bridge:play FEJL ${e?.name}`); stop('fejl') })
+}
+
 // Pause. silent=true (iOS): lydløs pause med stilhedsløkke — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
 // og streamen stoppes som hidtil.
 function pauseAudio(silent: boolean) {
@@ -473,7 +496,16 @@ function pauseAudio(silent: boolean) {
     silentPause = { startedAt: Date.now(), timer: undefined }
     a.src = getSilentLoopUrl()
     a.loop = true
-    a.play().then(() => dlog('loop:play ok')).catch((e) => { dlog(`loop:play FEJL ${e?.name}`); clearSilentPause() })
+    a.play().then(() => dlog('loop:play ok')).catch((e) => {
+      dlog(`loop:play FEJL ${e?.name}`)
+      // FORSØG 24-09-2026: iOS stopper løkken ~1 sek. efter AirPods ud (AbortError) — prøv igen én gang
+      const sp = silentPause
+      if (e?.name !== 'AbortError' || !sp) { clearSilentPause(); return }
+      setTimeout(() => {
+        if (silentPause !== sp) return  // PLAY eller andet er sket imens
+        a.play().then(() => dlog('loop:retry ok')).catch((e2) => { dlog(`loop:retry FEJL ${e2?.name}`); clearSilentPause() })
+      }, 1500)
+    })
     armSilentPauseTimer()
     return
   }

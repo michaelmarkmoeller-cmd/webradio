@@ -38,3 +38,19 @@ export function getSilentLoopUrl(): string {
   _silentUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
   return _silentUrl
 }
+
+let _bridge: HTMLAudioElement | null = null
+
+// FORSØG 24-09-2026 (AirPods ud → headset-PLAY med låst skærm): ekstra element med stilhedsløkken,
+// der holder siden "afspillende", mens radiostreamen kobler på det normale element. Låses op
+// (lydløst play → pause) i det første klik, så iOS senere tillader play() uden for et klik.
+export function getBridgeAudio(): HTMLAudioElement {
+  if (!_bridge) {
+    _bridge = new Audio()
+    _bridge.src = getSilentLoopUrl()
+    _bridge.loop = true
+    _bridge.muted = true
+    _bridge.play().then(() => _bridge!.pause()).catch(() => {}).finally(() => { _bridge!.muted = false })
+  }
+  return _bridge
+}
