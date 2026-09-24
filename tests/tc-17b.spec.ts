@@ -206,6 +206,26 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     expect(await audioState(page)).toMatchObject({ paused: false, silent: false, ms: 'playing' })
   })
 
+  test('TC-17-24: iOS stopper stilhedsløkken (AirPods ud) → genstartes én gang, derefter bruger PLAY bridge-elementet', async ({ page }) => {
+    await setHidden(page, true)
+    await lockScreen(page, 'pause')
+    await expect.poll(async () => (await audioState(page)).paused).toBe(false)
+    const iosKillsLoop = () => page.evaluate(() => (window as unknown as { __audio: HTMLAudioElement }).__audio.pause())
+    await iosKillsLoop()
+    await page.clock.runFor(1600)
+    await expect.poll(async () => (await audioState(page)).paused).toBe(false)  // genstartet
+    expect(await audioState(page)).toMatchObject({ silent: true })
+    await iosKillsLoop()  // anden gang: opgiv løkken
+    await page.clock.runFor(1600)
+    expect(await audioState(page)).toMatchObject({ paused: true })
+    await lockScreen(page, 'play')
+    const bridgePaused = () => page.evaluate(() => (window as unknown as { __bridge: HTMLAudioElement }).__bridge.paused)
+    await expect.poll(bridgePaused).toBe(false)
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __audio: HTMLAudioElement }).__audio.readyState), { timeout: 15000 }).toBeGreaterThan(2)
+    await expect.poll(bridgePaused).toBe(true)
+    expect(await audioState(page)).toMatchObject({ paused: false, silent: false, ms: 'playing' })
+  })
+
   test('TC-17-14: Søvntimer stopper streamen rigtigt (ingen lydløs pause)', async ({ page }) => {
     await page.click('[aria-label="Sleep timer"]')
     await page.locator('text=10 min').click()

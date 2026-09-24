@@ -67,7 +67,24 @@ const reorderSeq: Record<string, number> = {}
 // højst 30 min. fra pausen.
 const SILENT_PAUSE_MAX_MS = 30 * 60_000
 const SILENT_PAUSE_VISIBLE_MS = 20_000
-let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | undefined } | null = null
+let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | undefined; retry?: 'pending' | 'done' } | null = null
+
+// FORSØG 24-09-2026: iOS stopper stilhedsløkken ~0,1-1 sek. efter AirPods ud — enten ved at afvise
+// play() (AbortError) eller ved en pause-hændelse efter start. Prøv én gang igen efter 1,5 sek.;
+// fejler det, afsluttes den lydløse pause, så PLAY bruger bridge-elementet (startBridge).
+function onLoopKilled(why: string) {
+  const sp = silentPause
+  if (!sp) return
+  dlog(`loop:killed ${why}`)
+  if (sp.retry === 'pending') return  // pause-hændelse og afvist play() fra samme stop
+  if (sp.retry === 'done') { clearSilentPause(); return }
+  sp.retry = 'pending'
+  setTimeout(() => {
+    if (silentPause !== sp) return  // PLAY eller andet er sket imens
+    sp.retry = 'done'
+    audio().play().then(() => dlog('loop:retry ok')).catch((e) => { dlog(`loop:retry FEJL ${e?.name}`); clearSilentPause() })
+  }, 1500)
+}
 
 function armSilentPauseTimer() {
   if (!silentPause) return
@@ -114,6 +131,8 @@ function audio() {
     // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
     // before its internal a.pause() — so isPlaying:true here always means external pause.
     a.addEventListener('pause', () => {
+      // Vores egne pauser af løkken rydder silentPause først — er den sat her, har iOS stoppet løkken
+      if (silentPause) { onLoopKilled('pause-hændelse'); return }
       const { isPlaying, listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       if (!isPlaying) return
       // Snapshot accumulated time at the instant of pause so visibilitychange
@@ -375,9 +394,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       }
       // Lydløs pause: appen er holdt vågen af stilhedsløkken, så genforbindelsen herunder virker
       // også fra låseskærmen
-      const wasSilent = !!silentPause
+      const loopRunning = !!silentPause && !a.paused
       clearSilentPause()
-      if (isIOS && !wasSilent && document.visibilityState === 'hidden') startBridge(a)
+      if (isIOS && !loopRunning && document.visibilityState === 'hidden') startBridge(a)
       // Live streams can't resume from a buffered position — reconnect from "now".
       // Stop any stale/half-open connection first, so a previous failed resume
       // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
@@ -499,12 +518,8 @@ function pauseAudio(silent: boolean) {
     a.play().then(() => dlog('loop:play ok')).catch((e) => {
       dlog(`loop:play FEJL ${e?.name}`)
       // FORSØG 24-09-2026: iOS stopper løkken ~1 sek. efter AirPods ud (AbortError) — prøv igen én gang
-      const sp = silentPause
-      if (e?.name !== 'AbortError' || !sp) { clearSilentPause(); return }
-      setTimeout(() => {
-        if (silentPause !== sp) return  // PLAY eller andet er sket imens
-        a.play().then(() => dlog('loop:retry ok')).catch((e2) => { dlog(`loop:retry FEJL ${e2?.name}`); clearSilentPause() })
-      }, 1500)
+      if (e?.name === 'AbortError') onLoopKilled('play afvist')
+      else clearSilentPause()
     })
     armSilentPauseTimer()
     return
