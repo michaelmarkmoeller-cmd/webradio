@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { CATEGORIES } from '../types'
 import type { Station, Category } from '../types'
-import { getOrCreateAudio, getSilentLoopUrl, getBridgeAudio } from '../audio'
+import { getOrCreateAudio, getSilentLoopUrl } from '../audio'
 import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
@@ -71,7 +71,7 @@ let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | und
 
 // FORSØG 24-09-2026: iOS stopper stilhedsløkken ~0,1-1 sek. efter AirPods ud — enten ved at afvise
 // play() (AbortError) eller ved en pause-hændelse efter start. Prøv én gang igen efter 1,5 sek.;
-// fejler det, afsluttes den lydløse pause, så PLAY bruger bridge-elementet (startBridge).
+// fejler det, afsluttes den lydløse pause.
 function onLoopKilled(why: string) {
   const sp = silentPause
   if (!sp) return
@@ -121,7 +121,6 @@ function audio() {
   })
   if (!externalPauseListenerAdded) {
     externalPauseListenerAdded = true
-    if (isIOS) getBridgeAudio()  // låses op i det første klik (FORSØG 24-09-2026)
     // MIDLERTIDIG diagnose (AirPods ud/ind)
     for (const ev of ['play', 'pause', 'playing', 'waiting', 'stalled', 'error', 'ended', 'emptied']) {
       a.addEventListener(ev, () => dlog(`el:${ev} paused=${a.paused} silent=${!!silentPause} isPlaying=${useRadioStore.getState().isPlaying} src=${a.src.slice(0, 12)}`))
@@ -401,9 +400,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       }
       // Lydløs pause: appen er holdt vågen af stilhedsløkken, så genforbindelsen herunder virker
       // også fra låseskærmen
-      const loopRunning = !!silentPause && !a.paused
       clearSilentPause()
-      if (isIOS && !loopRunning && document.visibilityState === 'hidden') startBridge(a)
       // Live streams can't resume from a buffered position — reconnect from "now".
       // Stop any stale/half-open connection first, so a previous failed resume
       // (e.g. BUG-15's background reconnect) can't leave choppy audio behind.
@@ -488,26 +485,6 @@ export function pauseForDisconnect(): boolean {
     useRadioStore.setState({ isBuffering: false })
   }
   return isPlaying || recentSilent
-}
-
-// FORSØG 24-09-2026: PLAY mens siden er skjult og ingen stilhedsløkke kører (AirPods ud → headset-PLAY
-// med låst skærm) — iOS strupper netværket, og streamen går i stå. Stilhedsløkken på et ekstra element
-// holder siden "afspillende", til streamen spiller (eller højst 20 sek.).
-function startBridge(a: HTMLAudioElement) {
-  const b = getBridgeAudio()
-  let done = false
-  const stop = (why: string) => {
-    if (done) return
-    done = true
-    a.removeEventListener('playing', onPlaying)
-    clearTimeout(t)
-    b.pause()
-    dlog(`bridge:stop ${why}`)
-  }
-  const onPlaying = () => stop('playing')
-  a.addEventListener('playing', onPlaying)
-  const t = setTimeout(() => stop('timeout'), 20_000)
-  b.play().then(() => dlog('bridge:play ok')).catch((e) => { dlog(`bridge:play FEJL ${e?.name}`); stop('fejl') })
 }
 
 // Pause. silent=true (iOS): lydløs pause med stilhedsløkke — se SILENT_PAUSE_MAX_MS øverst. Ellers fades lyden ud
