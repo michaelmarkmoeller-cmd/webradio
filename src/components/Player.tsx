@@ -2,13 +2,16 @@ import { useState, useEffect, useRef, type MouseEvent } from 'react'
 import { useRadioStore, setMediaSessionTrack } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
-import toast from 'react-hot-toast'
-import { getNowPlayingSource, fetchNowPlaying, type NowPlayingCover } from '../utils/nowPlaying'
-import { playOnSonos, setVolumeOnSonos, stopSonos, isHlsStream, SONOS_ROOM_LABELS, type SonosRoom } from '../utils/sonos'
+import { getNowPlayingSource, fetchNowPlaying, type NowPlayingCover, type NowPlayingSource } from '../utils/nowPlaying'
+import { SleepTimerMenu } from './SleepTimerMenu'
+import { SonosMenu } from './SonosMenu'
+import { NowPlayingSheet } from './NowPlayingSheet'
 
-const SONOS_VOLUME_STEP = 5
-
-const SLEEP_OPTIONS = [10, 20, 30, 60] as const
+const NOW_PLAYING_SOURCE_LABELS: Record<NowPlayingSource['kind'], string> = {
+  iris: 'Netværks-API (Loverad/Iris)',
+  streamabc: 'Netværks-API (streamabc)',
+  bauer: 'Netværks-API (Bauer/Radioplay)',
+}
 
 function formatListenTime(sec: number): string {
   const h = Math.floor(sec / 3600)
@@ -20,20 +23,20 @@ function formatListenTime(sec: number): string {
 
 
 export function Player() {
-  const { currentStation, isPlaying, isBuffering, volume, togglePlay, stopPlayback, setVolume, sleepTimerEnd, setSleepTimer, listenAccumulatedMs, listenStartedAt } = useRadioStore()
+  const { currentStation, isPlaying, isBuffering, volume, togglePlay, setVolume, listenAccumulatedMs, listenStartedAt } = useRadioStore()
   const [meta, setMeta] = useState<{ title: string | null; genre: string | null; cover: NowPlayingCover | null }>({ title: null, genre: null, cover: null })
   // Cover-URL der ikke kunne indlæses — falder tilbage til stationslogoet
   const [brokenCover, setBrokenCover] = useState<string | null>(null)
-  const [sleepMenuOpen, setSleepMenuOpen] = useState(false)
-  const sleepMenuRef = useRef<HTMLDivElement>(null)
-  const [sonosMenuOpen, setSonosMenuOpen] = useState(false)
-  const sonosMenuRef = useRef<HTMLDivElement>(null)
+  // Stor afspiller i fuld skærm (NowPlayingSheet)
+  const [expanded, setExpanded] = useState(false)
   const icySupportedRef = useRef<boolean | null>(null)
-  const [, setTick] = useState(0)
+  // Samme værdi som icySupportedRef, men som state så den store afspiller kan vise "nu spiller"-kilden
+  const [icySupported, setIcySupported] = useState<boolean | null>(null)
   const [, setListenTick] = useState(0)
 
   useEffect(() => {
     icySupportedRef.current = null
+    setIcySupported(null)
     // Always clear stale metadata from the previous station on every switch — otherwise
     // a station that never resolves its own title (e.g. one without ICY support) keeps
     // showing the last station's title indefinitely, since fetchMeta below only ever
@@ -62,8 +65,9 @@ export function Player() {
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
-        if (data.icySupported === false) { icySupportedRef.current = false; return }
+        if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return }
         icySupportedRef.current = true
+        setIcySupported(true)
         setMeta({ title: data.title ?? null, genre: data.genre ?? null, cover: null })
       } catch { }
     }
@@ -79,13 +83,6 @@ export function Player() {
     setMediaSessionTrack(currentStation.id, meta.title, cover)
   }, [currentStation?.id, meta.title, cover?.src])
 
-  // Refresh countdown display every 30s while timer is active
-  useEffect(() => {
-    if (!sleepTimerEnd) return
-    const id = setInterval(() => setTick(t => t + 1), 30_000)
-    return () => clearInterval(id)
-  }, [sleepTimerEnd])
-
   // 1s tick to keep listen timer display up to date
   useEffect(() => {
     if (!isPlaying) return
@@ -93,72 +90,29 @@ export function Player() {
     return () => clearInterval(id)
   }, [isPlaying])
 
-  // Close sleep menu on outside click
-  useEffect(() => {
-    if (!sleepMenuOpen) return
-    function onPointerDown(e: PointerEvent) {
-      if (sleepMenuRef.current && !sleepMenuRef.current.contains(e.target as Node))
-        setSleepMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [sleepMenuOpen])
-
-  // Close Sonos menu on outside click
-  useEffect(() => {
-    if (!sonosMenuOpen) return
-    function onPointerDown(e: PointerEvent) {
-      if (sonosMenuRef.current && !sonosMenuRef.current.contains(e.target as Node))
-        setSonosMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [sonosMenuOpen])
-
-  const remainingMinutes = sleepTimerEnd
-    ? Math.max(0, Math.ceil((sleepTimerEnd - Date.now()) / 60_000))
-    : null
-
   if (!currentStation) return null
 
   const accent = CATEGORY_COLORS[currentStation.category] ?? '#F5A623'
 
-  const sonosUnsupported = isHlsStream(currentStation?.streamUrl ?? '')
+  const listenTime = formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)) / 1000))
 
-  async function handleSonosSelect(room: SonosRoom) {
-    // Undgå at samme station spiller både lokalt og på Sonos samtidig
-    stopPlayback()
-    setSonosMenuOpen(false)
-    try {
-      await playOnSonos(room, currentStation!.name, currentStation!.streamUrl, currentStation!.logoUrl)
-      toast.success(`Sendt til Sonos ${SONOS_ROOM_LABELS[room]} — kan tage 5-10 sek.`)
-    } catch {
-      toast.error(`Kunne ikke sende til Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
-    }
-  }
+  const npSource = getNowPlayingSource(currentStation.streamUrl)
+  const metaSource = npSource
+    ? NOW_PLAYING_SOURCE_LABELS[npSource.kind]
+    : icySupported === true ? 'ICY (streamen)'
+    : icySupported === false ? 'Ingen' : null
 
-  async function handleSonosVolume(e: MouseEvent, room: SonosRoom, delta: number) {
-    e.stopPropagation()
-    try {
-      await setVolumeOnSonos(room, 'adjust', delta)
-    } catch {
-      toast.error(`Kunne ikke justere volumen for Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
-    }
-  }
-
-  async function handleSonosStop(e: MouseEvent, room: SonosRoom) {
-    e.stopPropagation()
-    try {
-      await stopSonos(room)
-      toast.success(`Stoppet Sonos ${SONOS_ROOM_LABELS[room]}`)
-    } catch {
-      toast.error(`Kunne ikke stoppe Sonos ${SONOS_ROOM_LABELS[room]} — tjek netværk`)
-    }
+  // Tryk på player-baren åbner den store afspiller — undtagen på knapper, slider og menuer
+  function handleBarClick(e: MouseEvent) {
+    if ((e.target as Element).closest('button, input, a')) return
+    setExpanded(true)
   }
 
   return (
+    <>
     <div
-      className={`fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary flex flex-col px-5 ${
+      onClick={handleBarClick}
+      className={`fixed bottom-0 cursor-pointer left-0 right-0 z-40 bg-bg-secondary flex flex-col px-5 ${
         isIOS ? 'gap-3 py-4' : 'h-[20vh] justify-between pt-3 pb-4'
       }`}
       style={{ borderTop: `1px solid ${accent}50` }}
@@ -195,46 +149,7 @@ export function Player() {
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
         </div>
         <div className="flex items-center gap-3">
-          {/* Sleep timer */}
-          <div ref={sleepMenuRef} className="relative">
-            <button
-              onClick={() => setSleepMenuOpen(v => !v)}
-              className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
-              aria-label="Sleep timer"
-            >
-              <svg className="w-3.5 h-3.5" style={{ color: sleepTimerEnd ? accent : undefined }} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
-              </svg>
-              {!!remainingMinutes && (
-                <span className="text-[10px] font-bold tabular-nums" style={{ color: accent }}>{remainingMinutes}m</span>
-              )}
-            </button>
-            {sleepMenuOpen && (
-              <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[90px] shadow-xl z-50">
-                <button
-                  onClick={() => { setSleepTimer(null); setSleepMenuOpen(false) }}
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                    !sleepTimerEnd ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
-                  }`}
-                >
-                  Fra
-                </button>
-                {SLEEP_OPTIONS.map((mins) => (
-                  <button
-                    key={mins}
-                    onClick={() => { setSleepTimer(mins); setSleepMenuOpen(false) }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      !!remainingMinutes && Math.abs(remainingMinutes - mins) <= 1 && sleepTimerEnd
-                        ? 'text-text-primary bg-bg-hover'
-                        : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
-                    }`}
-                  >
-                    {mins} min
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <SleepTimerMenu accent={accent} />
 
           {/* Live / Forbinder status */}
           {isBuffering ? (
@@ -247,7 +162,7 @@ export function Player() {
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Live</span>
               <span className="text-[10px] tabular-nums text-red-400">
-                {formatListenTime(Math.floor((listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)) / 1000))}
+                {listenTime}
               </span>
             </>
           ) : null}
@@ -342,71 +257,7 @@ export function Player() {
         </div>
 
         {/* Sonos cast */}
-        <div ref={sonosMenuRef} className="relative shrink-0">
-          <button
-            onClick={() => !sonosUnsupported && setSonosMenuOpen(v => !v)}
-            disabled={sonosUnsupported}
-            className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${
-              sonosUnsupported
-                ? 'border-white/10 text-text-muted/30 cursor-not-allowed'
-                : 'border-white/15 text-text-muted hover:text-text-primary hover:border-white/30'
-            }`}
-            aria-label="Afspil på Sonos"
-            title={sonosUnsupported ? 'Ikke understøttet på Sonos (HLS-stream)' : 'Afspil på Sonos'}
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zM21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
-            </svg>
-          </button>
-          {sonosMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 bg-bg-secondary border border-border rounded-xl py-1 min-w-[320px] shadow-xl z-50">
-              {(['bad', 'koekken', 'stue'] as const).map(room => (
-                <div key={room} className="flex items-center gap-2 px-2">
-                  <button
-                    onClick={() => handleSonosSelect(room)}
-                    className="flex-1 text-left px-2 py-2.5 rounded-lg text-[22px] font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-                  >
-                    {SONOS_ROOM_LABELS[room]}
-                  </button>
-                  <button
-                    onClick={() => handleSonosSelect(room)}
-                    aria-label={`Afspil på Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    title={`Afspil på Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => handleSonosStop(e, room)}
-                    aria-label={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    title={`Stop Sonos ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors"
-                  >
-                    <span className="w-3 h-3 bg-current rounded-[1px]" />
-                  </button>
-                  <button
-                    onClick={(e) => handleSonosVolume(e, room, SONOS_VOLUME_STEP)}
-                    aria-label={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
-                    title={`Skru op for ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors text-lg font-semibold"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={(e) => handleSonosVolume(e, room, -SONOS_VOLUME_STEP)}
-                    aria-label={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
-                    title={`Skru ned for ${SONOS_ROOM_LABELS[room]}`}
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-white/15 text-text-primary/80 hover:text-text-primary hover:border-white/30 hover:bg-bg-hover transition-colors text-lg font-semibold"
-                  >
-                    −
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <SonosMenu station={currentStation} />
 
         {/* Play / Pause */}
         <button
@@ -427,5 +278,20 @@ export function Player() {
         </button>
       </div>
     </div>
+
+    {expanded && (
+      <NowPlayingSheet
+        station={currentStation}
+        accent={accent}
+        trackTitle={meta.title}
+        genre={meta.genre}
+        cover={cover}
+        metaSource={metaSource}
+        listenTime={listenTime}
+        onCoverError={setBrokenCover}
+        onClose={() => setExpanded(false)}
+      />
+    )}
+    </>
   )
 }
