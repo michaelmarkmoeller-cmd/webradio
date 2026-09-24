@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-09-23 (TC-05-08..16 + lydløs pause/headset TC-17-05..22 tilføjet; iPhone-test TC-17-16..18; fuld suite 108/108 mod produktion)  
+**Sidst opdateret:** 2026-09-24 (TC-17-24/25 AirPods ud/headset-knap tilføjet; TC-17-18 bekræftet på iPhone; fuld suite 110/110 mod produktion)  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 116
+**Antal test cases:** 118
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 115 | 1 | 0 | 116 |
+| 118 | 0 | 0 | 118 |
 
 ---
 
@@ -403,19 +403,21 @@
 | TC-17-15 | Pause på pc stopper streamen med det samme | 🟢 Godkendt | Streamen stoppes (fade-out) som hidtil — ingen lydløs pause. | 23-09-2026 |
 | TC-17-16 | iPhone: PLAY på låseskærmen efter 1-4 min. pause (manuel) | 🟢 Godkendt | WebRadio bliver på låseskærmen under pausen; PLAY giver musik igen (bekræftet af Michael, iPhone 17 Pro Max, iOS 27.0) | 23-09-2026 |
 | TC-17-17 | iPhone: pause i appen → lås → PLAY på låseskærmen efter 1 min. (manuel) | 🟢 Godkendt | Musikken spiller igen (bekræftet af Michael) | 23-09-2026 |
-| TC-17-18 | iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel) | 🔴 Fejlet | Appen åben: virker, men kun ved tryk på headsettets PLAY (ingen automatisk genstart). Låst skærm: streamen går i stå (`stalled`) efter `ms:play` — åben, se BUGS.md BUG-15 | 23-09-2026 |
+| TC-17-18 | iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel) | 🟢 Godkendt | Låst skærm → AirPods ud → ind → PLAY: WebRadio bliver på låseskærmen, musikken spiller igen (bekræftet af Michael). Ingen automatisk genstart ved isætning og intet "ding" — accepteret, se BUGS.md BUG-15 | 24-09-2026 |
 | TC-17-19 | Headset ud under afspilning giver rigtigt stop, ikke lydløs pause | 🟢 Godkendt | Rigtigt stop (`paused`, ikke stilhedsløkken); "Forbinder" vises ikke. | 23-09-2026 |
 | TC-17-20 | Headset ind igen inden 10 sek. genoptager radiostreamen | 🟢 Godkendt | Radiostreamen spiller igen, MediaSession `playing`. | 23-09-2026 |
 | TC-17-21 | MediaSession-pause fra samme frakobling omdannes til rigtigt stop med streamen klar | 🟢 Godkendt | Stilhedsløkken afsluttes, elementet er pauset; tilkobling genoptager radiostreamen. | 23-09-2026 |
-| TC-17-22 | "Forbinder" vises ikke under lydløs pause | 🟢 Godkendt | Statuslinjen viser ikke "Forbinder". | 23-09-2026 |
+| TC-17-22 | "Forbinder" vises ikke under lydløs pause | 🟢 Godkendt | Statuslinjen viser ikke "Forbinder". | 24-09-2026 |
+| TC-17-24 | iOS stopper stilhedsløkken (AirPods ud) → genstartes én gang | 🟢 Godkendt | Løkken kører igen efter 1,5 sek.; stoppes den igen, opgives den, og PLAY kobler radiostreamen på (`playing`). | 24-09-2026 |
+| TC-17-25 | Headset-knap under lydløs pause kobler streamen på — dog ikke de første 3 sek. | 🟢 Godkendt | `ms:pause` 1 sek. efter pausen ignoreres; `ms:pause` efter 11 sek. kobler radiostreamen på, MediaSession `playing`. | 24-09-2026 |
 
-**Resultat: 19/20 godkendt, 1 fejlet** (TC-17-18 — AirPods med låst skærm, åben)
+**Resultat: 22/22 godkendt**
 
 ---
 
 ## Samlet resultat
 
-> **Resultat: 115/116 godkendt, 1 fejlet** (TC-17-18: AirPods ud/ind med låst skærm — åben, fortsættes 24-09-2026). Fuld suite kørt mod produktion 23-09-2026 efter seneste deploy (`7e74b9f`): 108/108 automatiserede Playwright-tests grønne. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 118/118 godkendt.** Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 
