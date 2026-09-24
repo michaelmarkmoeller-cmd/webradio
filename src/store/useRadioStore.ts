@@ -221,6 +221,13 @@ function syncMediaSession(station: Station, playing: boolean) {
     })
     navigator.mediaSession.setActionHandler('pause', () => {
       dlog(`ms:pause isPlaying=${useRadioStore.getState().isPlaying} silent=${!!silentPause}`)
+      // Under lydløs pause spiller stilhedsløkken, så iOS ser appen som spillende, og headsettets
+      // afspil/pause-knap sender "pause" — det betyder PLAY. De første 3 sek. ignoreres: iOS sender
+      // selv en ekstra pause ~1 sek. efter AirPods ud (FORSØG 24-09-2026)
+      if (silentPause && !useRadioStore.getState().isPlaying) {
+        if (Date.now() - silentPause.startedAt > 3000) useRadioStore.getState().togglePlay()
+        return
+      }
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('stop', () => {

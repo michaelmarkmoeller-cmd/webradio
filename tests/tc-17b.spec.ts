@@ -226,6 +226,18 @@ test.describe('TC-17: Lydløs pause (iOS)', () => {
     expect(await audioState(page)).toMatchObject({ paused: false, silent: false, ms: 'playing' })
   })
 
+  test('TC-17-25: Headset-knap under lydløs pause (iOS sender "pause") kobler streamen på — men ikke de første 3 sek.', async ({ page }) => {
+    await setHidden(page, true)
+    await lockScreen(page, 'pause')
+    await page.clock.runFor(1000)
+    await lockScreen(page, 'pause')  // iOS' egen ekstra pause ved AirPods ud
+    expect(await audioState(page)).toMatchObject({ silent: true, ms: 'paused' })
+    await page.clock.runFor(10_000)
+    await lockScreen(page, 'pause')  // headsettets knap
+    await expect.poll(async () => (await audioState(page)).silent).toBe(false)
+    expect(await audioState(page)).toMatchObject({ paused: false, ms: 'playing' })
+  })
+
   test('TC-17-14: Søvntimer stopper streamen rigtigt (ingen lydløs pause)', async ({ page }) => {
     await page.click('[aria-label="Sleep timer"]')
     await page.locator('text=10 min').click()
