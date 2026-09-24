@@ -32,7 +32,10 @@ api/
 └── now-playing.ts               # Vercel serverless — proxy til Bauer DK's nu-spiller-API (CORS kun radioplay.dk)
 src/
 ├── components/
-│   ├── Player.tsx               # Player (20vh) — Now Playing, lyttetimer, volume, ICY-metadata, sleep timer
+│   ├── Player.tsx               # Player (20vh) — Now Playing, lyttetimer, volume, ICY-metadata; tryk åbner NowPlayingSheet
+│   ├── NowPlayingSheet.tsx      # Stor afspiller i fuld skærm — cover, nummer, station, betjening, stream-detaljer
+│   ├── SleepTimerMenu.tsx       # Søvntimer-knap + menu (size 'sm' i baren, 'lg' i den store afspiller)
+│   ├── SonosMenu.tsx            # Sonos-knap + rum-menu (size 'sm' i baren, 'lg' i den store afspiller)
 │   ├── StationCard.tsx          # Stationskort — klik spiller, 2-sek stille-hold sletter, hold+bevæg åbner ReorderListModal
 │   ├── StationGrid.tsx          # Grid + reorder-modal state (intet dnd-kit i selve gridet)
 │   ├── ReorderListModal.tsx     # "Rediger rækkefølge"-liste — dnd-kit kun på håndtag-ikon pr. række
@@ -124,7 +127,7 @@ Kategorifarver — defineres **ét sted** i `src/utils/categoryColors.ts` og imp
 - **Klik** på stationskort → starter afspilning øjeblikkeligt
 - **Hold i 2 sek** på stationskort → slet-dialog vises (ingen slet-ikon på kortet)
 - **Hold + bevæg** (>8px) i kategori-visning → åbner "rediger rækkefølge"-listen (`ReorderListModal`); selve trækket i den liste sker via et lille håndtag-ikon pr. række
-- Play/pause styres kun fra player-baren nederst
+- Play/pause styres kun fra player-baren nederst — eller fra den store afspiller, der åbnes ved tryk på player-baren (se "Stor afspiller")
 - Player viser gul "Forbinder"-indikator mens stream buffererer, rød "Live" + lyttetimer når den spiller
 - Stationsnavne bruger dynamisk skriftstørrelse med `line-clamp-2` sikkerhedsnet: ≤12 tegn → `text-sm`, ≤15 → `text-xs`, ≤22 → `text-[11px]`, længere → `text-[10px]`
 - **Stationskort-navnehøjde**: `min-h-[35px]` (fast px, ikke em) sikrer at alle kort i samme række har ens højde uanset navnelængde
@@ -165,8 +168,18 @@ På **iOS** (isIOS === true): volume-slideren skjules (iOS WebKit gør `audio.vo
 
 Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate på egen linje, sangtitel (ICY) og genre (ICY).
 
+## Stor afspiller (NowPlayingSheet, tilføjet 24-09-2026 — prototype godkendt af Michael)
+Tryk hvor som helst på player-baren — **undtagen** knapper, slider og menuer (`handleBarClick` i `Player.tsx` springer over hvis `closest('button, input, a')`) — åbner `NowPlayingSheet.tsx` i fuld skærm (glider op, 280ms). Afspilningen påvirkes aldrig af at åbne/lukke den.
+- **Indhold (oppefra):** ⌄-luk + "Now Playing" + favorit-hjerte → stort billede (albumcover hvis det findes, ellers stationslogo) → nummer (titel stort, kunstner under — `"Kunstner - Titel"` splittes på første ` - `; uden titel vises stationsnavnet) → stationsrække (lille logo *kun* når albumcoveret står stort, navn, kategori-badge, flag, Live/Forbinder/Pause + lyttetid) → søvntimer / stor play-pause / Sonos → volumen (kun ikke-iOS) → Stream-boks (bitrate, format, land, genre, "nu spiller"-kilde, stream-URL)
+- **Luk:** tryk på albumcover eller stationslogo (Michaels krav), ⌄-pilen, swipe ned > 110 px (kun når indholdet er scrollet helt op) eller Escape
+- **Data:** metadata-hentningen ligger fortsat **kun** i `Player.tsx` — sheet'et får `trackTitle`, `genre`, `cover`, `metaSource` og `listenTime` som props (ingen dobbelt polling). `metaSource`: netværks-API (Loverad/Iris, streamabc, Bauer/Radioplay) via `getNowPlayingSource`, ellers `icySupported`-state (spejler `icySupportedRef`) → "ICY (streamen)" / "Ingen" / "—" før første svar
+- **Format** gættes ud fra stream-URL'en (`streamFormat()`: HLS/AAC/MP3/Ogg) — mange streams har ingen endelse → "—". **Land** via `Intl.DisplayNames(['da'])`
+- Renderes som **søskende** til player-baren (fragment), ikke som barn — ellers ville klik i sheet'et boble op til `handleBarClick` og genåbne det ved lukning
+- Låser `document.documentElement.style.overflow` mens det er åbent. Fast `pt-12` på iOS (statuslinje i PWA, `viewport-fit=cover` er ikke sat)
+- **Ikke testet automatisk endnu** — aftalt 24-09-2026: under prototypen køres ingen Playwright-tests; test cases + brugervejlednings-kapitel laves, når featuren er i mål
+
 ## Søvntimer
-`setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Viser nedtæller i `Player.tsx` via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
+`setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Knap + menu ligger i `SleepTimerMenu.tsx` (bruges af både player-baren og den store afspiller). Viser nedtæller via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
 
 ## Brugervejledning
 Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 14 kapitler, ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
@@ -230,7 +243,7 @@ Webapp → GET https://webhook.homey.app/<HOMEY_ID>/<event>?tag=<url-encoded tag
 ```
 
 - `src/utils/sonos.ts` — `playOnSonos()`, `setVolumeOnSonos()`, `stopSonos()`, `isHlsStream()`
-- Sonos-knap + dropdown-menu i `Player.tsx` (player-bar række 3), pr. rum-række: **rumnavn → PLAY-ikon → STOP-ikon → + → −** (rumnavn og PLAY gør begge det samme: caster aktuel station). Alle tre rum altid synlige (webappen kan ikke vide om et rum allerede spiller noget uafhængigt, fx via en fysisk kontakt) — bevidst fravalgt at bygge et online/tændt-tjek (browser-mixed-content + Chromes Private Network Access udelukker direkte ping af Sonos-IP'erne fra webappen, selv på samme lokale netværk — analyseret 13-07-2026). Ikon-knapper har synlig kant + høj kontrast som standard (ikke kun ved hover).
+- Sonos-knap + dropdown-menu i `SonosMenu.tsx` (player-bar række 3 og den store afspiller), pr. rum-række: **rumnavn → PLAY-ikon → STOP-ikon → + → −** (rumnavn og PLAY gør begge det samme: caster aktuel station). Alle tre rum altid synlige (webappen kan ikke vide om et rum allerede spiller noget uafhængigt, fx via en fysisk kontakt) — bevidst fravalgt at bygge et online/tændt-tjek (browser-mixed-content + Chromes Private Network Access udelukker direkte ping af Sonos-IP'erne fra webappen, selv på samme lokale netværk — analyseret 13-07-2026). Ikon-knapper har synlig kant + høj kontrast som standard (ikke kun ved hover).
 - `homey-scripts/*.js` — reference-kopier af HomeyScripts (gitignored, kører kun på Homey, redigeres ikke af build/deploy)
 - `VITE_HOMEY_WEBHOOK_BASE` — Homey webhook-ID er en adgangsnøgle, må ALDRIG committes (kun `.env.local` + Vercel env vars)
 
