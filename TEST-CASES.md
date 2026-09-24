@@ -177,7 +177,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 **Trin:**
 1. Klik på det allerede spillende stationskort
 
-**Forventet resultat:** Ingen afbrydelse af stream. Lyden fortsætter uafbrudt. Player-tilstand ændres ikke.
+**Forventet resultat:** Ingen afbrydelse af stream. Lyden fortsætter uafbrudt. Player-tilstand ændres ikke — status bliver "Live" og skifter ikke til "Forbinder" (BUG-18).
 
 ---
 

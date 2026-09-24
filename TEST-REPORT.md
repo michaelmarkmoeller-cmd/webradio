@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-09-24 (TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion)  
+**Sidst opdateret:** 2026-09-24 (BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion)  
 **Tester:** —  
 **Git branch:** main  
 **Antal test cases:** 137
@@ -55,7 +55,7 @@
 | TC# | Titel | Status | Beskrivelse | Dato |
 |-----|-------|--------|-------------|------|
 | TC-03-01 | Klik starter afspilning | 🟢 Godkendt | Klik på stationskort → "Forbinder" → "Live" + lyd | 15-06-2026 |
-| TC-03-02 | Klik på aktiv station starter ikke forfra | 🟢 Godkendt | Klik på spillende station afbryder ikke streamen | 15-06-2026 |
+| TC-03-02 | Klik på aktiv station starter ikke forfra | 🟢 Godkendt | Klik på spillende station afbryder ikke streamen, og status bliver "Live" — ingen hængende "Forbinder" (BUG-18) | 24-09-2026 |
 | TC-03-03 | Stationsskift stopper forrige | 🟢 Godkendt | Klik på anden station stopper A og starter B | 15-06-2026 |
 | TC-03-04 | Pause → resume reconnect | 🟢 Godkendt | Resume reconnectes fra live — ikke fra buffereret position | 15-06-2026 |
 | TC-03-06 | Hurtig pause → play under fade | 🟢 Godkendt | Fade-interval annulleres ved hurtig resume — ingen race | 15-06-2026 |

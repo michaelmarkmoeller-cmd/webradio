@@ -23,8 +23,9 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Rettet 24-09-2026 — lydløs pause (stilhedsløkke) + genstart af løkken ved AirPods ud + headset-knap under pause = PLAY (bekræftet på iPhone) | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-17 | `src/components/StationCard.tsx:83` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
+| BUG-18 | `src/store/useRadioStore.ts:362` | 🟢 Rettet (bekræftet af Michael + regressionstest TC-03-02) | Mellem |
 
-> **Status: 16/17 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 15, 16, 17), 1 lukket som accepteret platformsbegrænsning (BUG-14). BUG-15 var accepteret 14-07-2026, genåbnet 23-09-2026 og rettet 24-09-2026. BUG-17 fundet 22-07-2026, uden for juli-runden.**
+> **Status: 17/18 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 15, 16, 17, 18), 1 lukket som accepteret platformsbegrænsning (BUG-14). BUG-15 var accepteret 14-07-2026, genåbnet 23-09-2026 og rettet 24-09-2026. BUG-17 (22-07-2026) og BUG-18 (24-09-2026) fundet af Michael, uden for juli-runden.**
 
 ---
 
@@ -471,3 +472,18 @@ Ingen `devicechange`-hændelser overhovedet — på iOS fyrer den ikke, så `App
 **Status:** Rettet, afventer Michaels bekræftelse på rigtig iPhone via Vercel — kan ikke automatiseres i Playwright (samme headless drag-simulerings-begrænsning som TC-09-05/06).
 
 **Bekræftet 22-07-2026 (Michael, rigtig iPhone, deployet commit `7b34b3a`):** Scroll i en lang kategori-liste virker nu som forventet — ingen uventet popup. Ny automatiseret regressionstest tilføjet (`tests/tc-09.spec.ts`, TC-09-09) verificerer, at bevægelse inden arm-forsinkelsen annullerer holdet uden at åbne reorder-listen eller slet-dialogen; de eksisterende TC-09-05/07/08 (som åbner reorder-listen bevidst) opdateret til at vente 350ms efter `mouse.down()` før bevægelse, så de fortsat rammer den tilsigtede gestus efter fixet. Alle 9 TC-09-tests kørt grønt mod produktion. **BUG-17 er lukket.**
+
+---
+
+## BUG-18 — "Forbinder" hænger ved genklik på den station, der allerede spiller
+**Fil:** `src/store/useRadioStore.ts:362` · **Prioritet:** Mellem · *fundet af Michael på pc, 24-09-2026, 100% reproducerbar*
+
+**Fejlscenarie:** Start appen, tryk på en station — den spiller, player-baren viser "Live". Tryk igen på samme stationskort → player-baren skifter til gul "Forbinder", selvom lyden spiller uafbrudt, og bliver stående, indtil der vælges en anden station.
+
+**Årsag:** `playStation()` springer bevidst genforbindelsen over, når stationen allerede spiller (`a.src === station.streamUrl && wasPlaying`), så streamen ikke afbrydes (TC-03-02). Men den afsluttende `set(...)` satte altid `isBuffering: true`. Da audio-elementet aldrig stoppede, kommer der ingen ny `playing`-hændelse til at nulstille `isBuffering` — så "Forbinder" hang.
+
+**Rettet 24-09-2026 (commit `8eab4eb`):** `playStation()` beregner `reconnect` én gang; uden genforbindelse beholdes den aktuelle `isBuffering`-værdi (`reconnect ? true : get().isBuffering`). Ved stationsskift og genstart efter pause er opførslen uændret.
+
+**Test:** TC-03-02 (`tests/tc-02-to-17.spec.ts`) udvidet — venter på LIVE, klikker på det aktive kort igen og kræver, at FORBINDER ikke vises og LIVE bliver stående. Fejlede mod den gamle produktionsversion (genskabte fejlen), grøn mod rettelsen. Filen understøtter nu `WEBRADIO_URL` (lokal dev-server; `/api/**` stubbes). TC-03 + TC-04: 11/11 grønne.
+
+**Bekræftet 24-09-2026 (Michael):** Virker. **BUG-18 er lukket.**

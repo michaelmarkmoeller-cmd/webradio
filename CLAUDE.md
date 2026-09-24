@@ -304,12 +304,14 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 
 **BUG-17 (22-07-2026, fundet af Michael på iPhone, uden for juli-runden):** Scroll i en lang kategori-liste udløste "rediger rækkefølge"-popup'en med det samme (se "Scroll vs. reorder" ovenfor). Rettet, bekræftet på iPhone, ny regressionstest tilføjet (TC-09-09).
 
+**BUG-18 (24-09-2026, fundet af Michael):** Genklik på den station, der allerede spiller, satte "Forbinder", som hang til næste stationsskift — `playStation()` sprang genforbindelsen over, men satte alligevel `isBuffering: true`, og uden ny `playing`-hændelse blev den aldrig nulstillet. Rettet (commit `8eab4eb`): uden genforbindelse beholdes den aktuelle `isBuffering`. TC-03-02 udvidet, bekræftet af Michael.
+
 **BUG-15 genåbnet 23-09-2026 — løst 24-09-2026:** lydløs pause med stilhedsløkke (commit `839ac8a`, muted-versionen `06accb1` virkede ikke) + genstart af løkken ved AirPods ud og headset-knap = PLAY under pause (commits `1bde07a`, `99a3488`, bridge-element fjernet i `25c9930`). Bekræftet på iPhone (TC-17-16/17/18). Fuld historik i `BUGS.md` BUG-15.
 
 ## Test-infrastruktur
 - `playwright.config.ts` — Playwright-konfiguration (Chromium, headless, target: live-app)
 - `tests/tc-01.spec.ts` — TC-01: app-start + state restore (5 tests)
-- `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests
+- `tests/tc-02-to-17.spec.ts` — TC-02 til TC-09 + TC-15/16: store gruppe-tests (`WEBRADIO_URL` virker — `/api/**` stubbes lokalt)
 - `tests/tc-05.spec.ts` — TC-05: ICY stream-metadata (7 tests, page.route mock)
 - `tests/tc-05b.spec.ts` — TC-05-08..16: nu spiller fra netværks-API inkl. Bauer + albumcover/MediaSession (9 tests, page.route mock). URL kan overstyres med `WEBRADIO_URL` (fx lokal dev-server før deploy)
 - `tests/tc-06b.spec.ts` — TC-06: søvntimer (5 tests, page.clock)
