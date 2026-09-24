@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-09-23 (TC-05-08..16 tilføjet: nu spiller fra netværks-API inkl. Bauer DK + albumcover)  
-**Antal test cases:** 118 fordelt på 17 grupper
+**Senest opdateret:** 2026-09-24 (TC-18-01..19 tilføjet: stor afspiller i fuld skærm)  
+**Antal test cases:** 137 fordelt på 18 grupper
 
 ---
 
@@ -1184,4 +1184,184 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-09-24 — 118 test cases, 17 grupper (TC-17-24/25 AirPods ud/headset-knap under lydløs pause automatiseret i `tests/tc-17b.spec.ts`; TC-17-18 bekræftet på iPhone)*
+## TC-18: Stor afspiller (NowPlayingSheet)
+
+### TC-18-01: Tryk på player-baren åbner den store afspiller
+**Forudsætning:** En station spiller  
+**Trin:**
+1. Tryk på stationsnavnet i player-baren
+
+**Forventet resultat:** Den store afspiller (dialog "Afspiller") vises i fuld skærm og glider helt op (ingen forskydning).
+
+---
+
+### TC-18-02: Knapper i player-baren åbner ikke den store afspiller
+**Forudsætning:** En station spiller  
+**Trin:**
+1. Tryk på søvntimer, Sonos, lydstyrke-slider og pause i player-baren
+
+**Forventet resultat:** Knapperne virker som før (pause → Afspil); den store afspiller åbnes ikke.
+
+---
+
+### TC-18-03: Albumcover vises stort og stationslogo lille
+**Forudsætning:** Netværks-API leverer et albumcover (mock)  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Albumcoveret vises stort (> 250 px); stationslogoet vises lille (< 60 px) ved stationsnavnet.
+
+---
+
+### TC-18-04: Uden albumcover vises stationslogoet stort
+**Forudsætning:** Netværks-API leverer titel uden cover (mock)  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Intet albumcover; stationslogoet vises én gang og stort (> 250 px).
+
+---
+
+### TC-18-05: Titel og kunstner vises hver for sig
+**Forudsætning:** Nu spiller = "TC18 Artist - TC18 Song" (mock)  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Titlen vises med stor skrift, kunstneren under; den samlede streng vises ikke.
+
+---
+
+### TC-18-06: Tryk på albumcoveret lukker — musikken spiller videre
+**Forudsætning:** Stor afspiller åben med albumcover  
+**Trin:**
+1. Tryk på albumcoveret
+
+**Forventet resultat:** Den store afspiller lukker; player-baren viser Pause-knap og Live.
+
+---
+
+### TC-18-07: Tryk på det lille stationslogo lukker — musikken spiller videre
+**Forudsætning:** Stor afspiller åben med albumcover  
+**Trin:**
+1. Tryk på det lille stationslogo
+
+**Forventet resultat:** Den store afspiller lukker; musikken spiller videre.
+
+---
+
+### TC-18-08: Tryk på det store stationslogo (uden cover) lukker
+**Forudsætning:** ICY-station spiller (intet cover)  
+**Trin:**
+1. Åbn den store afspiller, tryk på stationslogoet
+
+**Forventet resultat:** Den store afspiller lukker; musikken spiller videre.
+
+---
+
+### TC-18-09: ⌄-pilen og Escape lukker
+**Forudsætning:** Stor afspiller åben  
+**Trin:**
+1. Tryk på ⌄-pilen
+2. Åbn igen, tryk Escape
+
+**Forventet resultat:** Lukker begge gange; musikken spiller videre.
+
+---
+
+### TC-18-10: Swipe ned lukker — kort swipe glider tilbage
+**Forudsætning:** iPhone (touch), stor afspiller åben  
+**Trin:**
+1. Swipe 50 px ned
+2. Swipe 250 px ned
+
+**Forventet resultat:** Trin 1: afspilleren glider tilbage og forbliver åben. Trin 2: den lukker; musikken spiller videre.
+
+---
+
+### TC-18-11: Play/pause i den store afspiller styrer afspilningen
+**Forudsætning:** Stor afspiller åben, station spiller  
+**Trin:**
+1. Tryk på pause
+2. Tryk på afspil
+
+**Forventet resultat:** Trin 1: status "Pause", player-baren viser Afspil. Trin 2: Live igen, player-baren viser Pause.
+
+---
+
+### TC-18-12: Favorit-hjertet tilføjer og fjerner favorit
+**Forudsætning:** Ny browser-kontekst (eget test-device-ID)  
+**Trin:**
+1. Tryk på hjertet
+2. Tryk igen
+
+**Forventet resultat:** Trin 1: hjertet fyldes, og stationskortet viser også favorit. Trin 2: fjernet igen begge steder (test rydder selv op).
+
+---
+
+### TC-18-13: Stream-detaljer for netværks-API-station
+**Forudsætning:** 80s80s Radio spiller  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Stream-boksen viser 192 kbps, MP3, Tyskland, "Netværks-API (Loverad/Iris)" og stream-URL'en; kategori-badge og flag vises.
+
+---
+
+### TC-18-14: ICY-station viser ICY som kilde og genre
+**Forudsætning:** ICY-station spiller, ICY-titel + genre (mock)  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Kilde = "ICY (streamen)", genre vises, titel vises med stor skrift.
+
+---
+
+### TC-18-15: Søvntimer i den store afspiller følger player-baren
+**Forudsætning:** Stor afspiller åben  
+**Trin:**
+1. Vælg søvntimer 30 min
+2. Vælg Fra
+
+**Forventet resultat:** Trin 1: knappen viser 29-30 min, og player-baren viser 29-30m. Trin 2: knappen viser "Søvntimer".
+
+---
+
+### TC-18-16: Sonos-menuen åbner med alle tre rum
+**Forudsætning:** Stor afspiller åben  
+**Trin:**
+1. Tryk på Sonos (intet rum vælges — intet sendes til højttalerne)
+
+**Forventet resultat:** Menuen viser Bad, Køkken og Stue; den store afspiller forbliver åben.
+
+---
+
+### TC-18-17: Volumen-slider vises på pc
+**Forudsætning:** Pc, stor afspiller åben  
+**Trin:**
+1. Sæt lydstyrken til 0,5
+
+**Forventet resultat:** Slideren vises; player-barens slider følger med (0,5).
+
+---
+
+### TC-18-18: Volumen-slider skjult på iOS
+**Forudsætning:** iPhone, stor afspiller åben  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Ingen lydstyrke-slider; play/pause vises.
+
+---
+
+### TC-18-19: iPhone: stor afspiller i PWA'en (manuel)
+**Forudsætning:** WebRadio installeret på hjemskærmen  
+**Trin:**
+1. Tryk på player-baren
+2. Tjek at ⌄-pilen ikke sidder under statuslinjen
+3. Luk med tryk på cover/logo og med swipe ned
+
+**Forventet resultat:** Afspilleren åbner og lukker glat; ⌄-pilen kan trykkes; musikken spiller uafbrudt.
+
+---
+
+*Sidst opdateret: 2026-09-24 — 137 test cases, 18 grupper (TC-18 stor afspiller tilføjet, automatiseret i `tests/tc-18.spec.ts`; TC-18-19 manuel)*

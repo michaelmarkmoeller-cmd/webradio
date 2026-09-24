@@ -176,18 +176,18 @@ Tryk hvor som helst på player-baren — **undtagen** knapper, slider og menuer 
 - **Format** gættes ud fra stream-URL'en (`streamFormat()`: HLS/AAC/MP3/Ogg) — mange streams har ingen endelse → "—". **Land** via `Intl.DisplayNames(['da'])`
 - Renderes som **søskende** til player-baren (fragment), ikke som barn — ellers ville klik i sheet'et boble op til `handleBarClick` og genåbne det ved lukning
 - Låser `document.documentElement.style.overflow` mens det er åbent. Fast `pt-12` på iOS (statuslinje i PWA, `viewport-fit=cover` er ikke sat)
-- **Ikke testet automatisk endnu** — aftalt 24-09-2026: under prototypen køres ingen Playwright-tests; test cases + brugervejlednings-kapitel laves, når featuren er i mål
+- **I mål 24-09-2026:** TC-18-01..18 automatiseret i `tests/tc-18.spec.ts` (alle grønne), TC-18-19 (iPhone-PWA, manuel) afventer. Brugervejledningen kapitel 4 "Den store afspiller" (screenshots `15-player-bar.png`, `16-now-playing.png`, `17-now-playing-details.png`)
 
 ## Søvntimer
 `setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Knap + menu ligger i `SleepTimerMenu.tsx` (bruges af både player-baren og den store afspiller). Viser nedtæller via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
 
 ## Brugervejledning
-Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 14 kapitler, ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
+Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 15 kapitler (kapitel 4 "Den store afspiller" indsat 24-09-2026, resten renummereret), ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
 
 **Bemærk (rettet 13-07-2026):** `take-screenshots.mjs`, `guide-assets/` og `export-guide-pdf.mjs` — som tidligere var beskrevet her — findes IKKE i repoet og har aldrig været committet. Der er ingen PDF-eksport-pipeline i praksis. Sådan opdateres guiden reelt:
 1. Redigér `public/guide/index.html` direkte for tekstændringer
 2. Nye screenshots tages ad-hoc med et lille Playwright-script (se `capture-sonos-screenshot.mjs` som eksempel — navigerer til produktions-URL'en, interagerer med UI'et, gemmer PNG direkte i `public/guide/`)
-3. Ved indsættelse af et nyt kapitel: opdatér TOC-sidetal ved at rendere filen lokalt og tælle `.page`-divs (`document.querySelectorAll('.page')`) — sidetal følger simpel akkumulering, men lange kapitler kan spilde over på en ekstra printet side, så verificér visuelt efter ændringer
+3. Ved indsættelse af et nyt kapitel: opdatér TOC-sidetal ved at rendere filen lokalt og tælle `.page`-divs (`document.querySelectorAll('.page')`) — sidetal følger simpel akkumulering (= nummeret på `.page`-div'en), men lange kapitler spilder over ved print (24-09-2026: 12 `.page`-sider → 21 printede A4-sider i Chromium; før kapitel 4: 19) — TOC følger bevidst `.page`-nummeret, verificér visuelt efter ændringer. Krydshenvisninger ("se kapitel N") skal rettes med ved renummerering
 Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lukkes med "Luk ✕" i App.tsx-headeren (ikke en knap i guide-HTML'en). Guide-HTML har ingen sticky nav. Guide bruger "Michaels WebRadio"-branding med regnbue-gradient på "Michaels" (identisk med App.tsx). Guide er responsiv (max-width: 820px → `width: 100%`).
 
 ## ICY stream-metadata
@@ -317,10 +317,11 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-10-11.spec.ts` — TC-10/11: slet + tilføj station (10 tests, Firestore REST API)
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-17b.spec.ts` — TC-17-05..15 + 19..22 + 24/25: lydløs pause, headset-frakobling og AirPods ud/headset-knap på iOS (17 tests; `enumerateDevices` + `devicechange` simuleres; iPhone-UA, `page.clock`, simuleret `visibilityState`, MediaSession-handlere kaldes direkte). `WEBRADIO_URL` virker også her — `/api/artwork` stubbes, da Vite-dev-serveren ikke kører Vercel-funktioner (ellers dækker en vite-error-overlay knapperne)
+- `tests/tc-18.spec.ts` — TC-18-01..18: stor afspiller (18 tests; iris/ICY/cover mockes med `page.route`, swipe via CDP `Input.dispatchTouchEvent` i iPhone-kontekst, Sonos-menuen åbnes kun — der vælges aldrig et rum). `WEBRADIO_URL` virker også her
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **118 test cases** fordelt på 17 grupper
-- `TEST-REPORT.md` — testrapport: **118/118 godkendt** (24-09-2026); 110/110 automatiserede grønne
+- `TEST-CASES.md` — fuld testspecifikation: **137 test cases** fordelt på 18 grupper
+- `TEST-REPORT.md` — testrapport: **136/137 godkendt** (24-09-2026, TC-18-19 manuel afventer); 128/128 automatiserede grønne
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
