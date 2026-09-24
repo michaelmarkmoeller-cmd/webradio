@@ -359,7 +359,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     // reconnect from "now" (matches togglePlay's resume path below). Skip the reconnect
     // only when already playing this station, to avoid aborting in-progress buffering.
     // Set isPlaying:false before a.pause() so the external-pause listener doesn't misfire.
-    if (a.src !== station.streamUrl || !wasPlaying) {
+    const reconnect = a.src !== station.streamUrl || !wasPlaying
+    if (reconnect) {
       set({ isPlaying: false })
       a.pause()
       a.src = station.streamUrl
@@ -371,7 +372,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const isNewStation = prev?.id !== station.id
     const accumulated = isNewStation ? 0 : listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
     try { localStorage.setItem('webradio_last_station_id', station.id) } catch {}
-    set({ currentStation: station, isPlaying: true, isBuffering: true, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
+    // Uden genforbindelse kommer der ingen ny 'playing'-hændelse — behold den aktuelle
+    // buffer-status, ellers hænger "Forbinder" ved genklik på den station, der allerede spiller
+    const isBuffering = reconnect ? true : get().isBuffering
+    set({ currentStation: station, isPlaying: true, isBuffering, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
   },
 

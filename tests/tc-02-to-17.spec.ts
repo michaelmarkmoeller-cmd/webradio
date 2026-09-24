@@ -1,8 +1,10 @@
 import { test, expect, Page } from '@playwright/test'
 
-const URL = 'https://webradio-chi.vercel.app'
+const URL = process.env.WEBRADIO_URL ?? 'https://webradio-chi.vercel.app'
 
 async function loadApp(page: Page) {
+  // Lokal dev-server kører ikke Vercel-funktionerne under /api — ellers dækker en vite-error-overlay knapperne
+  if (process.env.WEBRADIO_URL) await page.route('**/api/**', (r) => r.fulfill({ status: 204, body: '' }))
   await page.goto(URL)
   await page.waitForSelector('.rounded-xl.border.px-4', { timeout: 15000 })
 }
@@ -129,6 +131,8 @@ test.describe('TC-03: Afspilning', () => {
       const a = document.querySelector('audio')
       return a?.src ?? ''
     })
+    const player = page.locator('.fixed.bottom-0')
+    await expect(player.locator('text=LIVE')).toBeVisible({ timeout: 10000 })
     await card.click()
     await page.waitForTimeout(500)
     const srcAfter = await page.evaluate(() => {
@@ -136,6 +140,10 @@ test.describe('TC-03: Afspilning', () => {
       return a?.src ?? ''
     })
     expect(srcAfter).toBe(srcBefore)
+    // Genklik må ikke sætte "Forbinder" — der kommer ingen ny 'playing'-hændelse, så den ville hænge
+    await page.waitForTimeout(1500)
+    await expect(player.locator('text=FORBINDER')).toHaveCount(0)
+    await expect(player.locator('text=LIVE')).toBeVisible()
   })
 
   test('TC-03-03: Stationsskift stopper forrige', async ({ page }) => {
