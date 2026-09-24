@@ -6,7 +6,6 @@ import { subscribeFavorites } from './firebase/favoritesService'
 import { subscribeToStationOrder } from './firebase/stationOrderService'
 import { getDeviceId } from './utils/deviceId'
 import { useRadioStore, pauseForDisconnect } from './store/useRadioStore'
-import { dlog } from './utils/debugLog'
 import { CategoryFilter } from './components/CategoryFilter'
 import { StationGrid } from './components/StationGrid'
 import { Player } from './components/Player'
@@ -67,7 +66,6 @@ export default function App() {
     const onDeviceChange = async () => {
       const devices = await md.enumerateDevices()
       const decreased = devices.length < lastDeviceCount
-      dlog(`devicechange ${lastDeviceCount}→${devices.length} pendingReconnect=${pendingReconnect}`)
       lastDeviceCount = devices.length
 
       if (!decreased) {
@@ -79,7 +77,6 @@ export default function App() {
         if (timer) clearTimeout(timer)
         pendingReconnect = false
         const { isPlaying, currentStation, togglePlay } = useRadioStore.getState()
-        dlog(`reconnect wasPlaying=${wasPlayingAtDisconnect} isPlaying=${isPlaying}`)
         if (!isPlaying && currentStation && wasPlayingAtDisconnect) togglePlay()
         return
       }

@@ -7,7 +7,6 @@ import { getDeviceId } from '../utils/deviceId'
 import { toggleFavoriteInFirestore } from '../firebase/favoritesService'
 import { saveStationOrder } from '../firebase/stationOrderService'
 import { isIOS } from '../utils/platform'
-import { dlog } from '../utils/debugLog'
 
 function sortWithOrder(stations: Station[], order: Record<string, string[]>): Station[] {
   return [...stations].sort((a, b) => {
@@ -69,20 +68,19 @@ const SILENT_PAUSE_MAX_MS = 30 * 60_000
 const SILENT_PAUSE_VISIBLE_MS = 20_000
 let silentPause: { startedAt: number; timer: ReturnType<typeof setTimeout> | undefined; retry?: 'pending' | 'done' } | null = null
 
-// FORSØG 24-09-2026: iOS stopper stilhedsløkken ~0,1-1 sek. efter AirPods ud — enten ved at afvise
+// AirPods ud (24-09-2026): iOS stopper stilhedsløkken ~0,1-1 sek. efter AirPods ud — enten ved at afvise
 // play() (AbortError) eller ved en pause-hændelse efter start. Prøv én gang igen efter 1,5 sek.;
 // fejler det, afsluttes den lydløse pause.
-function onLoopKilled(why: string) {
+function onLoopKilled() {
   const sp = silentPause
   if (!sp) return
-  dlog(`loop:killed ${why}`)
   if (sp.retry === 'pending') return  // pause-hændelse og afvist play() fra samme stop
   if (sp.retry === 'done') { clearSilentPause(); return }
   sp.retry = 'pending'
   setTimeout(() => {
     if (silentPause !== sp) return  // PLAY eller andet er sket imens
     sp.retry = 'done'
-    audio().play().then(() => dlog('loop:retry ok')).catch((e) => { dlog(`loop:retry FEJL ${e?.name}`); clearSilentPause() })
+    audio().play().catch(() => clearSilentPause())
   }, 1500)
 }
 
@@ -105,7 +103,6 @@ function clearSilentPause() {
 // Afslutter en lydløs pause med et rigtigt stop (no-op hvis der ingen er)
 function endSilentPause() {
   if (!silentPause) return
-  dlog('endSilentPause')
   clearSilentPause()
   audio().pause()
 }
@@ -121,17 +118,12 @@ function audio() {
   })
   if (!externalPauseListenerAdded) {
     externalPauseListenerAdded = true
-    // MIDLERTIDIG diagnose (AirPods ud/ind)
-    for (const ev of ['play', 'pause', 'playing', 'waiting', 'stalled', 'error', 'ended', 'emptied']) {
-      a.addEventListener(ev, () => dlog(`el:${ev} paused=${a.paused} silent=${!!silentPause} isPlaying=${useRadioStore.getState().isPlaying} src=${a.src.slice(0, 12)}`))
-    }
-    document.addEventListener('visibilitychange', () => dlog(`visibility`))
     // Sync UI when audio is paused externally (AirPods ear detection, phone call, etc.).
     // Guard: togglePlay() sets isPlaying:false before a.pause(), and playStation() sets it
     // before its internal a.pause() — so isPlaying:true here always means external pause.
     a.addEventListener('pause', () => {
       // Vores egne pauser af løkken rydder silentPause først — er den sat her, har iOS stoppet løkken
-      if (silentPause) { onLoopKilled('pause-hændelse'); return }
+      if (silentPause) { onLoopKilled(); return }
       const { isPlaying, listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       if (!isPlaying) return
       // Snapshot accumulated time at the instant of pause so visibilitychange
@@ -215,14 +207,12 @@ function syncMediaSession(station: Station, playing: boolean) {
   if (!('mediaSession' in navigator)) return
   if (!mediaSessionReady) {
     navigator.mediaSession.setActionHandler('play', () => {
-      dlog(`ms:play isPlaying=${useRadioStore.getState().isPlaying} silent=${!!silentPause}`)
       if (!useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('pause', () => {
-      dlog(`ms:pause isPlaying=${useRadioStore.getState().isPlaying} silent=${!!silentPause}`)
       // Under lydløs pause spiller stilhedsløkken, så iOS ser appen som spillende, og headsettets
       // afspil/pause-knap sender "pause" — det betyder PLAY. De første 3 sek. ignoreres: iOS sender
-      // selv en ekstra pause ~1 sek. efter AirPods ud (FORSØG 24-09-2026)
+      // selv en ekstra pause ~1 sek. efter AirPods ud (24-09-2026)
       if (silentPause && !useRadioStore.getState().isPlaying) {
         if (Date.now() - silentPause.startedAt > 3000) useRadioStore.getState().togglePlay()
         return
@@ -230,7 +220,6 @@ function syncMediaSession(station: Station, playing: boolean) {
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
     navigator.mediaSession.setActionHandler('stop', () => {
-      dlog('ms:stop')
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
       useRadioStore.setState({ isPlaying: false, isBuffering: false, listenStartedAt: null, listenAccumulatedMs: accumulated })
@@ -471,7 +460,6 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 // starte en lydløs pause lige før, omdannes den. Returnerer om der blev spillet ved frakoblingen.
 export function pauseForDisconnect(): boolean {
   const { isPlaying, currentStation } = useRadioStore.getState()
-  dlog(`pauseForDisconnect isPlaying=${isPlaying} silent=${!!silentPause}`)
   const recentSilent = !!silentPause && Date.now() - silentPause.startedAt < 2000
   if (isPlaying) {
     pauseAudio(false)
@@ -499,10 +487,9 @@ function pauseAudio(silent: boolean) {
     silentPause = { startedAt: Date.now(), timer: undefined }
     a.src = getSilentLoopUrl()
     a.loop = true
-    a.play().then(() => dlog('loop:play ok')).catch((e) => {
-      dlog(`loop:play FEJL ${e?.name}`)
-      // FORSØG 24-09-2026: iOS stopper løkken ~1 sek. efter AirPods ud (AbortError) — prøv igen én gang
-      if (e?.name === 'AbortError') onLoopKilled('play afvist')
+    a.play().catch((e) => {
+      // iOS stopper løkken ~1 sek. efter AirPods ud (AbortError) — se onLoopKilled
+      if (e?.name === 'AbortError') onLoopKilled()
       else clearSilentPause()
     })
     armSilentPauseTimer()

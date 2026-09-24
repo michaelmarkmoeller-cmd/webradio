@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-09-23 (TC-05-08..16 tilføjet: nu spiller fra netværks-API inkl. Bauer DK + albumcover)  
-**Antal test cases:** 116 fordelt på 17 grupper
+**Antal test cases:** 118 fordelt på 17 grupper
 
 ---
 
@@ -1123,9 +1123,11 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 ### TC-17-18: iPhone: AirPods ud/ind med appen åben og med låst skærm (manuel)
 **Forudsætning:** Rigtig iPhone + AirPods  
 **Trin:**
-1. Tag AirPods ud, sæt dem i igen — først med appen åben, derefter med låst skærm (vent 1 min.)
+1. Afspil med AirPods i, lås skærmen
+2. Tag AirPods ud, vent ca. 10 sek., sæt dem i igen
+3. Tryk PLAY på AirPods (og derefter prøv PLAY på låseskærmen)
 
-**Forventet resultat:** Appen åben: auto-resume som før. Låst skærm: bedre eller som før (afhænger af hvordan iOS sender ørefjernelsen videre).
+**Forventet resultat:** WebRadio bliver på låseskærmen efter AirPods ud (stilhedsløkken genstartes); både headsettets knap og låseskærmens PLAY giver musik igen. Ingen automatisk genstart ved isætning (iOS sender ingen play), og AirPods' "ding" udebliver, mens løkken kører — begge accepteret 24-09-2026.
 
 ---
 
@@ -1162,4 +1164,24 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-09-23 — 116 test cases, 17 grupper (TC-17-19..22 headset-frakobling automatiseret i `tests/tc-17b.spec.ts`)*
+### TC-17-24: iOS stopper stilhedsløkken (AirPods ud) → genstartes én gang
+**Forudsætning:** Lydløs pause aktiv, låst skærm (simuleret iPhone)
+**Trin:**
+1. iOS pauser stilhedsløkken (`pause` på elementet), vent 1,5 sek.
+2. iOS pauser den igen, vent 1,5 sek.
+3. PLAY på låseskærmen
+
+**Forventet resultat:** Efter trin 1 kører løkken igen; efter trin 2 opgives den (elementet pauset); PLAY kobler radiostreamen på (`playing`).
+
+---
+### TC-17-25: Headset-knap under lydløs pause kobler streamen på — dog ikke de første 3 sek.
+**Forudsætning:** Lydløs pause aktiv, låst skærm (simuleret iPhone)
+**Trin:**
+1. MediaSession-pause 1 sek. efter pausen (iOS' egen ekstra pause ved AirPods ud)
+2. MediaSession-pause efter yderligere 10 sek. (headsettets knap — iOS sender "pause", fordi løkken spiller)
+
+**Forventet resultat:** Trin 1 ignoreres (stadig lydløs pause); trin 2 kobler radiostreamen på, MediaSession `playing`.
+
+---
+
+*Sidst opdateret: 2026-09-24 — 118 test cases, 17 grupper (TC-17-24/25 AirPods ud/headset-knap under lydløs pause automatiseret i `tests/tc-17b.spec.ts`; TC-17-18 bekræftet på iPhone)*

@@ -20,11 +20,11 @@ Status-koder: 🔴 Åben · 🟡 I gang · 🟢 Rettet
 | BUG-12 | `check-streams.mjs:122` | 🟢 Rettet (parallelliseret, live-testet: 80/80 på 4 sek.) | Lav |
 | BUG-13 | rodmappe-scripts (17 filer) | 🟢 Rettet (delt `firebase-init.mjs`, live-testet) | Lav |
 | BUG-14 | `src/audio.ts`, `src/store/useRadioStore.ts` | 🟢 Lukket — accepteret platformsbegrænsning | Kritisk |
-| BUG-15 | `src/store/useRadioStore.ts:298` | 🟡 Genåbnet 23-09-2026 — pause/PLAY på låseskærm løst (stilhedsløkke); AirPods ud/ind med låst skærm åben (TC-17-18) | Kritisk |
+| BUG-15 | `src/store/useRadioStore.ts:298` | 🟢 Rettet 24-09-2026 — lydløs pause (stilhedsløkke) + genstart af løkken ved AirPods ud + headset-knap under pause = PLAY (bekræftet på iPhone) | Kritisk |
 | BUG-16 | `src/components/Player.tsx:32` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 | BUG-17 | `src/components/StationCard.tsx:83` | 🟢 Rettet (bekræftet på iPhone) | Mellem |
 
-> **Status: 15/17 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16, 17), 2 lukket som accepteret platformsbegrænsning (BUG-14, BUG-15). BUG-17 fundet 22-07-2026, uden for juli-runden.**
+> **Status: 16/17 rettet + bekræftet (BUG-01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 15, 16, 17), 1 lukket som accepteret platformsbegrænsning (BUG-14). BUG-15 var accepteret 14-07-2026, genåbnet 23-09-2026 og rettet 24-09-2026. BUG-17 fundet 22-07-2026, uden for juli-runden.**
 
 ---
 
@@ -420,6 +420,23 @@ Ingen `devicechange`-hændelser overhovedet — på iOS fyrer den ikke, så `App
 - Alternativ: acceptér "AirPods ud med låst skærm → åbn appen / tryk PLAY i appen" som platformsbegrænsning (spørg Michael).
 - Spørg Michael, om manglende automatisk genstart ved AirPods ind (headset-PLAY kræves) er acceptabel.
 - Når AirPods-sagen er afsluttet: fjern `src/utils/debugLog.ts` + alle `dlog()`-kald, `read-debuglogs.mjs`, `clean-debuglogs.mjs`, og slet `debugLogs`-samlingen i Firestore. Overvej om `pauseForDisconnect()`/`devicechange` skal beholdes (virker kun uden for iOS).
+
+**24-09-2026 — AirPods ud/ind løst (tre iterationer, styret af diagnose-loggen):**
+
+1. **Forsøg A + B (commit `def9687`):** A = genstart stilhedsløkken én gang efter 1,5 sek., når iOS afviser `play()` med AbortError. B = ekstra "bridge"-audio-element med stilhedsløkken, startet ved PLAY mens siden er skjult. iPhone-test: headset-PLAY → intet, og player-widget'en forsvandt. Loggen: med låst skærm lykkedes løkkens `play()` (`loop:play ok`), men iOS pausede elementet 0,1 sek. efter — A reagerede kun på et afvist `play()`. `silentPause` stod stadig sat, så B blev også sprunget over.
+2. **Commit `1bde07a`:** `onLoopKilled()` reagerer nu også på `pause`-hændelsen under lydløs pause (vores egne pauser rydder `silentPause` først). Dublet-signaler (pause-hændelse + afvist `play()` fra samme stop) samles via `retry: 'pending' | 'done'`. iPhone-test: PLAY på låseskærmen virker — **men ikke headsettets knap**. Loggen: når løkken kører, ser iOS appen som spillende, og headsettets afspil/pause-knap sender `ms:pause`, som blev ignoreret. Samtidig udebliver AirPods' "ding" ved isætning (iOS spiller ikke forbindelseslyden, når der allerede kører lyd).
+3. **Commit `99a3488`:** `ms:pause` under lydløs pause = PLAY — de første 3 sek. efter pausen ignoreres, fordi iOS selv sender en ekstra `ms:pause` 0,5-1 sek. efter AirPods ud. iPhone-test: ingen player-widget på låseskærmen overhovedet. Loggen: låseskærmen sendte `ms:play`, mens radioen spillede, og AirPods ud gav kun `el:pause` uden `ms:pause`. Bedste forklaring: bridge-elementet (afspillet lydløst i første klik for at låse det op) havde overtaget iOS' "Now Playing"-tilknytning.
+4. **Commit `25c9930`:** bridge-elementet fjernet helt (det blev aldrig brugt i praksis, fordi A nu holder løkken i gang). **Bekræftet af Michael 24-09-2026: virker.**
+
+**Endelig adfærd på iPhone:** AirPods ud → iOS sender `ms:pause` → stilhedsløkken starter → iOS stopper den → appen genstarter den én gang efter 1,5 sek. (lykkes både synligt og med låst skærm) → WebRadio bliver på låseskærmen i op til 30 min. PLAY på låseskærmen eller headsettets knap kobler radiostreamen på igen.
+
+**Kendte begrænsninger (accepteret):**
+- Ingen automatisk genstart ved AirPods ind — iOS sender ingen play; headsettets knap eller låseskærmen skal bruges.
+- AirPods' "ding" ved isætning udebliver, mens stilhedsløkken kører (iOS spiller ikke forbindelseslyden oven i igangværende lyd).
+- Stilhedsløkken kører i telefonens højttaler efter AirPods ud (−90 dBFS, uhørlig, ingen data, lidt strøm) i højst 30 min.
+- Fravalgt: at starte løkken, når iOS pauser streamen *uden* `ms:pause` — det kan også være en afbrydelse fra fx Spotify eller et opkald, og så ville WebRadio tage lyden tilbage.
+
+**Oprydning 24-09-2026:** diagnose-loggen fjernet (`src/utils/debugLog.ts`, alle `dlog()`-kald, `read-debuglogs.mjs`, `clean-debuglogs.mjs`), og `debugLogs`-samlingen i Firestore slettet (8 dokumenter). `pauseForDisconnect()`/`devicechange` beholdt — virker på pc/Android, gør ingen skade på iOS. Nye tests TC-17-24 (løkken genstartes) og TC-17-25 (headset-knap under lydløs pause). **BUG-15 er lukket.**
 
 ---
 
