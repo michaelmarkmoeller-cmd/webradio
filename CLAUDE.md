@@ -222,6 +222,7 @@ Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det alm
 - **R.SA Italo Disco Hits** (nedlagt, sendte 60er Oldies) → erstattet af **Disco Paradise Italo** (320 kbps, US)
 - **95.5 Charivari Italo-Hits** (død URL) → erstattet af **Italo Disco New Gen** (RMI, 320 kbps, PL)
 - Nye: **80s80s Italo Disco Mix** (192 kbps) og **Radio Italo Disco Net** (320 kbps, HR) → 82 stationer
+- **Radio Italo Disco Net erstattet af Radio Italo4you (07-10-2026):** kilden gik ned (asurahostings proxy `/proxy/alen/` gav 502, den direkte port 8356 på samme IP gav ECONNREFUSED — serveren slukket/nedlagt). Nu **Radio Italo4you** (`https://ssl-1.radiohost.pl:8018/stream`, 256 kbps MP3, PL, sender ICY) i samme Firestore-dokument (`xO9iFsVxi5nuAD4lZFIB`), så rækkefølge og favoritter bevares. Logo `public/logos/radio-italo4you.png` (512×512: stationens eget transparente logo på mørk lilla baggrund). Script: `replace-italo-disco-net-oct2026.mjs`. Stadig 83 stationer; `check-streams.mjs` 83/83 OK
 - Erstatninger genbruger det gamle Firestore-dokument, så plads i rækkefølge og favoritter bevares
 - **Danske 80'er Hits** pegede på Bauers internationale "80's Hits" (`DK_HQ_RP04.aac`) → `DK_HQ_RP05.aac` (verificeret mod radioplay.dk's egne stationsdata, station-ID 188). Den frigjorte RP04-URL er tilføjet som ny station **80's Hits** (kategori 80's, Bauer station-ID 198) → 83 stationer. Bauer-streams sender intet `icy-name` — slå op i `__NEXT_DATA__` på `radioplay.dk/<kanal>` (`stationStreams`) for at finde den rigtige mount
 - **Radio 10 Top 4000 omdøbt til Radio 10 Pop** (23-09-2026) — samme dokument og stream (`TLPSTR24`), kun `name` ændret
@@ -347,7 +348,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
   - `make-80s80s-summerhits.mjs` — 80s80s-skilt klippet ud af `80s80s-radio.png` på `80s80s-summerhits.jpg` (valgt: `a`)
   - `make-christmas-vinyl.mjs` — Christmas Vinyl HD, vinyl-julekugle (valgt: `a`)
   - `make-eurobeat-logos.mjs` — laut.fm Eurobeat, Super Eurobeat-stil (valgt: `b`)
-  - `make-italo-disco-net-logos.mjs` — Radio Italo Disco Net, eget trikolore-hjerte + Italo/DISCO (valgt: `b`)
+  - `make-italo-disco-net-logos.mjs` — Radio Italo Disco Net, eget trikolore-hjerte + Italo/DISCO (valgt: `b`; stationen er erstattet af Radio Italo4you 07-10-2026, logofilerne beholdes)
   - Retro Radio, Forever 80 og Radio ANR er vektoriseret/tegnet med engangs-scripts i scratchpad (potrace m.fl.) — SVG-kilderne ligger i `public/logos/`
 - ⚠️ `add-italo-mix.mjs` og `add-new-stations-jun2026.mjs` henviser til logofiler, der er slettet ved oprydningen 23-09-2026 — kør dem ikke igen uden at rette logoerne (stationerne findes allerede)
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
