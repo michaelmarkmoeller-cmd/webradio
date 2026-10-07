@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-09-24 (BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion)  
+**Sidst opdateret:** 2026-10-07 (TC-18-19 bekræftet manuelt af Michael på iPhone — 137/137; fuld suite 128/128 automatiserede grønne mod produktion. Tidligere: 2026-09-24 — BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion)  
 **Tester:** —  
 **Git branch:** main  
 **Antal test cases:** 137
@@ -437,7 +437,7 @@
 | TC-18-16 | Sonos-menuen åbner med alle tre rum | 🟢 Godkendt | Bad, Køkken, Stue vises — intet sendt til højttalerne | 24-09-2026 |
 | TC-18-17 | Volumen-slider vises på pc | 🟢 Godkendt | Slider 0,5 → baren følger med | 24-09-2026 |
 | TC-18-18 | Volumen-slider skjult på iOS | 🟢 Godkendt | Ingen slider; play/pause vises | 24-09-2026 |
-| TC-18-19 | iPhone: stor afspiller i PWA'en (manuel) | 🟡 Ikke testet | Afventer Michaels test på iPhone: ⌄-pilens placering ift. statuslinjen, luk via cover/logo og swipe | |
+| TC-18-19 | iPhone: stor afspiller i PWA'en (manuel) | 🟢 Godkendt | Bekræftet af Michael på iPhone: ⌄-pilens placering ift. statuslinjen, luk via cover/logo og swipe | 07-10-2026 |
 
 **Resultat: 18/19 godkendt** (1 manuel afventer)
 
@@ -445,7 +445,7 @@
 
 ## Samlet resultat
 
-> **Resultat: 136/137 godkendt** (1 manuel ikke testet: TC-18-19). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 137/137 godkendt** (TC-18-19 bekræftet manuelt af Michael på iPhone 07-10-2026; 128/128 automatiserede kørt igen samme dag mod produktion). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 

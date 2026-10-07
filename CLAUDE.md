@@ -176,7 +176,7 @@ Tryk hvor som helst på player-baren — **undtagen** knapper, slider og menuer 
 - **Format** gættes ud fra stream-URL'en (`streamFormat()`: HLS/AAC/MP3/Ogg) — mange streams har ingen endelse → "—". **Land** via `Intl.DisplayNames(['da'])`
 - Renderes som **søskende** til player-baren (fragment), ikke som barn — ellers ville klik i sheet'et boble op til `handleBarClick` og genåbne det ved lukning
 - Låser `document.documentElement.style.overflow` mens det er åbent. Fast `pt-12` på iOS (statuslinje i PWA, `viewport-fit=cover` er ikke sat)
-- **I mål 24-09-2026:** TC-18-01..18 automatiseret i `tests/tc-18.spec.ts` (alle grønne), TC-18-19 (iPhone-PWA, manuel) afventer. Brugervejledningen kapitel 4 "Den store afspiller" (screenshots `15-player-bar.png`, `16-now-playing.png`, `17-now-playing-details.png`)
+- **I mål 24-09-2026:** TC-18-01..18 automatiseret i `tests/tc-18.spec.ts` (alle grønne), TC-18-19 (iPhone-PWA, manuel) bekræftet af Michael 07-10-2026. Brugervejledningen kapitel 4 "Den store afspiller" (screenshots `15-player-bar.png`, `16-now-playing.png`, `17-now-playing-details.png`)
 
 ## Søvntimer
 `setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Knap + menu ligger i `SleepTimerMenu.tsx` (bruges af både player-baren og den store afspiller). Viser nedtæller via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
@@ -324,7 +324,7 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
 - `TEST-CASES.md` — fuld testspecifikation: **137 test cases** fordelt på 18 grupper
-- `TEST-REPORT.md` — testrapport: **136/137 godkendt** (24-09-2026, TC-18-19 manuel afventer); 128/128 automatiserede grønne
+- `TEST-REPORT.md` — testrapport: **137/137 godkendt** (07-10-2026, TC-18-19 bekræftet manuelt på iPhone); 128/128 automatiserede grønne
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)

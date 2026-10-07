@@ -1353,7 +1353,7 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-18-19: iPhone: stor afspiller i PWA'en (manuel)
+### TC-18-19: iPhone: stor afspiller i PWA'en (manuel) — ✅ bekræftet af Michael 07-10-2026
 **Forudsætning:** WebRadio installeret på hjemskærmen  
 **Trin:**
 1. Tryk på player-baren
