@@ -4,6 +4,7 @@ import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import { getNowPlayingSource, fetchNowPlaying, type NowPlayingCover, type NowPlayingSource } from '../utils/nowPlaying'
 import { lookupAppleCover } from '../utils/coverLookup'
+import { cleanIcyTitle } from '../utils/icyTitle'
 import { SleepTimerMenu } from './SleepTimerMenu'
 import { SonosMenu } from './SonosMenu'
 import { NowPlayingSheet } from './NowPlayingSheet'
@@ -83,8 +84,8 @@ export function Player() {
         if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return }
         icySupportedRef.current = true
         setIcySupported(true)
-        // DR sætter "/ " foran kunstneren ("/ Freya Skye - bad taste") — fjernes, så titel og cover-opslag er rene
-        const title: string | null = typeof data.title === 'string' ? (data.title.replace(/^\/\s*/, '').trim() || null) : null
+        // Stationsspecifik oprydning til "Kunstner - Titel" (DR: "/ " foran kunstneren; ANR: "TITEL-KUNSTNER")
+        const title = cleanIcyTitle(currentStation!.streamUrl, data.title)
         // Samme nummer som ved forrige poll: behold et allerede fundet cover (ingen flimren)
         setMeta(prev => prev.title === title ? { ...prev, genre: data.genre ?? null } : { title, genre: data.genre ?? null, cover: null })
         // ICY sender ingen billeder — slå coveret op i Apple Music (programtekster uden match giver bare intet cover)

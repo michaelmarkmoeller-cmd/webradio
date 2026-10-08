@@ -7,6 +7,7 @@ const ICY_STATION = 'SomaFM Metal Detector'  // ICY-station uden netværks-API
 const IRIS_STATION = '80s80s Radio'          // Loverad/Iris
 const BAUER_STATION = 'NOVA'                 // Bauer Media DK / Radioplay
 const DR_STATION = 'DR P3'                   // DR sender "/ Kunstner - Titel"
+const ANR_STATION = 'Radio ANR'              // ANR sender "TITEL-KUNSTNER" (store bogstaver, ingen mellemrum)
 
 import zlib from 'node:zlib'
 
@@ -399,5 +400,17 @@ test.describe('TC-20: Cover-opslag', () => {
     await expect(sheet(page).locator('img[src*="tc20-art.test"]')).toHaveCount(0)
     await expect(sheet(page).getByText(/^Cover fra /)).toHaveCount(0)
     await expect(sheet(page).locator(`img[alt="${ICY_STATION}"]`)).toBeVisible()
+  })
+  test('TC-20-23: ANR — "TITEL-KUNSTNER" vendes til "Kunstner - Titel", og cover slås op', async ({ page }) => {
+    await mockImages(page)
+    await mockIcy(page, 'OPALITE-TAYLOR SWIFT')
+    await mockApple(page, [{ artist: 'Taylor Swift', track: 'Opalite', album: 'The Life of a Showgirl', art: 'opalite' }])
+    await loadApp(page)
+    await playStation(page, ANR_STATION)
+    await expect(bar(page).locator('text=Taylor Swift - Opalite')).toBeVisible({ timeout: 8000 })
+    await openSheet(page, ANR_STATION)
+    await expect(sheet(page).locator('.text-2xl', { hasText: 'Opalite' })).toBeVisible()
+    await expect(sheet(page).locator('.text-lg', { hasText: 'Taylor Swift' })).toBeVisible()
+    await expect(bigCover(page, 'opalite')).toBeVisible({ timeout: 8000 })
   })
 })
