@@ -3,6 +3,7 @@ import { useRadioStore, setMediaSessionTrack } from '../store/useRadioStore'
 import { isIOS } from '../utils/platform'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import { getNowPlayingSource, fetchNowPlaying, type NowPlayingCover, type NowPlayingSource } from '../utils/nowPlaying'
+import { lookupAppleCover } from '../utils/coverLookup'
 import { SleepTimerMenu } from './SleepTimerMenu'
 import { SonosMenu } from './SonosMenu'
 import { NowPlayingSheet } from './NowPlayingSheet'
@@ -68,7 +69,14 @@ export function Player() {
         if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return }
         icySupportedRef.current = true
         setIcySupported(true)
-        setMeta({ title: data.title ?? null, genre: data.genre ?? null, cover: null })
+        const title: string | null = data.title ?? null
+        // Samme nummer som ved forrige poll: behold et allerede fundet cover (ingen flimren)
+        setMeta(prev => prev.title === title ? { ...prev, genre: data.genre ?? null } : { title, genre: data.genre ?? null, cover: null })
+        // ICY sender ingen billeder — slå coveret op i Apple Music (DR sender programtekst, ikke musik)
+        if (title && !currentStation!.streamUrl.includes('dr.dk')) {
+          const found = await lookupAppleCover(title, controller.signal)
+          if (!cancelled && found) setMeta(prev => prev.title === title ? { ...prev, cover: found } : prev)
+        }
       } catch { }
     }
     fetchMeta()

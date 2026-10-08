@@ -90,6 +90,8 @@ export interface NowPlayingCover {
   src: string
   // MediaSession-hint til OS'et om billedets størrelse (fx "600x600")
   sizes: string
+  // 'apple' = slået op i Apple Music ud fra kunstner+titel (ICY-stationer uden netværks-API)
+  source?: 'apple'
 }
 
 export interface NowPlaying {

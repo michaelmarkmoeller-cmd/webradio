@@ -151,7 +151,12 @@ export function NowPlayingSheet({ station, accent, trackTitle, genre, cover, met
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
               </svg>
             </button>
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
+            <div className="flex flex-col items-center">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
+              {cover?.source === 'apple' && (
+                <span className="text-[11px] font-bold tracking-[0.18em] text-text-muted">Hentet fra Apple Music</span>
+              )}
+            </div>
             <button
               onClick={() => toggleFavorite(station.id)}
               className="w-10 h-10 -mr-2 flex items-center justify-center rounded-full text-text-secondary hover:bg-bg-hover transition-transform active:scale-90"
