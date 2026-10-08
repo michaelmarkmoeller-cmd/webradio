@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 173 fordelt på 20 grupper
+**Antal test cases:** 174 fordelt på 20 grupper
 
 ---
 
@@ -1689,7 +1689,16 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-20-27: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+### TC-20-27: Hovedkunstnerens egen udgivelse slår en andens EP, hvor kunstneren kun er gæst
+**Forudsætning:** Retro Radio sender `Dolly Parton - Jolene`; Apple returnerer Pentatonix' EP "PTX, Vol. IV: Classics" (`Jolene (feat. Dolly Parton)`), opsamlingen "Ultimate Dolly Parton" og albummet "Jolene"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Albummet "Jolene" vælges; Pentatonix' cover vises ikke (gæste-match er kun reserve; "Ultimate …" tæller som opsamling).
+
+---
+
+### TC-20-28: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
 **Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl.)  
 **Trin:**
 1. Åbn den store afspiller på hver station mens et nummer spiller
@@ -1699,4 +1708,4 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 173 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-27 manuelle)*
+*Sidst opdateret: 2026-10-08 — 174 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-28 manuelle)*
