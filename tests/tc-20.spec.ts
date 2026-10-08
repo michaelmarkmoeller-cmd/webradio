@@ -46,9 +46,13 @@ interface Hit { artist: string; track: string; album: string; art: string; vario
 const appleArt = (id: string) => `https://tc20-art.test/${id}/600x600bb.jpg`
 
 // Mock af iTunes Search API. `terms` fanger de søgeord appen sender
-async function mockApple(page: Page, hits: Hit[], terms: string[] = []) {
+async function mockApple(page: Page, hitsOrFn: Hit[] | ((country: string) => Hit[]), terms: string[] = [], countries: string[] = []) {
   await page.route('**/itunes.apple.com/search**', (route) => {
-    terms.push(new URL(route.request().url()).searchParams.get('term') ?? '')
+    const u = new URL(route.request().url())
+    terms.push(u.searchParams.get('term') ?? '')
+    const country = u.searchParams.get('country') ?? ''
+    countries.push(country)
+    const hits = typeof hitsOrFn === 'function' ? hitsOrFn(country) : hitsOrFn
     route.fulfill({
       status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({
@@ -412,5 +416,31 @@ test.describe('TC-20: Cover-opslag', () => {
     await expect(sheet(page).locator('.text-2xl', { hasText: 'Opalite' })).toBeVisible()
     await expect(sheet(page).locator('.text-lg', { hasText: 'Taylor Swift' })).toBeVisible()
     await expect(bigCover(page, 'opalite')).toBeVisible({ timeout: 8000 })
+  })
+  test('TC-20-24: Nummer der kun findes i Apples danske butik får cover (Danmark søges først)', async ({ page }) => {
+    const countries: string[] = []
+    await mockImages(page)
+    await mockIcy(page, 'FASCINATION-ALPHABEAT')
+    await mockApple(page, (c) => c === 'dk' ? [{ artist: 'Alphabeat', track: 'Fascination', album: 'Fascination - Single', art: 'alphabeat' }] : [], [], countries)
+    await page.route('**/api/icy-meta**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ title: 'FASCINATION-ALPHABEAT', icySupported: true }) }))
+    await loadApp(page)
+    await playStation(page, ANR_STATION)
+    await expect(bar(page).locator('text=Alphabeat - Fascination')).toBeVisible({ timeout: 8000 })
+    await openSheet(page, ANR_STATION)
+    await expect(bigCover(page, 'alphabeat')).toBeVisible({ timeout: 8000 })
+    expect(countries[0]).toBe('dk')
+    expect(countries).toEqual(['dk'])   // fundet i første butik → intet ekstra opslag
+  })
+
+  test('TC-20-25: Findes nummeret ikke i den danske butik, prøves USA', async ({ page }) => {
+    const countries: string[] = []
+    await mockImages(page)
+    await mockIcy(page, 'Satan - Trial by fire')
+    await mockApple(page, (c) => c === 'us' ? [{ artist: 'Satan', track: 'Trial by Fire', album: 'Court In The Act', art: 'satan-us' }] : [], [], countries)
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await openSheet(page, ICY_STATION)
+    await expect(bigCover(page, 'satan-us')).toBeVisible({ timeout: 8000 })
+    expect(countries).toEqual(['dk', 'us'])
   })
 })

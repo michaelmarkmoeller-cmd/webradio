@@ -169,25 +169,30 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
     // Versionsangivelser i parentes ("(Extended Remix)") ud af søgeordet — ellers finder Apple intet
     const searchTitle = title.replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/\s-\s.*$/, '').replace(/&/g, 'and').replace(/\s+/g, ' ').trim() || title
     const q = encodeURIComponent(`${artist} ${searchTitle}`)
-    const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=50`, { signal })
-    if (!res.ok) return null  // ikke cachet — prøv igen ved næste poll
-    const data = await res.json() as { results?: ItunesTrack[] }
     const wantsBad = BAD_VERSION.test(track)
-    // Gyldige kandidater, bedste først. Et cover kan være et blankt standardbillede (fx Universals hvide
-    // "LUV"-flise på en EP) — så tages den næste. Højst 4 tjekkes; er alle blanke, vises stationslogoet
-    const ranked = (data.results ?? [])
-      .map(r => ({ r, s: score(r, artist, names, title, track, wantsBad) }))
-      .filter(x => x.s >= 0 && x.r.artworkUrl100?.startsWith('https://'))
-      .sort((a, b) => b.s - a.s)
-    const tried = new Set<string>()
-    for (const { r } of ranked) {
-      const small = r.artworkUrl100!
-      if (tried.has(small)) continue
-      if (tried.size >= 4) break
-      tried.add(small)
-      if (await isBlankCover(small, signal)) continue
-      result = { src: small.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'Apple Music' }
-      break
+    // Apples butikker har forskelligt udvalg (fx Alphabeat - Fascination findes kun i den danske) — Danmark
+    // først, så standardbutikken (USA). Andet opslag kun hvis det første ikke gav et brugbart cover
+    for (const country of ['dk', 'us']) {
+      const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=50&country=${country}`, { signal })
+      if (!res.ok) return null  // ikke cachet — prøv igen ved næste poll
+      const data = await res.json() as { results?: ItunesTrack[] }
+      // Gyldige kandidater, bedste først. Et cover kan være et blankt standardbillede (fx Universals hvide
+      // "LUV"-flise på en EP) — så tages den næste. Højst 4 tjekkes pr. butik; er alle blanke, prøves næste butik
+      const ranked = (data.results ?? [])
+        .map(r => ({ r, s: score(r, artist, names, title, track, wantsBad) }))
+        .filter(x => x.s >= 0 && x.r.artworkUrl100?.startsWith('https://'))
+        .sort((a, b) => b.s - a.s)
+      const tried = new Set<string>()
+      for (const { r } of ranked) {
+        const small = r.artworkUrl100!
+        if (tried.has(small)) continue
+        if (tried.size >= 4) break
+        tried.add(small)
+        if (await isBlankCover(small, signal)) continue
+        result = { src: small.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'Apple Music' }
+        break
+      }
+      if (result) break
     }
   } catch {
     return null  // netværksfejl/afbrudt — ikke cachet
