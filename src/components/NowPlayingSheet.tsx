@@ -154,7 +154,7 @@ export function NowPlayingSheet({ station, accent, trackTitle, genre, cover, met
             <div className="flex flex-col items-center">
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Now Playing</span>
               {cover?.source === 'apple' && (
-                <span className="text-[11px] font-bold tracking-[0.18em] text-text-muted">Hentet fra Apple Music</span>
+                <span className="text-[11px] font-bold tracking-[0.18em] text-text-muted">Cover fra Apple Music</span>
               )}
             </div>
             <button
