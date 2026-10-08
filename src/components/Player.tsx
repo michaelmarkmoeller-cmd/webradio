@@ -54,6 +54,13 @@ export function Player() {
         try {
           const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
           if (cancelled) return
+          // Iris-stationer: vores eget opslag (single > album > opsamling) har forrang — Iris
+          // peger ofte på en opsamling. Iris' cover bruges kun hvis opslaget ikke finder noget
+          if (nowPlayingSource.kind === 'iris' && np.title) {
+            const found = await lookupAppleCover(np.title, controller.signal)
+            if (!cancelled) setMeta({ title: np.title, genre: null, cover: found ?? np.cover })
+            return
+          }
           // Samme nummer som ved forrige poll: behold et cover vi allerede har fundet via Apple Music
           setMeta(prev => prev.title === np.title && !np.cover ? prev : { title: np.title, genre: null, cover: np.cover })
           // Netværket har ingen cover til nummeret → slå det op i Apple Music
