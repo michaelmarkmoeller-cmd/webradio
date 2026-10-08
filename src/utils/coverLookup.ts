@@ -19,6 +19,8 @@ function cleanTitle(t: string): string {
     .replace(/\s+Album\s+".*"\s*$/i, '')
     .replace(/\s+#\d+.*$/, '')
     .replace(/\s*\((19|20)\d{2}\)/g, '')
+    // Årstal som hale ("Kalimba de luna * 1984", "Wheel Of Love - 1987") — RdMix m.fl.
+    .replace(/\s*[*\-–]\s*(19|20)\d{2}\s*$/, '')
     .trim()
 }
 
