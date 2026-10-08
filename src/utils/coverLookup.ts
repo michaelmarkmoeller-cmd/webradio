@@ -56,6 +56,27 @@ function artistNames(a: string): string[] {
   return a.split(/\s+(?:feat\.?|ft\.?|featuring|vs\.?|x|and)\s+|\s*[,&/]\s*/i).map(normKeep).filter(n => n.length >= 3)
 }
 
+// Redigeringsafstand — radioens kunstnerstavning har ofte småfejl ("Gazilion" vs "Gazillion")
+function editDistance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0]
+    prev[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j]
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1))
+      diag = tmp
+    }
+  }
+  return prev[b.length]
+}
+
+// Næsten ens: højst 1 fejl pr. 8 tegn (og kun for navne på mindst 6 tegn, så korte navne ikke forveksles)
+function similarName(a: string, b: string): boolean {
+  if (a.length < 6 || b.length < 6) return false
+  return editDistance(a, b) <= Math.max(1, Math.floor(Math.min(a.length, b.length) / 8))
+}
+
 interface ItunesTrack {
   artistName?: string
   trackName?: string
@@ -71,6 +92,7 @@ function score(r: ItunesTrack, artist: string, names: string[], title: string, r
   if (!pa || !nt || !rArtist || !rTitle) return -1
   const rText = normKeep(`${r.artistName ?? ''} ${r.trackName ?? ''}`)
   const artistOk = rArtist.includes(pa) || pa.includes(primaryArtist(r.artistName ?? '')) || names.some(n => rText.includes(n))
+    || similarName(pa, primaryArtist(r.artistName ?? '')) || similarName(norm(artist), rArtist)
   if (!artistOk) return -1
   if (rTitle !== nt) return -1
   const name = `${r.trackName ?? ''} ${r.collectionName ?? ''}`
