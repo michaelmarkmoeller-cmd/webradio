@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-10-07 (TC-18-19 bekræftet manuelt af Michael på iPhone — 137/137; fuld suite 128/128 automatiserede grønne mod produktion. Tidligere: 2026-09-24 — BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion)  
+**Sidst opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet — 164/164 godkendt; fuld suite 153/153 automatiserede grønne mod produktion. Tidligere: 2026-10-07 (TC-18-19 bekræftet manuelt af Michael på iPhone — 137/137; fuld suite 128/128 automatiserede grønne mod produktion. Tidligere: 2026-09-24 — BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion))  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 137
+**Antal test cases:** 164
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 136 | 0 | 1 | 137 |
+| 164 | 0 | 0 | 164 |
 
 ---
 
@@ -443,9 +443,54 @@
 
 ---
 
+## TC-19: Forrige / næste station (store afspiller)
+
+| TC# | Titel | Status | Beskrivelse | Dato |
+|-----|-------|--------|-------------|------|
+| TC-19-01 | NEXT spiller næste station i kategorien | 🟢 Godkendt | Rock: station nr. 1 → nr. 2; baren følger med, afspilningen kører | 08-10-2026 |
+| TC-19-02 | NEXT på den sidste station spiller den første | 🟢 Godkendt | Wrap-around sidst → først | 08-10-2026 |
+| TC-19-03 | PREV på den første station spiller den sidste | 🟢 Godkendt | Wrap-around først → sidst | 08-10-2026 |
+| TC-19-04 | PREV spiller forrige station midt i kategorien | 🟢 Godkendt | Nr. 3 → nr. 2 → nr. 1 | 08-10-2026 |
+| TC-19-05 | Følger stationens egen kategori, også når "Alle" er valgt | 🟢 Godkendt | Sidste Rock-station startet fra "Alle" → første Rock-station (ikke næste i "Alle") | 08-10-2026 |
+| TC-19-06 | NEXT på en pauset station starter den nye station | 🟢 Godkendt | Pauset → næste station spiller; knappen viser Pause | 08-10-2026 |
+| TC-19-07 | PREV/NEXT har samme farve som play/pause og er 20 % mindre | 🟢 Godkendt | Samme baggrundsfarve; 64 px mod 80 px (0,8); rækkefølge « · play · » | 08-10-2026 |
+| TC-19-08 | Låseskærm/headset (MediaSession previoustrack/nexttrack) skifter station | 🟢 Godkendt | Begge handlere registreret; kaldt direkte → næste/forrige station | 08-10-2026 |
+| TC-19-09 | iPhone: « og » i den store afspiller og på låseskærmen (manuel) | 🟢 Godkendt | Bekræftet af Michael på iPhone | 08-10-2026 |
+
+**Resultat: 9/9 godkendt** (8 automatiserede, 1 manuel)
+
+---
+
+## TC-20: Albumcover via Apple Music + kilde-tekst
+
+| TC# | Titel | Status | Beskrivelse | Dato |
+|-----|-------|--------|-------------|------|
+| TC-20-01 | ICY-station får cover fra Apple Music — kilde står under "Now Playing" | 🟢 Godkendt | Cover stort; "Cover fra Apple Music" lige under "Now Playing", samme skriftstørrelse og farve | 08-10-2026 |
+| TC-20-02 | Intet match hos Apple → stationslogo og ingen kilde-tekst | 🟢 Godkendt | Logo vises; ingen "Cover fra …" | 08-10-2026 |
+| TC-20-03 | Iris-station — eget Apple-opslag har forrang over Iris' cover | 🟢 Godkendt | Apples cover vælges, Iris' vises ikke | 08-10-2026 |
+| TC-20-04 | Iris-station uden Apple-match bruger Iris' cover — kilde "Loverad/Iris" | 🟢 Godkendt | Fallback til Iris + korrekt kilde-tekst | 08-10-2026 |
+| TC-20-05 | Iris uden cover → Apple Music bruges som fallback | 🟢 Godkendt | Apples cover vises | 08-10-2026 |
+| TC-20-06 | Bauer-station viser kilde "Bauer/Radioplay" | 🟢 Godkendt | NOVA: Bauers cover + kilde-tekst | 08-10-2026 |
+| TC-20-07 | Rangordning — single vinder over album og opsamling | 🟢 Godkendt | Singlens cover vælges | 08-10-2026 |
+| TC-20-08 | Rangordning — album vinder over opsamling | 🟢 Godkendt | Albummets cover vælges | 08-10-2026 |
+| TC-20-09 | Senere versioner (rework, remix, live, år i titlen) afvises | 🟢 Godkendt | Gazebo: studiealbummet vælges frem for rework/2020/live | 08-10-2026 |
+| TC-20-10 | Nævner radioens titel selv "Remix", er en remix-version tilladt | 🟢 Godkendt | Remix-singlen vælges frem for albummet | 08-10-2026 |
+| TC-20-11 | Søgeordet: "&" → "and" og versionsangivelse i parentes udelades | 🟢 Godkendt | Søgeord "Blur Girls and Boys" | 08-10-2026 |
+| TC-20-12 | "Feat. X" uden parentes og byttet hoved-/gæstekunstner matcher | 🟢 Godkendt | Tegan & Sara ↔ Tiësto (feat.) | 08-10-2026 |
+| TC-20-13 | Årstal som hale på titlen ("* 1984", "- 1987") ignoreres | 🟢 Godkendt | Tony Esposito - Kalimba de luna * 1984 | 08-10-2026 |
+| TC-20-14 | DR — "/ " foran kunstneren fjernes, og cover slås op | 🟢 Godkendt | Titlen vises uden "/ "; cover fundet | 08-10-2026 |
+| TC-20-15 | Småfejl i kunstnerens stavemåde tåles | 🟢 Godkendt | Gazilion ↔ Gazillion Zero | 08-10-2026 |
+| TC-20-16 | Apple-coveret sendes også til låseskærmen (MediaSession) | 🟢 Godkendt | Første artwork = Apple-cover via /api/artwork | 08-10-2026 |
+| TC-20-17 | Samme nummer slås kun op én gang (cache), også efter flere polls | 🟢 Godkendt | Ét Apple-kald over 3 polls (page.clock); cover bliver stående | 08-10-2026 |
+| TC-20-18 | iPhone: cover på rigtige stationer (manuel) | 🟢 Godkendt | Bekræftet af Michael på iPhone: 80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3 m.fl. | 08-10-2026 |
+
+**Resultat: 18/18 godkendt** (17 automatiserede med mocks, 1 manuel)
+
+---
+
 ## Samlet resultat
 
-> **Resultat: 137/137 godkendt** (TC-18-19 bekræftet manuelt af Michael på iPhone 07-10-2026; 128/128 automatiserede kørt igen samme dag mod produktion). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 164/164 godkendt** (08-10-2026: fuld suite mod produktion efter deploy `414c8d9` — 153/153 automatiserede Playwright-tests grønne = 128 eksisterende + 8 nye i `tests/tc-19.spec.ts` + 17 nye i `tests/tc-20.spec.ts`; TC-19-09 og TC-20-18 bekræftet manuelt af Michael på iPhone). Tidligere: 137/137 (TC-18-19 bekræftet manuelt af Michael på iPhone 07-10-2026; 128/128 automatiserede kørt igen samme dag mod produktion). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 

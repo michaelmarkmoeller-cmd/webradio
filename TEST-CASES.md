@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-09-24 (TC-18-01..19 tilføjet: stor afspiller i fuld skærm)  
-**Antal test cases:** 137 fordelt på 18 grupper
+**Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
+**Antal test cases:** 164 fordelt på 20 grupper
 
 ---
 
@@ -1364,4 +1364,255 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-09-24 — 137 test cases, 18 grupper (TC-18 stor afspiller tilføjet, automatiseret i `tests/tc-18.spec.ts`; TC-18-19 manuel)*
+## TC-19: Forrige / næste station (store afspiller)
+
+### TC-19-01: NEXT spiller næste station i kategorien
+**Forudsætning:** Kategorien Rock er valgt; første station spiller; den store afspiller er åben  
+**Trin:**
+1. Tryk på næste-knappen (»)
+
+**Forventet resultat:** Stationen nr. 2 i kategoriens rækkefølge spiller; baren viser dens navn; afspilningen kører.
+
+---
+
+### TC-19-02: NEXT på den sidste station spiller den første
+**Forudsætning:** Sidste station i Rock spiller; den store afspiller er åben  
+**Trin:**
+1. Tryk på »
+
+**Forventet resultat:** Den første station i kategorien spiller (wrap-around).
+
+---
+
+### TC-19-03: PREV på den første station spiller den sidste
+**Forudsætning:** Første station i Rock spiller; den store afspiller er åben  
+**Trin:**
+1. Tryk på forrige-knappen («)
+
+**Forventet resultat:** Den sidste station i kategorien spiller (wrap-around).
+
+---
+
+### TC-19-04: PREV spiller forrige station midt i kategorien
+**Forudsætning:** Station nr. 3 i Rock spiller  
+**Trin:**
+1. Tryk på « to gange
+
+**Forventet resultat:** Først station nr. 2, derefter station nr. 1.
+
+---
+
+### TC-19-05: Følger stationens egen kategori, også når "Alle" er valgt
+**Forudsætning:** Visningen "Alle"; den sidste Rock-station er startet derfra  
+**Trin:**
+1. Tryk på »
+
+**Forventet resultat:** Den første Rock-station spilles (wrap inden for Rock) — ikke næste station i "Alle".
+
+---
+
+### TC-19-06: NEXT på en pauset station starter den nye station
+**Forudsætning:** En station er pauset i den store afspiller  
+**Trin:**
+1. Tryk på »
+
+**Forventet resultat:** Næste station starter med det samme; knappen viser Pause.
+
+---
+
+### TC-19-07: PREV/NEXT har samme farve som play/pause og er 20 % mindre
+**Forudsætning:** Den store afspiller er åben  
+**Trin:**
+1. Mål baggrundsfarve og størrelse på «, play/pause og »
+
+**Forventet resultat:** Samme baggrundsfarve; bredde og højde = 80 % af play/pause-knappen (64 px mod 80 px); rækkefølge « · play · ».
+
+---
+
+### TC-19-08: Låseskærm/headset (MediaSession previoustrack/nexttrack) skifter station
+**Forudsætning:** En station spiller (første afspilning har registreret MediaSession)  
+**Trin:**
+1. Kald de registrerede handlere `nexttrack` og `previoustrack`
+
+**Forventet resultat:** Begge handlere er registreret; næste/forrige station i kategorien spilles.
+
+---
+
+### TC-19-09: iPhone: « og » i den store afspiller og på låseskærmen (manuel) — ✅ bekræftet af Michael 08-10-2026
+**Forudsætning:** WebRadio installeret på hjemskærmen  
+**Trin:**
+1. Åbn den store afspiller og tryk « og »
+2. Lås skærmen og brug skip-knapperne på låseskærmen
+
+**Forventet resultat:** Stationen skifter i kategoriens rækkefølge, og lyden følger med; knapperne passer på skærmen sammen med søvntimer og Sonos.
+
+---
+
+## TC-20: Albumcover via Apple Music + kilde-tekst
+
+*iTunes Search API, Iris, Bauer og ICY mockes med `page.route` — ingen rigtige opslag.*
+
+### TC-20-01: ICY-station får cover fra Apple Music — kilde står under "Now Playing"
+**Forudsætning:** ICY-station spiller; Apple returnerer et match  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Coveret vises stort; teksten "Cover fra Apple Music" står lige under "Now Playing" med samme skriftstørrelse og farve.
+
+---
+
+### TC-20-02: Intet match hos Apple → stationslogo og ingen kilde-tekst
+**Forudsætning:** ICY-station; Apple returnerer kun forkerte numre  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Stationslogoet vises; ingen "Cover fra …"-tekst.
+
+---
+
+### TC-20-03: Iris-station — eget Apple-opslag har forrang over Iris' cover
+**Forudsætning:** Iris giver et cover; Apple har også et match  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Apples cover vises (ikke Iris'); kilde "Apple Music".
+
+---
+
+### TC-20-04: Iris-station uden Apple-match bruger Iris' cover — kilde "Loverad/Iris"
+**Forudsætning:** Iris giver et cover; Apple finder intet  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Iris' cover vises; teksten "Cover fra Loverad/Iris".
+
+---
+
+### TC-20-05: Iris uden cover → Apple Music bruges som fallback
+**Forudsætning:** Iris giver kun titel; Apple har et match  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Apples cover vises; kilde "Apple Music".
+
+---
+
+### TC-20-06: Bauer-station viser kilde "Bauer/Radioplay"
+**Forudsætning:** NOVA spiller; Bauer-API'et leverer et cover  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Bauers cover vises; teksten "Cover fra Bauer/Radioplay".
+
+---
+
+### TC-20-07: Rangordning — single vinder over album og opsamling
+**Forudsætning:** Apple returnerer opsamling, album og single for samme nummer  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Singlens cover vælges.
+
+---
+
+### TC-20-08: Rangordning — album vinder over opsamling
+**Forudsætning:** Apple returnerer opsamling og album  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Albummets cover vælges.
+
+---
+
+### TC-20-09: Senere versioner (rework, remix, live, år i titlen) afvises
+**Forudsætning:** Radioens titel er "Gazebo - I Like Chopin"; Apple returnerer rework-single, 2020-single, live-album og studiealbum  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Studiealbummets cover vælges; rework, år-version og live afvises.
+
+---
+
+### TC-20-10: Nævner radioens titel selv "Remix", er en remix-version tilladt
+**Forudsætning:** Radioens titel indeholder "(Extended Remix)"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Remix-singlens cover vælges (frem for albummet).
+
+---
+
+### TC-20-11: Søgeordet: "&" → "and" og versionsangivelse i parentes udelades
+**Forudsætning:** Radioen sender "Blur - Girls & Boys (Extended Remix)"  
+**Trin:**
+1. Afvent opslaget
+
+**Forventet resultat:** Søgeordet til Apple er "Blur Girls and Boys".
+
+---
+
+### TC-20-12: "Feat. X" uden parentes og byttet hoved-/gæstekunstner matcher
+**Forudsætning:** Radioen sender "Tegan & Sara - Feel It In My Bones Feat. Tiësto"; Apple har "Tiësto — … (feat. Tegan & Sara)"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Coveret findes.
+
+---
+
+### TC-20-13: Årstal som hale på titlen ("* 1984", "- 1987") ignoreres
+**Forudsætning:** Radioen sender "Tony Esposito - Kalimba de luna * 1984"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Coveret til "Kalimba De Luna" findes.
+
+---
+
+### TC-20-14: DR — "/ " foran kunstneren fjernes, og cover slås op
+**Forudsætning:** DR P3 sender "/ Freya Skye - bad taste"  
+**Trin:**
+1. Se player-baren og den store afspiller
+
+**Forventet resultat:** Titlen vises uden "/ "; coveret findes.
+
+---
+
+### TC-20-15: Småfejl i kunstnerens stavemåde tåles
+**Forudsætning:** Radioen sender "Gazilion Zero  - Living In A Bubble"; Apple har "Gazillion Zero"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Coveret findes.
+
+---
+
+### TC-20-16: Apple-coveret sendes også til låseskærmen (MediaSession)
+**Forudsætning:** ICY-station med Apple-cover  
+**Trin:**
+1. Læs `navigator.mediaSession.metadata.artwork`
+
+**Forventet resultat:** Første artwork er Apple-coveret via `/api/artwork?url=…`.
+
+---
+
+### TC-20-17: Samme nummer slås kun op én gang (cache), også efter flere polls
+**Forudsætning:** ICY-station; tre 30 sek.-polls med samme titel (`page.clock`)  
+**Trin:**
+1. Lad uret løbe 95 sek.
+
+**Forventet resultat:** Kun ét kald til Apple; coveret står stadig i baren (ingen flimren).
+
+---
+
+### TC-20-18: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+**Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3 m.fl.)  
+**Trin:**
+1. Åbn den store afspiller på hver station mens et nummer spiller
+2. Tjek coveret og teksten "Cover fra …"
+
+**Forventet resultat:** Passende cover vises med korrekt kilde; numre Apple ikke har (fx DR P3 "Engel") viser stationslogoet.
+
+---
+
+*Sidst opdateret: 2026-10-08 — 164 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-18 manuelle)*

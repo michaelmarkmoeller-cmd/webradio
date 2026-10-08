@@ -55,7 +55,9 @@ src/
 ├── utils/
 │   ├── platform.ts              # isIOS — UA-detection
 │   ├── deviceId.ts              # UUID fra localStorage (favoritter + stationOrder)
-│   └── categoryColors.ts        # CATEGORY_COLORS — fælles farvekort for alle 9 kategorier
+│   ├── categoryColors.ts        # CATEGORY_COLORS — fælles farvekort for alle 9 kategorier
+│   ├── nowPlaying.ts            # Nu spiller fra netværks-API'er (Iris, streamabc, Bauer) + cover
+│   └── coverLookup.ts           # Apple Music-cover-opslag (iTunes Search API) — se "Cover-opslag via Apple Music"
 ├── audio.ts                     # Lazy singleton Audio element
 ├── App.tsx                      # Subscriptions: stations, favorites, stationOrder + device disconnect
 └── main.tsx
@@ -69,7 +71,7 @@ public/
 **MediaSession API** er implementeret i `useRadioStore.ts`:
 - Registrerer WebRadio i OS'et ved første afspilning (lock screen, medietaster, headset-knapper)
 - Stationsnavn og logo vises i OS-mediekontroller
-- `navigator.mediaSession.setActionHandler` for play/pause/stop
+- `navigator.mediaSession.setActionHandler` for play/pause/stop **og `previoustrack`/`nexttrack`** (08-10-2026) → `playAdjacent(-1/1)`: låseskærm, CarPlay og headset skifter station i den aktuelle stations egen kategori (se "Stor afspiller")
 - `artwork` sættes med eksplicitte sizes: stationslogo (256×256) + app-ikoner (192×192, 512×512)
 - **Sangtitel + albumcover på låseskærm/CarPlay** (23-09-2026): `Player.tsx` kalder `setMediaSessionTrack(stationId, title, cover)` når metadata ændres (både netværks-API og ICY). `syncMediaSession` bruger det kun hvis `stationId` matcher aktuel station: `title` = "Kunstner - Titel", `artist` = stationsnavn, albumcover forrest i `artwork`. Uden titel: `title` = stationsnavn, `artist` = "WebRadio" som før. Rører kun metadata — play/pause/action handlers er uændrede. Opdateres ikke før MediaSession er initialiseret (første afspilning)
 - **Artwork leveres fra eget domæne via `/api/artwork?url=`** (rettet 23-09-2026): iOS viste app-ikonet på låseskærmen i stedet for albumcoveret, selvom Apple Music-billederne har CORS `*`. `artworkSrc()` i `useRadioStore.ts` sender alle eksterne cover-/logo-URL'er gennem `api/artwork.ts` (kun https, SSRF-tjek via `api/_lib/privateHost.ts` pr. redirect-hop, kun `image/*`, max 2 MB, `Cache-Control` 1 døgn/7 dage). App-ikonerne (192/512) tilføjes **kun** når hverken cover eller logo findes — ellers kunne OS'et vælge det større 512×512-ikon frem for et mindre cover (Bauer 320) eller logo (256). `api/*.ts` kører som ESM (`""type"": ""module""`) → relative imports skal have `.js`-endelse
@@ -171,6 +173,8 @@ Stationsinfo viser: stationsnavn, kategori-badge (i kategoriens farve), bitrate 
 ## Stor afspiller (NowPlayingSheet, tilføjet 24-09-2026 — prototype godkendt af Michael)
 Tryk hvor som helst på player-baren — **undtagen** knapper, slider og menuer (`handleBarClick` i `Player.tsx` springer over hvis `closest('button, input, a')`) — åbner `NowPlayingSheet.tsx` i fuld skærm (glider op, 280ms). Afspilningen påvirkes aldrig af at åbne/lukke den.
 - **Indhold (oppefra):** ⌄-luk + "Now Playing" + favorit-hjerte → stort billede (albumcover hvis det findes, ellers stationslogo) → nummer (titel stort, kunstner under — `"Kunstner - Titel"` splittes på første ` - `; uden titel vises stationsnavnet) → stationsrække (lille logo *kun* når albumcoveret står stort, navn, kategori-badge, flag, Live/Forbinder/Pause + lyttetid) → søvntimer / stor play-pause / Sonos → volumen (kun ikke-iOS) → Stream-boks (bitrate, format, land, genre, "nu spiller"-kilde, stream-URL)
+- **Forrige/næste station (« og », 08-10-2026, bekræftet på iPhone):** på hver side af play/pause i betjeningsrækken (søvntimer · « · play · » · Sonos). Samme farve/glød som play/pause, 64 px mod 80 px (20 % mindre); rækken har `-mx-3`, så fem knapper også er der plads til på 360–375 px skærme. `playAdjacent(dir)` i `useRadioStore.ts`: finder `stations.filter(category === aktuelle stations kategori)` (allerede i enhedens egen rækkefølge via `sortWithOrder`), wrap-around i begge ender, kalder `playStation()` (starter også en pauset station). Følger **stationens egen** kategori — ikke den valgte visning ("Alle"/"Favoritter"). Kategori med kun én station: ingen handling. MediaSession `previoustrack`/`nexttrack` bruger samme funktion
+- **Kilde-tekst under "Now Playing" (08-10-2026):** når der vises et albumcover, står "Cover fra <kilde>" lige under titlen (samme størrelse/farve, ikke versaler). Kilden ligger i `NowPlayingCover.source`: `Apple Music` (eget opslag), `Loverad/Iris`, `streamabc`, `Bauer/Radioplay` (sat i `fetchNowPlaying`). Intet cover (stationslogo) = ingen tekst. Kun i den store afspiller, ikke i player-baren
 - **Luk:** tryk på albumcover eller stationslogo (Michaels krav), ⌄-pilen, swipe ned > 110 px (kun når indholdet er scrollet helt op) eller Escape
 - **Data:** metadata-hentningen ligger fortsat **kun** i `Player.tsx` — sheet'et får `trackTitle`, `genre`, `cover`, `metaSource` og `listenTime` som props (ingen dobbelt polling). `metaSource`: netværks-API (Loverad/Iris, streamabc, Bauer/Radioplay) via `getNowPlayingSource`, ellers `icySupported`-state (spejler `icySupportedRef`) → "ICY (streamen)" / "Ingen" / "—" før første svar
 - **Format** gættes ud fra stream-URL'en (`streamFormat()`: HLS/AAC/MP3/Ogg) — mange streams har ingen endelse → "—". **Land** via `Intl.DisplayNames(['da'])`
@@ -182,7 +186,7 @@ Tryk hvor som helst på player-baren — **undtagen** knapper, slider og menuer 
 `setSleepTimer(minutes)` i `useRadioStore.ts` — bruger `setTimeout` med præcis resterende tid (ikke polling med `setInterval`). Annulleres ved `clearTimeout` når timeren slukkes eller genstartes. Knap + menu ligger i `SleepTimerMenu.tsx` (bruges af både player-baren og den store afspiller). Viser nedtæller via `Math.ceil(remaining / 60_000)` — ingen `Math.max(1,...)` så værdien kan nå 0 inden timeren udløser.
 
 ## Brugervejledning
-Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 15 kapitler (kapitel 4 "Den store afspiller" indsat 24-09-2026, resten renummereret), ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
+Hostes på `/guide/` (statisk HTML + screenshots i `public/guide/`). Redigeres direkte i `public/guide/index.html` — 15 kapitler (kapitel 4 "Den store afspiller" indsat 24-09-2026, resten renummereret; 08-10-2026 udvidet med « »-knapperne og cover-kilde-teksten — kun tekst, screenshots 16/17 viser endnu ikke « » og kilde-linjen), ét `.page`-div pr. print-side (A4), TOC med manuelt vedligeholdte sidetal.
 
 **Bemærk (rettet 13-07-2026):** `take-screenshots.mjs`, `guide-assets/` og `export-guide-pdf.mjs` — som tidligere var beskrevet her — findes IKKE i repoet og har aldrig været committet. Der er ingen PDF-eksport-pipeline i praksis. Sådan opdateres guiden reelt:
 1. Redigér `public/guide/index.html` direkte for tekstændringer
@@ -212,6 +216,22 @@ Bog-ikonet i app-headeren (`App.tsx`) åbner guiden som iframe-modal. Modalen lu
 - **Albumcover** (tilføjet 23-09-2026): `fetchNowPlaying` returnerer også `cover: { src, sizes }` — Iris `cover_art_url_xl` (Apple Music 600×600, fallback `_l` 225×225), Bauer `ImageUrl` (320×320, via proxyen), Klassik `cover` (falder selv tilbage til kanalens logo). Kun `https://`-billeder. `Player.tsx` viser coveret i stedet for stationslogoet; `onError` → logoet igen (`brokenCover`)
 - **Ikke dækket:** radio SAW-familien (kun STOMP-websocket for hovedkanalen — fravalgt), RauteMusik Club/House (streamen sender tom `StreamTitle` — også efter den 15 sek. preroll-reklame, der indsættes ved hver tilkobling — og `api.rautemusik.fm` kræver API-nøgle; undersøgt 23-09-2026, opgivet)
 - Ny station på et af netværkene: tilføj mount→ID i `nowPlaying.ts`. API'erne er uofficielle og kan ændre sig
+
+## Cover-opslag via Apple Music (tilføjet 08-10-2026)
+ICY sender kun tekst — aldrig billeder. `src/utils/coverLookup.ts` → `lookupAppleCover(track, signal)` slår "Kunstner - Titel" op i iTunes Search API (`itunes.apple.com/search?entity=song`, ingen nøgle, CORS `*`, kaldes direkte fra browseren) og returnerer `{ src, sizes: '600x600', source: 'Apple Music' }` (`artworkUrl100` opskaleret til 600×600). Kaldt fra `Player.tsx`:
+- **ICY-stationer:** titel vises med det samme, cover slås op bagefter og sættes hvis `meta.title` stadig er den samme. Samme nummer ved næste 30-sek.-poll beholder coveret (ingen flimren)
+- **Iris-stationer (80s80s, 90s90s, Radio BOB!, Sunshine Live, bigFM): eget opslag har forrang** over Iris' cover (Iris peger ofte på en opsamling, fx Gazebo → "The Collection"); Iris' cover bruges kun hvis opslaget intet finder. Bauer DK og streamabc beholder eget cover — Apple er kun fallback når de intet har
+- **Resultatet caches i hukommelsen** pr. kunstner+titel (også "intet match"); netværksfejl cachees ikke
+- **Rangordning:** single/EP (`… - Single`/`- EP`) > album > opsamling (`hits|best of|greatest|collection|…`); kunstner-match er kun tiebreaker. Alle valg bestemmes af `score()`
+- **Strenge match-regler** (hellere intet cover end et forkert): titlen skal være identisk efter normalisering (små bogstaver, uden accenter, parenteser og " - …"-hale fjernet, `&`=and); live/karaoke/tribute/instrumental afvises; senere versioner (`remix|rework|re-edit|coronaversion|bootleg|mashup|…`) og år i Apples trackName afvises, *medmindre radioens egen titel nævner ordet/året*; kunstner skal passe (hovedkunstner, ELLER et hvilket som helst navn fra radio-kunstner/"Feat. X" findes i Apples kunstner+trackName, ELLER næsten ens stavemåde — redigeringsafstand ≤ 1 pr. 8 tegn, kun navne ≥ 6 tegn)
+- **Titel-rensning før opslag:** `(1979)`, `#6 USA`, `Album "Low"`, årstal-hale (`* 1984`, `- 1987` — RdMix), `Feat. X` uden parentes (flyttes til kunstner-match). **Søgeordet** får parenteser/versions-hale fjernet og `&`→`and` (Apple finder intet med `(Extended Remix)` eller `Girls & Boys` i søgeordet — Blur "Girls and Boys", Silent Circle). DR sætter `/ ` foran kunstneren — fjernes i `Player.tsx` (titlen vises uden). Alle ICY-stationer slår op (også DR — programtekster som "Formiddag på 4'eren" giver bare intet match)
+- **Kendt: ingen cover hvis Apple ikke har nummeret** (nyt/ikke udgivet, fx DR P3 Rasmus Seebach "Engel") → stationslogo. Originale maxi-covers findes sjældent hos Apple (Gazebo → albummet "The Syndrone"). Spotify blev overvejet og fravalgt (kræver nøgle + server-funktion + kildelink-vilkår); Apple-link-tilbage (trykbart cover) fravalgt af Michael
+- **Juridisk (Michaels spørgsmål 08-10-2026):** iTunes Search API er offentligt; Apple forventer kildeangivelse (gjort via "Cover fra Apple Music"). Iris/Bauer/streamabc-API'erne er uofficielle, Bauers CORS-begrænsning omgås via proxy — gråzone, acceptabelt til privat brug; skal revurderes hvis appen åbnes for andre
+- Billederne hentes direkte fra Apples server (`mzstatic.com`), gemmes ikke; låseskærmen går gennem `/api/artwork`
+- Tests: `tests/tc-20.spec.ts` (17 tests, alt mockes — iTunes/Iris/Bauer/ICY via `page.route`)
+
+## Kendt: radio SAW In The Mix 80er sender stilhed (08-10-2026)
+Streamen svarer 200 med gyldig MP3 og `icy-name`, men lyden er digital stilhed (−91 dB over 72 sek., målt med ffmpeg `volumedetect`; søsterkanalerne ≈ −13 dB). Kilden hos streamabc (`117-inthemix80er`) leverer tom lyd — ikke en app-fejl, og `check-streams.mjs` fanger det ikke (kun HTTP-status). Ikke løst; tjek igen senere, eller erstat/fjern stationen.
 
 ## Stations-oprydning 23-09-2026
 Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det almindelige tilgængeligheds-tjek ikke fanger:
@@ -321,10 +341,12 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `tests/tc-12.spec.ts` — TC-12: import/eksport (8 tests, page.waitForEvent download)
 - `tests/tc-17b.spec.ts` — TC-17-05..15 + 19..22 + 24/25: lydløs pause, headset-frakobling og AirPods ud/headset-knap på iOS (17 tests; `enumerateDevices` + `devicechange` simuleres; iPhone-UA, `page.clock`, simuleret `visibilityState`, MediaSession-handlere kaldes direkte). `WEBRADIO_URL` virker også her — `/api/artwork` stubbes, da Vite-dev-serveren ikke kører Vercel-funktioner (ellers dækker en vite-error-overlay knapperne)
 - `tests/tc-18.spec.ts` — TC-18-01..18: stor afspiller (18 tests; iris/ICY/cover mockes med `page.route`, swipe via CDP `Input.dispatchTouchEvent` i iPhone-kontekst, Sonos-menuen åbnes kun — der vælges aldrig et rum). `WEBRADIO_URL` virker også her
+- `tests/tc-19.spec.ts` — TC-19-01..08: forrige/næste station (8 tests, kører mod rigtige stationer i kategorien Rock; MediaSession-handlere opfanges med `addInitScript` og kaldes direkte). TC-19-09 (iPhone) manuel, bekræftet 08-10-2026. `WEBRADIO_URL` virker
+- `tests/tc-20.spec.ts` — TC-20-01..17: cover-opslag via Apple Music + kilde-tekst (17 tests; iTunes, Iris, Bauer og ICY mockes med `page.route`, `page.clock` til cache-testen). Bemærk: lokal konstant hedder `APP_URL` — `URL` ville skygge for den indbyggede `URL`-klasse. TC-20-18 (iPhone) manuel, bekræftet 08-10-2026
 - `tests/tc-rest.spec.ts` — TC-02-06, TC-03-06, TC-04-08, TC-07-03/05/07, TC-08-03, TC-13-02, TC-14, TC-17 (12 tests)
 - `tests/db-helper.ts` — Firestore REST API helper til oprettelse/sletning af test-stationer (Node.js-side, undgår browser-side addDoc + IndexedDB konflikt)
-- `TEST-CASES.md` — fuld testspecifikation: **137 test cases** fordelt på 18 grupper
-- `TEST-REPORT.md` — testrapport: **137/137 godkendt** (07-10-2026, TC-18-19 bekræftet manuelt på iPhone); 128/128 automatiserede grønne
+- `TEST-CASES.md` — fuld testspecifikation: **164 test cases** fordelt på 20 grupper
+- `TEST-REPORT.md` — testrapport: **164/164 godkendt** (08-10-2026; TC-19-09 og TC-20-18 bekræftet manuelt på iPhone); 153/153 automatiserede grønne
 - Kør: `npx playwright test` (kræver netværk til live-appen, 4 workers anbefales på Windows)
 
 ## Hjælpescripts (rod-mappen)
