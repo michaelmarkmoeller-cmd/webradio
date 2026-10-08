@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 164 fordelt på 20 grupper
+**Antal test cases:** 168 fordelt på 20 grupper
 
 ---
 
@@ -1605,14 +1605,50 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-20-18: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
-**Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3 m.fl.)  
+### TC-20-18: Soundtrack og "Various Artists"-udgivelser vælges ikke frem for studiealbummet
+**Forudsætning:** Billy Ocean - Love really hurts without you; Apple returnerer soundtrack (Filth), en Various Artists-opsamling og studiealbummet  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Studiealbummets cover vælges (soundtracks og "Various Artists" tæller som opsamlinger).
+
+---
+
+### TC-20-19: Kunstnerens egen opsamling vælges frem for "Various Artists"-opsamlinger
+**Forudsætning:** Apple returnerer kun opsamlinger: Various Artists, soundtrack og kunstnerens egen "The Very Best of …"  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Kunstnerens egen opsamlings cover vælges.
+
+---
+
+### TC-20-20: Blankt hvidt standardcover springes over — næste kandidat vælges
+**Forudsætning:** Luv' - Casanova; den bedst rangerede kandidat (EP) har et næsten helt hvidt standardcover (CORS-læsbart), næste er et rigtigt album  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Albummets cover vises; det hvide cover vises ikke.
+
+---
+
+### TC-20-21: Er alle kandidater blanke, vises stationslogoet
+**Forudsætning:** Kun én kandidat, og dens cover er næsten helt hvidt  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Stationslogoet vises; ingen "Cover fra …"-tekst.
+
+---
+
+### TC-20-22: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+**Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl.)  
 **Trin:**
 1. Åbn den store afspiller på hver station mens et nummer spiller
 2. Tjek coveret og teksten "Cover fra …"
 
-**Forventet resultat:** Passende cover vises med korrekt kilde; numre Apple ikke har (fx DR P3 "Engel") viser stationslogoet.
+**Forventet resultat:** Passende cover vises med korrekt kilde (ikke soundtrack, opsamling eller blankt standardcover, hvis der findes et bedre); numre Apple ikke har (fx DR P3 "Engel") viser stationslogoet.
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 164 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-18 manuelle)*
+*Sidst opdateret: 2026-10-08 — 168 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-22 manuelle)*
