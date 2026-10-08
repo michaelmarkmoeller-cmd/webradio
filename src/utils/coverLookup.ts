@@ -54,11 +54,10 @@ function score(r: ItunesTrack, artist: string, title: string, wantsBad: boolean)
   if (rTitle !== nt) return -1
   const name = `${r.trackName ?? ''} ${r.collectionName ?? ''}`
   if (!wantsBad && BAD_VERSION.test(name)) return -1
-  let s = 10
-  if (norm(r.artistName ?? '') === norm(artist)) s += 2
-  if (!COMPILATION.test(r.collectionName ?? '')) s += 3
-  if (/- single$/i.test(r.collectionName ?? '')) s -= 1
-  return s
+  // Rang: single (2) > album (1) > opsamling (0) — udgivelsestypen vejer tungest, kunstner-match er kun tiebreaker
+  const coll = r.collectionName ?? ''
+  const tier = COMPILATION.test(coll) ? 0 : /-\s*(single|ep)$/i.test(coll) ? 2 : 1
+  return tier * 10 + (norm(r.artistName ?? '') === norm(artist) ? 1 : 0)
 }
 
 export async function lookupAppleCover(track: string, signal: AbortSignal): Promise<NowPlayingCover | null> {
