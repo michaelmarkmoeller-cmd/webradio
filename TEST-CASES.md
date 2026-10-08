@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 169 fordelt på 20 grupper
+**Antal test cases:** 170 fordelt på 20 grupper
 
 ---
 
@@ -1650,7 +1650,17 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-20-23: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+### TC-20-23: ANR — "TITEL-KUNSTNER" vendes til "Kunstner - Titel", og cover slås op
+**Forudsætning:** Radio ANR spiller; ICY sender `OPALITE-TAYLOR SWIFT` (store bogstaver, titel først, ingen mellemrum om bindestregen)  
+**Trin:**
+1. Se player-baren
+2. Åbn den store afspiller
+
+**Forventet resultat:** Baren viser "Taylor Swift - Opalite"; i den store afspiller står "Opalite" som titel og "Taylor Swift" som kunstner; coveret fra Apple Music vises.
+
+---
+
+### TC-20-24: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
 **Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl.)  
 **Trin:**
 1. Åbn den store afspiller på hver station mens et nummer spiller
@@ -1660,4 +1670,4 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 169 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-23 manuelle)*
+*Sidst opdateret: 2026-10-08 — 170 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-24 manuelle)*
