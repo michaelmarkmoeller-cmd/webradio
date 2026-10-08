@@ -42,6 +42,7 @@ interface RadioStore {
   reorderCategory: (category: Category, orderedIds: string[]) => void
   playStation: (station: Station) => void
   togglePlay: () => void
+  playAdjacent: (dir: 1 | -1) => void
   stopPlayback: () => void
   setVolume: (volume: number) => void
   setCategory: (category: Category | 'All' | 'Favorites') => void
@@ -219,6 +220,8 @@ function syncMediaSession(station: Station, playing: boolean) {
       }
       if (useRadioStore.getState().isPlaying) useRadioStore.getState().togglePlay()
     })
+    navigator.mediaSession.setActionHandler('previoustrack', () => useRadioStore.getState().playAdjacent(-1))
+    navigator.mediaSession.setActionHandler('nexttrack', () => useRadioStore.getState().playAdjacent(1))
     navigator.mediaSession.setActionHandler('stop', () => {
       const { listenAccumulatedMs, listenStartedAt } = useRadioStore.getState()
       const accumulated = listenAccumulatedMs + (listenStartedAt ? Date.now() - listenStartedAt : 0)
@@ -377,6 +380,17 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     const isBuffering = reconnect ? true : get().isBuffering
     set({ currentStation: station, isPlaying: true, isBuffering, listenAccumulatedMs: accumulated, listenStartedAt: Date.now() })
     syncMediaSession(station, true)
+  },
+
+  // Næste/forrige station i den aktuelle stations egen kategori (device-rækkefølge), med wrap-around
+  playAdjacent: (dir) => {
+    const { stations, currentStation } = get()
+    if (!currentStation) return
+    const list = stations.filter(s => s.category === currentStation.category)
+    if (list.length < 2) return
+    const i = list.findIndex(s => s.id === currentStation.id)
+    const next = list[((i === -1 ? 0 : i) + dir + list.length) % list.length]
+    get().playStation(next)
   },
 
   togglePlay: () => {

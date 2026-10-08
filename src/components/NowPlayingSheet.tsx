@@ -51,7 +51,7 @@ function countryName(code: string): string {
 }
 
 export function NowPlayingSheet({ station, accent, trackTitle, genre, cover, metaSource, listenTime, onCoverError, onClose }: Props) {
-  const { isPlaying, isBuffering, togglePlay, volume, setVolume, favorites, toggleFavorite } = useRadioStore()
+  const { isPlaying, isBuffering, togglePlay, playAdjacent, volume, setVolume, favorites, toggleFavorite } = useRadioStore()
   const [shown, setShown] = useState(false)
   const [dragY, setDragY] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -246,8 +246,18 @@ export function NowPlayingSheet({ station, accent, trackTitle, genre, cover, met
           </div>
 
           {/* Betjening — søvntimer, play/pause, Sonos */}
-          <div className="mt-8 flex items-center justify-between">
+          <div className="mt-8 -mx-3 flex items-center justify-between">
             <SleepTimerMenu accent={accent} size="lg" />
+            <button
+              onClick={() => playAdjacent(-1)}
+              className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-95"
+              style={{ backgroundColor: accent, boxShadow: `0 4px 20px ${accent}66` }}
+              aria-label="Forrige station"
+            >
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
+              </svg>
+            </button>
             <button
               onClick={togglePlay}
               className="w-20 h-20 rounded-full flex items-center justify-center transition-transform active:scale-95"
@@ -263,6 +273,16 @@ export function NowPlayingSheet({ station, accent, trackTitle, genre, cover, met
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
+            </button>
+            <button
+              onClick={() => playAdjacent(1)}
+              className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-95"
+              style={{ backgroundColor: accent, boxShadow: `0 4px 20px ${accent}66` }}
+              aria-label="Næste station"
+            >
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
+              </svg>
             </button>
             <SonosMenu station={station} size="lg" />
           </div>
