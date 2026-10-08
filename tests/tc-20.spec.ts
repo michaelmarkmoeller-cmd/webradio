@@ -192,7 +192,7 @@ test.describe('TC-20: Cover-opslag', () => {
     await expect(sourceLabel(page, 'Bauer/Radioplay')).toBeVisible()
   })
 
-  test('TC-20-06b: Bauer-station — eget Apple-opslag har forrang over Bauers cover', async ({ page }) => {
+  test('TC-20-22: Bauer-station — eget Apple-opslag har forrang over Bauers cover', async ({ page }) => {
     await mockImages(page)
     await page.route('**/api/now-playing**', (route) => route.fulfill({
       status: 200, contentType: 'application/json',

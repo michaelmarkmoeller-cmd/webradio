@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 168 fordelt på 20 grupper
+**Antal test cases:** 169 fordelt på 20 grupper
 
 ---
 
@@ -1641,7 +1641,16 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-20-22: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+### TC-20-22: Bauer-station — eget Apple-opslag har forrang over Bauers cover
+**Forudsætning:** NOVA spiller; Bauer-API'et leverer et cover (opsamling); Apple har et match  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Apples cover vises (ikke Bauers); teksten "Cover fra Apple Music". (Uden Apple-match bruges Bauers cover — TC-20-06.)
+
+---
+
+### TC-20-23: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
 **Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl.)  
 **Trin:**
 1. Åbn den store afspiller på hver station mens et nummer spiller
@@ -1651,4 +1660,4 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 168 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-22 manuelle)*
+*Sidst opdateret: 2026-10-08 — 169 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-23 manuelle)*
