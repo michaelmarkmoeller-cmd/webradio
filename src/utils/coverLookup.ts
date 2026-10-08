@@ -11,6 +11,8 @@ const BAD_VERSION = /\b(live|karaoke|tribute|made famous|instrumental|cover vers
 // Senere/andre versioner: afvises, medmindre radioens egen titel også nævner ordet/året
 const OTHER_VERSION = /\b(remix(?:es)?|rework|re-?edit|re-?mix|coronaversion|bootleg|mashup|sped up|slowed|nightcore|dj mix)\b/i
 
+const SOUNDTRACK = /\b(motion picture|soundtrack|original score|music from|o\.?s\.?t\.?)\b/i
+
 const COMPILATION = /\b(hits|best of|greatest|collection|anthology|essential|compilation|now that|presents|gold|vol\.?\s*\d+)\b/i
 
 // Fjerner støj som "(1979)", "#6 USA" og `Album "Low"` fra radioens titel
@@ -83,6 +85,8 @@ interface ItunesTrack {
   artistName?: string
   trackName?: string
   collectionName?: string
+  collectionArtistName?: string
+  primaryGenreName?: string
   artworkUrl100?: string
 }
 
@@ -106,8 +110,44 @@ function score(r: ItunesTrack, artist: string, names: string[], title: string, r
   if (year && !radio.includes(year[0])) return -1
   // Rang: single (2) > album (1) > opsamling (0) — udgivelsestypen vejer tungest, kunstner-match er kun tiebreaker
   const coll = r.collectionName ?? ''
-  const tier = COMPILATION.test(coll) ? 0 : /-\s*(single|ep)$/i.test(coll) ? 2 : 1
-  return tier * 10 + (norm(r.artistName ?? '') === norm(artist) ? 1 : 0)
+  // "Various Artists" og soundtracks ("Filth (Music From the Original Motion Picture)") er opsamlinger,
+  // selvom navnet ikke siger det. Kunstnerens egen opsamling ("The Very Best of …") er bedre end dem
+  const foreign = r.collectionArtistName === 'Various Artists' || r.primaryGenreName === 'Soundtrack' || SOUNDTRACK.test(coll)
+  const compilation = foreign || COMPILATION.test(coll)
+  const tier = compilation ? 0 : /-\s*(single|ep)$/i.test(coll) ? 2 : 1
+  return tier * 10 + (compilation && !foreign ? 5 : 0) + (norm(r.artistName ?? '') === norm(artist) ? 1 : 0)
+}
+
+// Næsten helt hvidt billede = blankt standardcover (andel af næsten hvide pixels > 95 %). Måles på et lille
+// canvas. Apples billedserver har CORS `*`; kan billedet ikke læses (CORS/fejl/timeout/ingen DOM), tæller det
+// som "ikke blankt", så et muligt cover aldrig afvises uden grund
+function isBlankCover(url: string, signal: AbortSignal): Promise<boolean> {
+  if (typeof document === 'undefined') return Promise.resolve(false)
+  return new Promise(resolve => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    const timer = setTimeout(() => resolve(false), 4000)
+    const finish = (v: boolean) => { clearTimeout(timer); resolve(v) }
+    signal.addEventListener('abort', () => finish(false), { once: true })
+    img.onerror = () => finish(false)
+    img.onload = () => {
+      try {
+        const n = 32
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = n
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return finish(false)
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, n, n)
+        ctx.drawImage(img, 0, 0, n, n)
+        const d = ctx.getImageData(0, 0, n, n).data
+        let white = 0
+        for (let i = 0; i < d.length; i += 4) if (d[i] > 225 && d[i + 1] > 225 && d[i + 2] > 225) white++
+        finish(white / (n * n) > 0.95)
+      } catch { finish(false) }
+    }
+    img.src = url
+  })
 }
 
 export async function lookupAppleCover(track: string, signal: AbortSignal): Promise<NowPlayingCover | null> {
@@ -129,19 +169,25 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
     // Versionsangivelser i parentes ("(Extended Remix)") ud af søgeordet — ellers finder Apple intet
     const searchTitle = title.replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/\s-\s.*$/, '').replace(/&/g, 'and').replace(/\s+/g, ' ').trim() || title
     const q = encodeURIComponent(`${artist} ${searchTitle}`)
-    const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=15`, { signal })
+    const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=50`, { signal })
     if (!res.ok) return null  // ikke cachet — prøv igen ved næste poll
     const data = await res.json() as { results?: ItunesTrack[] }
     const wantsBad = BAD_VERSION.test(track)
-    let best: ItunesTrack | null = null
-    let bestScore = -1
-    for (const r of data.results ?? []) {
-      const s = score(r, artist, names, title, track, wantsBad)
-      if (s > bestScore) { best = r; bestScore = s }
-    }
-    const art = best?.artworkUrl100
-    if (art && art.startsWith('https://')) {
-      result = { src: art.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'Apple Music' }
+    // Gyldige kandidater, bedste først. Et cover kan være et blankt standardbillede (fx Universals hvide
+    // "LUV"-flise på en EP) — så tages den næste. Højst 4 tjekkes; er alle blanke, vises stationslogoet
+    const ranked = (data.results ?? [])
+      .map(r => ({ r, s: score(r, artist, names, title, track, wantsBad) }))
+      .filter(x => x.s >= 0 && x.r.artworkUrl100?.startsWith('https://'))
+      .sort((a, b) => b.s - a.s)
+    const tried = new Set<string>()
+    for (const { r } of ranked) {
+      const small = r.artworkUrl100!
+      if (tried.has(small)) continue
+      if (tried.size >= 4) break
+      tried.add(small)
+      if (await isBlankCover(small, signal)) continue
+      result = { src: small.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'Apple Music' }
+      break
     }
   } catch {
     return null  // netværksfejl/afbrudt — ikke cachet

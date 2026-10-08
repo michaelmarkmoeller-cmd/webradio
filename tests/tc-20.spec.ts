@@ -8,10 +8,40 @@ const IRIS_STATION = '80s80s Radio'          // Loverad/Iris
 const BAUER_STATION = 'NOVA'                 // Bauer Media DK / Radioplay
 const DR_STATION = 'DR P3'                   // DR sender "/ Kunstner - Titel"
 
+import zlib from 'node:zlib'
+
+function crc32(buf: Buffer): number {
+  let c = ~0
+  for (const b of buf) { c ^= b; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)) }
+  return ~c >>> 0
+}
+
+// Ensfarvet RGB-PNG (w×h) — bruges til at lave et "blankt hvidt" og et almindeligt cover
+function solidPng(w: number, h: number, [r, g, b]: [number, number, number]): Buffer {
+  const row = Buffer.alloc(w * 3 + 1)
+  for (let x = 0; x < w; x++) { row[1 + x * 3] = r; row[2 + x * 3] = g; row[3 + x * 3] = b }
+  const raw = Buffer.concat(Array.from({ length: h }, () => row))
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length)
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type), data])))
+    return Buffer.concat([len, Buffer.from(type), data, crc])
+  }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
+
+// Apple-billeder med CORS (så appen kan måle dem): 'blank' = hvidt standardcover, alt andet = rødt
+async function mockMeasurableImages(page: Page) {
+  await page.route('**/tc20-art.test/**', (route) => route.fulfill({
+    status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' },
+    body: route.request().url().includes('/blank/') ? solidPng(64, 64, [255, 255, 255]) : solidPng(64, 64, [200, 30, 30]),
+  }))
+}
+
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
 
 // Et Apple Music-søgeresultat. `art` er et id, der ender i billed-URL'en (så testen kan se hvilket resultat der blev valgt)
-interface Hit { artist: string; track: string; album: string; art: string }
+interface Hit { artist: string; track: string; album: string; art: string; various?: boolean; genre?: string }
 const appleArt = (id: string) => `https://tc20-art.test/${id}/600x600bb.jpg`
 
 // Mock af iTunes Search API. `terms` fanger de søgeord appen sender
@@ -24,6 +54,7 @@ async function mockApple(page: Page, hits: Hit[], terms: string[] = []) {
         resultCount: hits.length,
         results: hits.map(h => ({
           artistName: h.artist, trackName: h.track, collectionName: h.album,
+          collectionArtistName: h.various ? 'Various Artists' : undefined, primaryGenreName: h.genre,
           artworkUrl100: `https://tc20-art.test/${h.art}/100x100bb.jpg`,
         })),
       }),
@@ -295,5 +326,63 @@ test.describe('TC-20: Cover-opslag', () => {
     expect(terms.length).toBe(1)
     // Coveret blev stående (ingen flimren tilbage til logoet)
     await expect(bar(page).locator(`img[src="${appleArt('satan')}"]`)).toBeVisible()
+  })
+  test('TC-20-18: Soundtrack og "Various Artists"-udgivelser vælges ikke frem for studiealbummet', async ({ page }) => {
+    await mockImages(page)
+    await mockIcy(page, 'Billy Ocean - Love really hurts without you')
+    await mockApple(page, [
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'Filth (Music From the Original Motion Picture)', art: 'filth', various: true, genre: 'Soundtrack' },
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'Blame It On The Boogie', art: 'various', various: true },
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'Billy Ocean (Expanded Edition)', art: 'studio' },
+    ])
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await openSheet(page, ICY_STATION)
+    await expect(bigCover(page, 'studio')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('TC-20-19: Kunstnerens egen opsamling vælges frem for "Various Artists"-opsamlinger', async ({ page }) => {
+    await mockImages(page)
+    await mockIcy(page, 'Billy Ocean - Love really hurts without you')
+    await mockApple(page, [
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'Essential - Girls Night In', art: 'various', various: true },
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'Filth (Music From the Original Motion Picture)', art: 'filth', various: true, genre: 'Soundtrack' },
+      { artist: 'Billy Ocean', track: 'Love Really Hurts Without You', album: 'The Very Best of Billy Ocean', art: 'own' },
+    ])
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await openSheet(page, ICY_STATION)
+    await expect(bigCover(page, 'own')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('TC-20-20: Blankt hvidt standardcover springes over — næste kandidat vælges', async ({ page }) => {
+    await mockImages(page)
+    await mockMeasurableImages(page)
+    await mockIcy(page, "Luv' - Casanova (Spanish Version) (1979)")
+    await mockApple(page, [
+      { artist: "Luv'", track: 'Casanova - Spanish Version', album: "Luv' - EP", art: 'blank' },
+      { artist: "Luv'", track: 'Casanova', album: "Lots Of Luv'", art: 'lots' },
+    ])
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await openSheet(page, ICY_STATION)
+    await expect(bigCover(page, 'lots')).toBeVisible({ timeout: 8000 })
+    await expect(sheet(page).locator('img[src*="/blank/"]')).toHaveCount(0)
+    await expect(sourceLabel(page, 'Apple Music')).toBeVisible()
+  })
+
+  test('TC-20-21: Er alle kandidater blanke, vises stationslogoet', async ({ page }) => {
+    await mockImages(page)
+    await mockMeasurableImages(page)
+    await mockIcy(page, "Luv' - Casanova")
+    await mockApple(page, [{ artist: "Luv'", track: 'Casanova', album: "Luv' - EP", art: 'blank' }])
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await expect(bar(page).locator("text=Luv' - Casanova")).toBeVisible({ timeout: 5000 })
+    await openSheet(page, ICY_STATION)
+    await page.waitForTimeout(1500)
+    await expect(sheet(page).locator('img[src*="tc20-art.test"]')).toHaveCount(0)
+    await expect(sheet(page).getByText(/^Cover fra /)).toHaveCount(0)
+    await expect(sheet(page).locator(`img[alt="${ICY_STATION}"]`)).toBeVisible()
   })
 })
