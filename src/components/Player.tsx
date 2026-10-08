@@ -54,9 +54,9 @@ export function Player() {
         try {
           const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
           if (cancelled) return
-          // Iris-stationer: vores eget opslag (single > album > opsamling) har forrang — Iris
-          // peger ofte på en opsamling. Iris' cover bruges kun hvis opslaget ikke finder noget
-          if (nowPlayingSource.kind === 'iris' && np.title) {
+          // Iris- og Bauer-stationer: vores eget opslag (single > album > opsamling) har forrang —
+          // netværkets cover er ofte en opsamling. Netværkets cover bruges kun hvis opslaget intet finder
+          if ((nowPlayingSource.kind === 'iris' || nowPlayingSource.kind === 'bauer') && np.title) {
             const found = await lookupAppleCover(np.title, controller.signal)
             if (!cancelled) setMeta({ title: np.title, genre: null, cover: found ?? np.cover })
             return

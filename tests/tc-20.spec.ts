@@ -192,6 +192,21 @@ test.describe('TC-20: Cover-opslag', () => {
     await expect(sourceLabel(page, 'Bauer/Radioplay')).toBeVisible()
   })
 
+  test('TC-20-06b: Bauer-station — eget Apple-opslag har forrang over Bauers cover', async ({ page }) => {
+    await mockImages(page)
+    await page.route('**/api/now-playing**', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ title: 'Gazebo - I Like Chopin', cover: 'https://tc20-bauer.test/opsamling.jpg', end: null }),
+    }))
+    await mockApple(page, [{ artist: 'Gazebo', track: 'I Like Chopin', album: 'The Syndrone', art: 'syndrone' }])
+    await loadApp(page)
+    await playStation(page, BAUER_STATION)
+    await openSheet(page, BAUER_STATION)
+    await expect(bigCover(page, 'syndrone')).toBeVisible({ timeout: 8000 })
+    await expect(sheet(page).locator('img[src*="tc20-bauer.test"]')).toHaveCount(0)
+    await expect(sourceLabel(page, 'Apple Music')).toBeVisible()
+  })
+
   test('TC-20-07: Rangordning — single vinder over album og opsamling', async ({ page }) => {
     await mockImages(page)
     await mockIcy(page, 'Pet Shop Boys - Always On My Mind')
