@@ -3,10 +3,10 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Rapport oprettet:** 2026-06-15  
-**Sidst opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet — 170/170 godkendt; fuld suite 159/159 automatiserede (TC-19/20 kørt igen efter deploy `65b1c63` — ANR-titelvending: 31/31). Tidligere samme dag: 164/164, 153/153. Tidligere: 2026-10-07 (TC-18-19 bekræftet manuelt af Michael på iPhone — 137/137; fuld suite 128/128 automatiserede grønne mod produktion. Tidligere: 2026-09-24 — BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion))  
+**Sidst opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet — 173/173 godkendt; fuld suite 162/162 automatiserede (TC-19/20 kørt igen efter deploy `6150e90` — Apple DK/US-butik, Radio Nord-komma: 34/34). Tidligere samme dag: 164/164, 153/153. Tidligere: 2026-10-07 (TC-18-19 bekræftet manuelt af Michael på iPhone — 137/137; fuld suite 128/128 automatiserede grønne mod produktion. Tidligere: 2026-09-24 — BUG-18: TC-03-02 udvidet med tjek af "Forbinder" ved genklik — TC-03/04 11/11 grønne. Tidligere samme dag: TC-18 stor afspiller tilføjet — 18 automatiserede grønne, TC-18-19 manuel afventer; fuld suite 128/128 mod produktion))  
 **Tester:** —  
 **Git branch:** main  
-**Antal test cases:** 170
+**Antal test cases:** 173
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Godkendt | Fejlet | Ikke testet | I alt |
 |----------|--------|-------------|-------|
-| 170 | 0 | 0 | 170 |
+| 173 | 0 | 0 | 173 |
 
 ---
 
@@ -488,15 +488,18 @@
 | TC-20-21 | Er alle kandidater blanke, vises stationslogoet | 🟢 Godkendt | Logo vises, ingen kilde-tekst | 08-10-2026 |
 | TC-20-22 | Bauer-station — eget Apple-opslag har forrang over Bauers cover | 🟢 Godkendt | Apples cover vælges, Bauers vises ikke; uden match bruges Bauers (TC-20-06) | 08-10-2026 |
 | TC-20-23 | ANR — "TITEL-KUNSTNER" vendes til "Kunstner - Titel", og cover slås op | 🟢 Godkendt | `OPALITE-TAYLOR SWIFT` → "Taylor Swift - Opalite" i baren og den store afspiller + Apple-cover | 08-10-2026 |
-| TC-20-24 | iPhone: cover på rigtige stationer (manuel) | 🟢 Godkendt | Bekræftet af Michael på iPhone: 80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl. | 08-10-2026 |
+| TC-20-24 | Nummer der kun findes i Apples danske butik får cover (Danmark søges først) | 🟢 Godkendt | Alphabeat - Fascination: `country=dk` giver match; kun ét opslag | 08-10-2026 |
+| TC-20-25 | Findes nummeret ikke i den danske butik, prøves USA | 🟢 Godkendt | Opslag `dk` → `us`; cover fra USA vises | 08-10-2026 |
+| TC-20-26 | Radio Nord — "Kunstner, Titel" (komma) bliver til "Kunstner - Titel", og cover slås op | 🟢 Godkendt | Andreas Odbjerg, Jeg tror… → "Andreas Odbjerg - Jeg tror…"; søgeord og cover | 08-10-2026 |
+| TC-20-27 | iPhone: cover på rigtige stationer (manuel) | 🟢 Godkendt | Bekræftet af Michael på iPhone: 80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl. | 08-10-2026 |
 
-**Resultat: 24/24 godkendt** (23 automatiserede med mocks, 1 manuel)
+**Resultat: 27/27 godkendt** (26 automatiserede med mocks, 1 manuel)
 
 ---
 
 ## Samlet resultat
 
-> **Resultat: 170/170 godkendt** (08-10-2026: 159/159 automatiserede Playwright-tests = 128 eksisterende + 8 i `tests/tc-19.spec.ts` + 23 i `tests/tc-20.spec.ts`. TC-19/20 (31/31) kørt igen mod produktion efter `65b1c63` (ANR-titelvending, forud: `39dd7a5` Apple-forrang på Bauer). Fuld suite 153/153 mod produktion efter `414c8d9`; TC-19/20 (29/29) kørt igen mod produktion efter `6685aa3` (soundtrack/Various Artists, limit 50, blankt-cover-tjek); TC-19-09 og TC-20-24 bekræftet manuelt af Michael på iPhone). Tidligere: 137/137 (TC-18-19 bekræftet manuelt af Michael på iPhone 07-10-2026; 128/128 automatiserede kørt igen samme dag mod produktion). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
+> **Resultat: 173/173 godkendt** (08-10-2026: 162/162 automatiserede Playwright-tests = 128 eksisterende + 8 i `tests/tc-19.spec.ts` + 26 i `tests/tc-20.spec.ts`. TC-19/20 (34/34) kørt igen mod produktion efter `6150e90` (Radio Nord-komma; forud: `fd5070e` Apple DK/US-butik, `65b1c63` ANR-titelvending, `39dd7a5` Apple-forrang på Bauer). Fuld suite 153/153 mod produktion efter `414c8d9`; TC-19/20 (29/29) kørt igen mod produktion efter `6685aa3` (soundtrack/Various Artists, limit 50, blankt-cover-tjek); TC-19-09 og TC-20-27 bekræftet manuelt af Michael på iPhone). Tidligere: 137/137 (TC-18-19 bekræftet manuelt af Michael på iPhone 07-10-2026; 128/128 automatiserede kørt igen samme dag mod produktion). Fuld suite kørt mod produktion 24-09-2026 efter deploy af den store afspiller (`b243f8c`): 128/128 automatiserede Playwright-tests grønne (110 eksisterende + 18 nye i `tests/tc-18.spec.ts`). Tidligere 24-09-2026: 118/118. Fuld suite kørt mod produktion 24-09-2026 efter seneste deploy (`d8c1b68`): 110/110 automatiserede Playwright-tests grønne; TC-17-16..18 bekræftet manuelt på iPhone. 23-09-2026: 115/116 (TC-17-18 åben), 108/108 automatiserede. Før det: 104/104 automatiserede Playwright-tests grønne (TC-05-16 rettet: stationslogoet ligger nu på eget domæne og går ikke gennem `/api/artwork`). Tidligere: (93/93 automatiserede Playwright-tests grønne; 0 ikke testbare — TC-09 omlagt 14-07-2026 til den bevægelses-baserede reorder-liste, som kan simuleres pålideligt headless; se BUGS.md BUG-01. TC-09-09 tilføjet 22-07-2026 efter BUG-17)
 
 ---
 

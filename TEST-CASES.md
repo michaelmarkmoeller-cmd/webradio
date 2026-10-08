@@ -3,7 +3,7 @@
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
 **Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 170 fordelt på 20 grupper
+**Antal test cases:** 173 fordelt på 20 grupper
 
 ---
 
@@ -1660,7 +1660,36 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-### TC-20-24: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
+### TC-20-24: Nummer der kun findes i Apples danske butik får cover (Danmark søges først)
+**Forudsætning:** Radio ANR sender `FASCINATION-ALPHABEAT`; nummeret findes kun i Apples danske butik  
+**Trin:**
+1. Se player-baren
+2. Åbn den store afspiller
+
+**Forventet resultat:** Baren viser "Alphabeat - Fascination"; coveret fra den danske butik vises; der er kun ét opslag (`country=dk`) — intet ekstra opslag, når første butik giver et match.
+
+---
+
+### TC-20-25: Findes nummeret ikke i den danske butik, prøves USA
+**Forudsætning:** ICY-station; nummeret findes kun i Apples amerikanske butik  
+**Trin:**
+1. Åbn den store afspiller
+
+**Forventet resultat:** Coveret fra USA-butikken vises; opslagene er `dk` og derefter `us`.
+
+---
+
+### TC-20-26: Radio Nord — "Kunstner, Titel" (komma) bliver til "Kunstner - Titel", og cover slås op
+**Forudsætning:** Radio Nord sender `Andreas Odbjerg, Jeg tror jeg elsker dig for evigt`  
+**Trin:**
+1. Se player-baren
+2. Åbn den store afspiller
+
+**Forventet resultat:** Baren viser "Andreas Odbjerg - Jeg tror jeg elsker dig for evigt"; kunstner og titel vises hver for sig; søgeordet til Apple er `Andreas Odbjerg Jeg tror jeg elsker dig for evigt`; coveret vises.
+
+---
+
+### TC-20-27: iPhone: cover på rigtige stationer (manuel) — ✅ bekræftet af Michael 08-10-2026
 **Forudsætning:** WebRadio på iPhone; rigtige stationer (80s80s Maxis/Italo Hits, Vinyl Maxi FM, RadioMonster, PartyFM, Italo Disco New Gen, RdMix, DR P3, 1.FM 70s Best, Big 70s Radio m.fl.)  
 **Trin:**
 1. Åbn den store afspiller på hver station mens et nummer spiller
@@ -1670,4 +1699,4 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 170 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-24 manuelle)*
+*Sidst opdateret: 2026-10-08 — 173 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-27 manuelle)*
