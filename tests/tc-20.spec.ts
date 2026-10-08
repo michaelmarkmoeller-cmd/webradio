@@ -457,4 +457,18 @@ test.describe('TC-20: Cover-opslag', () => {
     await expect(bigCover(page, 'odbjerg')).toBeVisible({ timeout: 8000 })
     expect(terms[0]).toBe('Andreas Odbjerg Jeg tror jeg elsker dig for evigt')
   })
+  test('TC-20-27: Hovedkunstnerens egen udgivelse slår en andens EP, hvor kunstneren kun er gæst', async ({ page }) => {
+    await mockImages(page)
+    await mockIcy(page, 'Dolly Parton - Jolene')
+    await mockApple(page, [
+      { artist: 'Pentatonix', track: 'Jolene (feat. Dolly Parton)', album: 'PTX, Vol. IV: Classics - EP', art: 'pentatonix' },
+      { artist: 'Dolly Parton', track: 'Jolene (Single Version)', album: 'Ultimate Dolly Parton', art: 'ultimate' },
+      { artist: 'Dolly Parton', track: 'Jolene', album: 'Jolene', art: 'jolene' },
+    ])
+    await loadApp(page)
+    await playStation(page, ICY_STATION)
+    await openSheet(page, ICY_STATION)
+    await expect(bigCover(page, 'jolene')).toBeVisible({ timeout: 8000 })
+    await expect(sheet(page).locator('img[src*="/pentatonix/"]')).toHaveCount(0)
+  })
 })

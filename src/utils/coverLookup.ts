@@ -13,7 +13,7 @@ const OTHER_VERSION = /\b(remix(?:es)?|rework|re-?edit|re-?mix|coronaversion|boo
 
 const SOUNDTRACK = /\b(motion picture|soundtrack|original score|music from|o\.?s\.?t\.?)\b/i
 
-const COMPILATION = /\b(hits|best of|greatest|collection|anthology|essential|compilation|now that|presents|gold|vol\.?\s*\d+)\b/i
+const COMPILATION = /\b(ultimate|hits|best of|greatest|collection|anthology|essential|compilation|now that|presents|gold|vol\.?\s*\d+)\b/i
 
 // Fjerner støj som "(1979)", "#6 USA" og `Album "Low"` fra radioens titel
 function cleanTitle(t: string): string {
@@ -97,8 +97,11 @@ function score(r: ItunesTrack, artist: string, names: string[], title: string, r
   const nt = norm(title)
   if (!pa || !nt || !rArtist || !rTitle) return -1
   const rText = normKeep(`${r.artistName ?? ''} ${r.trackName ?? ''}`)
-  const artistOk = rArtist.includes(pa) || pa.includes(primaryArtist(r.artistName ?? '')) || names.some(n => rText.includes(n))
+  // Hovedkunstner-match: radioens kunstner ER Apples kunstner (eller næsten, stavefejl). Et match kun via
+  // gæstekunstner/navn i titlen ("Jolene (feat. Dolly Parton)" af Pentatonix) tæller bare som reserve
+  const primaryOk = rArtist.includes(pa) || pa.includes(primaryArtist(r.artistName ?? ''))
     || similarName(pa, primaryArtist(r.artistName ?? '')) || similarName(norm(artist), rArtist)
+  const artistOk = primaryOk || names.some(n => rText.includes(n))
   if (!artistOk) return -1
   if (rTitle !== nt) return -1
   const name = `${r.trackName ?? ''} ${r.collectionName ?? ''}`
@@ -115,7 +118,9 @@ function score(r: ItunesTrack, artist: string, names: string[], title: string, r
   const foreign = r.collectionArtistName === 'Various Artists' || r.primaryGenreName === 'Soundtrack' || SOUNDTRACK.test(coll)
   const compilation = foreign || COMPILATION.test(coll)
   const tier = compilation ? 0 : /-\s*(single|ep)$/i.test(coll) ? 2 : 1
-  return tier * 10 + (compilation && !foreign ? 5 : 0) + (norm(r.artistName ?? '') === norm(artist) ? 1 : 0)
+  // Hovedkunstner-match vejer tungere end udgivelsestype: en EP af en anden kunstner med radioens kunstner som gæst
+  // (Pentatonix feat. Dolly Parton) skal aldrig slå Dolly Partons eget album
+  return (primaryOk ? 100 : 0) + tier * 10 + (compilation && !foreign ? 5 : 0) + (norm(r.artistName ?? '') === norm(artist) ? 1 : 0)
 }
 
 // Næsten helt hvidt billede = blankt standardcover (andel af næsten hvide pixels > 95 %). Måles på et lille
