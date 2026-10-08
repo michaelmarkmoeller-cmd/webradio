@@ -40,6 +40,22 @@ function primaryArtist(a: string): string {
   return norm(a.split(/\s+(?:feat\.?|ft\.?|featuring|x|vs\.?|and)\s+|\s*[,&/]\s*/i)[0])
 }
 
+// Som norm(), men beholder parenteser (gæstekunstnere står ofte i "(feat. X)")
+function normKeep(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// Alle navne i en kunstnerstreng ("Tegan & Sara" → tegan, sara) — bruges når radio og Apple
+// har byttet rundt på hoved- og gæstekunstner ("A - Titel Feat. B" vs "B - Titel (feat. A)")
+function artistNames(a: string): string[] {
+  return a.split(/\s+(?:feat\.?|ft\.?|featuring|vs\.?|x|and)\s+|\s*[,&/]\s*/i).map(normKeep).filter(n => n.length >= 3)
+}
+
 interface ItunesTrack {
   artistName?: string
   trackName?: string
@@ -47,13 +63,15 @@ interface ItunesTrack {
   artworkUrl100?: string
 }
 
-function score(r: ItunesTrack, artist: string, title: string, radio: string, wantsBad: boolean): number {
+function score(r: ItunesTrack, artist: string, names: string[], title: string, radio: string, wantsBad: boolean): number {
   const rArtist = norm(r.artistName ?? '')
   const rTitle = norm(r.trackName ?? '')
   const pa = primaryArtist(artist)
   const nt = norm(title)
   if (!pa || !nt || !rArtist || !rTitle) return -1
-  if (!(rArtist.includes(pa) || pa.includes(primaryArtist(r.artistName ?? '')))) return -1
+  const rText = normKeep(`${r.artistName ?? ''} ${r.trackName ?? ''}`)
+  const artistOk = rArtist.includes(pa) || pa.includes(primaryArtist(r.artistName ?? '')) || names.some(n => rText.includes(n))
+  if (!artistOk) return -1
   if (rTitle !== nt) return -1
   const name = `${r.trackName ?? ''} ${r.collectionName ?? ''}`
   if (!wantsBad && BAD_VERSION.test(name)) return -1
@@ -72,8 +90,13 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
   const i = track.indexOf(' - ')
   if (i <= 0) return null
   const artist = track.slice(0, i).trim()
-  const title = cleanTitle(track.slice(i + 3))
+  let title = cleanTitle(track.slice(i + 3))
+  // "Titel Feat. B" uden parentes: gæstekunstneren ud af titlen (bruges kun til kunstner-match)
+  const featMatch = title.match(/\s+(?:feat\.?|ft\.?|featuring)\s+(.+)$/i)
+  const featured = featMatch ? featMatch[1] : ''
+  if (featMatch) title = title.slice(0, featMatch.index).trim()
   if (!artist || !title) return null
+  const names = [...artistNames(artist), ...artistNames(featured)]
   const key = `${norm(artist)}|${norm(title)}`
   if (cache.has(key)) return cache.get(key) ?? null
 
@@ -89,7 +112,7 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
     let best: ItunesTrack | null = null
     let bestScore = -1
     for (const r of data.results ?? []) {
-      const s = score(r, artist, title, track, wantsBad)
+      const s = score(r, artist, names, title, track, wantsBad)
       if (s > bestScore) { best = r; bestScore = s }
     }
     const art = best?.artworkUrl100
