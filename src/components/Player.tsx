@@ -83,11 +83,12 @@ export function Player() {
         if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return }
         icySupportedRef.current = true
         setIcySupported(true)
-        const title: string | null = data.title ?? null
+        // DR sætter "/ " foran kunstneren ("/ Freya Skye - bad taste") — fjernes, så titel og cover-opslag er rene
+        const title: string | null = typeof data.title === 'string' ? (data.title.replace(/^\/\s*/, '').trim() || null) : null
         // Samme nummer som ved forrige poll: behold et allerede fundet cover (ingen flimren)
         setMeta(prev => prev.title === title ? { ...prev, genre: data.genre ?? null } : { title, genre: data.genre ?? null, cover: null })
-        // ICY sender ingen billeder — slå coveret op i Apple Music (DR sender programtekst, ikke musik)
-        if (title && !currentStation!.streamUrl.includes('dr.dk')) {
+        // ICY sender ingen billeder — slå coveret op i Apple Music (programtekster uden match giver bare intet cover)
+        if (title) {
           const found = await lookupAppleCover(title, controller.signal)
           if (!cancelled && found) setMeta(prev => prev.title === title ? { ...prev, cover: found } : prev)
         }
