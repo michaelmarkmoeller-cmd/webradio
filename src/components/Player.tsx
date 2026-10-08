@@ -53,7 +53,14 @@ export function Player() {
       if (nowPlayingSource) {
         try {
           const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
-          if (!cancelled) setMeta({ title: np.title, genre: null, cover: np.cover })
+          if (cancelled) return
+          // Samme nummer som ved forrige poll: behold et cover vi allerede har fundet via Apple Music
+          setMeta(prev => prev.title === np.title && !np.cover ? prev : { title: np.title, genre: null, cover: np.cover })
+          // Netværket har ingen cover til nummeret → slå det op i Apple Music
+          if (np.title && !np.cover) {
+            const found = await lookupAppleCover(np.title, controller.signal)
+            if (!cancelled && found) setMeta(prev => prev.title === np.title ? { ...prev, cover: found } : prev)
+          }
         } catch { }
         return
       }
