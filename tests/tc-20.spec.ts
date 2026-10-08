@@ -7,6 +7,7 @@ const ICY_STATION = 'SomaFM Metal Detector'  // ICY-station uden netværks-API
 const IRIS_STATION = '80s80s Radio'          // Loverad/Iris
 const BAUER_STATION = 'NOVA'                 // Bauer Media DK / Radioplay
 const DR_STATION = 'DR P3'                   // DR sender "/ Kunstner - Titel"
+const NORD_STATION = 'Radio Nord'            // Radio Nord sender "Kunstner, Titel" (komma)
 const ANR_STATION = 'Radio ANR'              // ANR sender "TITEL-KUNSTNER" (store bogstaver, ingen mellemrum)
 
 import zlib from 'node:zlib'
@@ -442,5 +443,18 @@ test.describe('TC-20: Cover-opslag', () => {
     await openSheet(page, ICY_STATION)
     await expect(bigCover(page, 'satan-us')).toBeVisible({ timeout: 8000 })
     expect(countries).toEqual(['dk', 'us'])
+  })
+  test('TC-20-26: Radio Nord — "Kunstner, Titel" (komma) bliver til "Kunstner - Titel", og cover slås op', async ({ page }) => {
+    const terms: string[] = []
+    await mockImages(page)
+    await mockIcy(page, 'Andreas Odbjerg, Jeg tror jeg elsker dig for evigt')
+    await mockApple(page, [{ artist: 'Andreas Odbjerg', track: 'Jeg tror jeg elsker dig for evigt', album: 'Jeg tror jeg elsker dig for evigt - Single', art: 'odbjerg' }], terms)
+    await loadApp(page)
+    await playStation(page, NORD_STATION)
+    await expect(bar(page).locator('text=Andreas Odbjerg - Jeg tror jeg elsker dig for evigt')).toBeVisible({ timeout: 8000 })
+    await openSheet(page, NORD_STATION)
+    await expect(sheet(page).locator('.text-lg', { hasText: 'Andreas Odbjerg' })).toBeVisible()
+    await expect(bigCover(page, 'odbjerg')).toBeVisible({ timeout: 8000 })
+    expect(terms[0]).toBe('Andreas Odbjerg Jeg tror jeg elsker dig for evigt')
   })
 })
