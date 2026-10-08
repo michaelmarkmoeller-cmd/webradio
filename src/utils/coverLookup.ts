@@ -8,6 +8,9 @@ import type { NowPlayingCover } from './nowPlaying'
 const cache = new Map<string, NowPlayingCover | null>()
 
 const BAD_VERSION = /\b(live|karaoke|tribute|made famous|instrumental|cover version|originally performed)\b/i
+// Senere/andre versioner: afvises, medmindre radioens egen titel også nævner ordet/året
+const OTHER_VERSION = /\b(remix(?:es)?|rework|re-?edit|re-?mix|coronaversion|bootleg|mashup|sped up|slowed|nightcore|dj mix)\b/i
+
 const COMPILATION = /\b(hits|best of|greatest|collection|anthology|essential|compilation|now that|presents|gold|vol\.?\s*\d+)\b/i
 
 // Fjerner støj som "(1979)", "#6 USA" og `Album "Low"` fra radioens titel
@@ -44,7 +47,7 @@ interface ItunesTrack {
   artworkUrl100?: string
 }
 
-function score(r: ItunesTrack, artist: string, title: string, wantsBad: boolean): number {
+function score(r: ItunesTrack, artist: string, title: string, radio: string, wantsBad: boolean): number {
   const rArtist = norm(r.artistName ?? '')
   const rTitle = norm(r.trackName ?? '')
   const pa = primaryArtist(artist)
@@ -54,6 +57,11 @@ function score(r: ItunesTrack, artist: string, title: string, wantsBad: boolean)
   if (rTitle !== nt) return -1
   const name = `${r.trackName ?? ''} ${r.collectionName ?? ''}`
   if (!wantsBad && BAD_VERSION.test(name)) return -1
+  const other = name.match(OTHER_VERSION)
+  if (other && !new RegExp('\\b' + other[1], 'i').test(radio)) return -1
+  // År i selve titlen ("I Like Chopin 2020") = nyere genudgivelse, som radioens titel ikke nævner
+  const year = (r.trackName ?? '').match(/\b(?:19|20)\d{2}\b/)
+  if (year && !radio.includes(year[0])) return -1
   // Rang: single (2) > album (1) > opsamling (0) — udgivelsestypen vejer tungest, kunstner-match er kun tiebreaker
   const coll = r.collectionName ?? ''
   const tier = COMPILATION.test(coll) ? 0 : /-\s*(single|ep)$/i.test(coll) ? 2 : 1
@@ -79,7 +87,7 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
     let best: ItunesTrack | null = null
     let bestScore = -1
     for (const r of data.results ?? []) {
-      const s = score(r, artist, title, wantsBad)
+      const s = score(r, artist, title, track, wantsBad)
       if (s > bestScore) { best = r; bestScore = s }
     }
     const art = best?.artworkUrl100
