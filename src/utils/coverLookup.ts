@@ -79,7 +79,9 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
 
   let result: NowPlayingCover | null = null
   try {
-    const q = encodeURIComponent(`${artist} ${title}`)
+    // Versionsangivelser i parentes ("(Extended Remix)") ud af søgeordet — ellers finder Apple intet
+    const searchTitle = title.replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/\s-\s.*$/, '').replace(/\s+/g, ' ').trim() || title
+    const q = encodeURIComponent(`${artist} ${searchTitle}`)
     const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=15`, { signal })
     if (!res.ok) return null  // ikke cachet — prøv igen ved næste poll
     const data = await res.json() as { results?: ItunesTrack[] }
