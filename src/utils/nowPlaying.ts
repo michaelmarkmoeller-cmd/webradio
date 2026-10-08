@@ -90,8 +90,9 @@ export interface NowPlayingCover {
   src: string
   // MediaSession-hint til OS'et om billedets størrelse (fx "600x600")
   sizes: string
-  // 'apple' = slået op i Apple Music ud fra kunstner+titel (ICY-stationer uden netværks-API)
-  source?: 'apple'
+  // Kilden til coveret, vist i den store afspiller ("Cover fra <source>") — fx 'Apple Music'
+  // (slået op ud fra kunstner+titel) eller netværkets eget API
+  source?: string
 }
 
 export interface NowPlaying {
@@ -159,10 +160,15 @@ async function fetchBauer(src: Extract<NowPlayingSource, { kind: 'bauer' }>, sig
   return { title, cover: title ? coverOf(data?.cover, '320x320') : null }
 }
 
-export function fetchNowPlaying(src: NowPlayingSource, signal: AbortSignal): Promise<NowPlaying> {
-  switch (src.kind) {
-    case 'iris': return fetchIris(src, signal)
-    case 'streamabc': return fetchStreamAbc(src, signal)
-    case 'bauer': return fetchBauer(src, signal)
-  }
+const COVER_SOURCE_LABELS: Record<NowPlayingSource['kind'], string> = {
+  iris: 'Loverad/Iris',
+  streamabc: 'streamabc',
+  bauer: 'Bauer/Radioplay',
+}
+
+export async function fetchNowPlaying(src: NowPlayingSource, signal: AbortSignal): Promise<NowPlaying> {
+  const np = src.kind === 'iris' ? await fetchIris(src, signal)
+    : src.kind === 'streamabc' ? await fetchStreamAbc(src, signal)
+    : await fetchBauer(src, signal)
+  return np.cover ? { ...np, cover: { ...np.cover, source: COVER_SOURCE_LABELS[src.kind] } } : np
 }

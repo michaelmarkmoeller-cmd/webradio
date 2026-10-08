@@ -84,7 +84,7 @@ export async function lookupAppleCover(track: string, signal: AbortSignal): Prom
     }
     const art = best?.artworkUrl100
     if (art && art.startsWith('https://')) {
-      result = { src: art.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'apple' }
+      result = { src: art.replace(/\/\d+x\d+bb\./, '/600x600bb.'), sizes: '600x600', source: 'Apple Music' }
     }
   } catch {
     return null  // netværksfejl/afbrudt — ikke cachet
