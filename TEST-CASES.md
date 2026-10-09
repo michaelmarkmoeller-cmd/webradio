@@ -2,8 +2,8 @@
 
 **Projekt:** WebRadio  
 **URL:** https://webradio-chi.vercel.app  
-**Senest opdateret:** 2026-10-08 (TC-19 forrige/næste station + TC-20 cover-opslag tilføjet)  
-**Antal test cases:** 174 fordelt på 20 grupper
+**Senest opdateret:** 2026-10-09 (TC-21 hurtigere skift af titel tilføjet)  
+**Antal test cases:** 181 fordelt på 21 grupper
 
 ---
 
@@ -1708,4 +1708,71 @@ Ingen "..."-afskæring på to linjer (kun ved absolut overflow).
 
 ---
 
-*Sidst opdateret: 2026-10-08 — 174 test cases, 20 grupper (TC-19 forrige/næste station: `tests/tc-19.spec.ts`; TC-20 cover-opslag: `tests/tc-20.spec.ts`; TC-19-09 og TC-20-28 manuelle)*
+## TC-21: Hurtigere skift af titel og cover
+
+*Poll-ændringer 09-10-2026: ICY 10 sek., Iris/Bauer ved nummerets slutning, hentning ved synlig, behold titel ved tom ICY-blok. Netværk og ICY mockes med `page.route`, tiden styres med `page.clock` (undtagen TC-21-06, der måler den rigtige Bauer-cache mod produktion).*
+
+### TC-21-01: ICY hentes hvert 10. sekund (ikke hvert 30.)
+**Forudsætning:** ICY-station spiller; uret køres 35 sek. frem (`page.clock`)  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Mindst tre hentninger på 35 sek. (med 30 sek.-intervallet var det én).
+
+---
+
+### TC-21-02: Nyt ICY-nummer vises inden for 10 sekunder
+**Forudsætning:** ICY-station viser nummer A; stationen skifter til nummer B  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Nummer B vises i baren, efter uret er kørt 10,5 sek. frem.
+
+---
+
+### TC-21-03: Tom ICY-blok beholder titel og cover — ryddes først efter ca. et minut
+**Forudsætning:** ICY-station viser nummer med cover; stationen begynder at sende tomme blokke  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Efter 25 sek. står titel og cover stadig; efter 75 sek. uden titel er titlen ryddet.
+
+---
+
+### TC-21-04: Iris hentes igen lige efter nummerets slutning (ikke efter fast interval)
+**Forudsætning:** Iris-station; nummeret slutter om ca. 12 sek.  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Efter 8 sek. er der kun hentet én gang; efter 16 sek. (sluttid + 2 sek.) er næste nummer hentet og vist.
+
+---
+
+### TC-21-05: Bauer hentes igen lige efter nummerets slutning
+**Forudsætning:** NOVA spiller; Bauer oplyser sluttid om 8 sek.  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Efter 4 sek. er der kun hentet én gang; efter 12 sek. er næste nummer hentet og vist.
+
+---
+
+### TC-21-06: Bauer-API caches kun kort (ca. 5 sek.) — ikke længere 15
+**Forudsætning:** Produktion; `/api/now-playing?station=nov` kaldes to gange med 6,5 sek. imellem  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Det andet svar er ikke længere et friskt cache-HIT (Vercel viser ikke `s-maxage`, så adfærden måles).
+
+---
+
+### TC-21-07: Titlen hentes straks når appen bliver synlig igen
+**Forudsætning:** ICY-station; uret står stille; stationen skifter nummer  
+**Trin:**
+1. Kør uret/hændelsen frem som beskrevet
+
+**Forventet resultat:** Appen får en `visibilitychange` (synlig).
+
+---
+
+*Sidst opdateret: 2026-10-09 — 181 test cases, 21 grupper (TC-21 hurtigere skift af titel: `tests/tc-21.spec.ts`; manuelle: TC-19-09 og TC-20-28)*
