@@ -15,6 +15,21 @@ const NOW_PLAYING_SOURCE_LABELS: Record<NowPlayingSource['kind'], string> = {
   bauer: 'Netværks-API (Bauer/Radioplay)',
 }
 
+// Hentefrekvens for titel/cover. ICY har ingen sluttid → fast 10 sek.; Iris/Bauer hentes lige efter nummerets slutning
+const ICY_POLL_MS = 10_000
+const EMPTY_ICY_KEEP_POLLS = 6  // ca. 60 sek. med tomme ICY-blokke før titlen ryddes
+const AFTER_TRACK_END_MS = 2_000
+const MIN_POLL_MS = 3_000
+
+// Ms til næste hentning ud fra nummerets sluttid: lige efter slutningen (maks 30 sek. frem). Mangler sluttid,
+// eller er den overskredet (API'et er ikke opdateret endnu), prøves igen om hhv. 10 og 5 sek.
+function nextPollDelay(endMs: number | undefined): number {
+  if (endMs === undefined) return ICY_POLL_MS
+  const untilEnd = endMs - Date.now()
+  if (untilEnd <= 0) return 5_000
+  return Math.min(30_000, Math.max(MIN_POLL_MS, untilEnd + AFTER_TRACK_END_MS))
+}
+
 function formatListenTime(sec: number): string {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
@@ -50,17 +65,20 @@ export function Player() {
     // Stationer hvis stream kun sender stationsnavnet som ICY-titel henter i stedet
     // "nu spiller" direkte fra netværkets eget API (se utils/nowPlaying.ts)
     const nowPlayingSource = getNowPlayingSource(currentStation.streamUrl)
-    async function fetchMeta() {
+    // Henter titel/cover og returnerer ms til næste hentning. Iris/Bauer oplyser hvornår nummeret slutter →
+    // næste hentning lige efter skiftet; ICY har ingen sluttid → hvert 10. sek.
+    let emptyIcyPolls = 0
+    async function fetchMeta(): Promise<number> {
       if (nowPlayingSource) {
         try {
           const np = await fetchNowPlaying(nowPlayingSource, controller.signal)
-          if (cancelled) return
+          if (cancelled) return ICY_POLL_MS
           // Iris- og Bauer-stationer: vores eget opslag (single > album > opsamling) har forrang —
           // netværkets cover er ofte en opsamling. Netværkets cover bruges kun hvis opslaget intet finder
           if ((nowPlayingSource.kind === 'iris' || nowPlayingSource.kind === 'bauer') && np.title) {
             const found = await lookupAppleCover(np.title, controller.signal)
             if (!cancelled) setMeta({ title: np.title, genre: null, cover: found ?? np.cover })
-            return
+            return nextPollDelay(np.endMs)
           }
           // Samme nummer som ved forrige poll: behold et cover vi allerede har fundet via Apple Music
           setMeta(prev => prev.title === np.title && !np.cover ? prev : { title: np.title, genre: null, cover: np.cover })
@@ -69,35 +87,65 @@ export function Player() {
             const found = await lookupAppleCover(np.title, controller.signal)
             if (!cancelled && found) setMeta(prev => prev.title === np.title ? { ...prev, cover: found } : prev)
           }
+          return nextPollDelay(np.endMs)
         } catch { }
-        return
+        return ICY_POLL_MS
       }
-      if (icySupportedRef.current === false) return
+      if (icySupportedRef.current === false) return ICY_POLL_MS
       try {
         const res = await fetch(
           `/api/icy-meta?url=${encodeURIComponent(currentStation!.streamUrl)}`,
           { signal: controller.signal }
         )
-        if (!res.ok) return
+        if (!res.ok) return ICY_POLL_MS
         const data = await res.json()
-        if (cancelled) return
-        if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return }
+        if (cancelled) return ICY_POLL_MS
+        if (data.icySupported === false) { icySupportedRef.current = false; setIcySupported(false); return ICY_POLL_MS }
         icySupportedRef.current = true
         setIcySupported(true)
         // Stationsspecifik oprydning til "Kunstner - Titel" (DR: "/ " foran kunstneren; ANR: "TITEL-KUNSTNER")
         const title = cleanIcyTitle(currentStation!.streamUrl, data.title)
+        // Tom ICY-blok (title null) er normalt mellem numre og ikke et nyt nummer: behold den gamle titel og
+        // dets cover, og ryd først hvis stationen er blevet ved med at være tom i ca. et minut (fx nyheder)
+        if (!title) {
+          emptyIcyPolls++
+          if (emptyIcyPolls >= EMPTY_ICY_KEEP_POLLS) setMeta({ title: null, genre: data.genre ?? null, cover: null })
+          return ICY_POLL_MS
+        }
+        emptyIcyPolls = 0
         // Samme nummer som ved forrige poll: behold et allerede fundet cover (ingen flimren)
         setMeta(prev => prev.title === title ? { ...prev, genre: data.genre ?? null } : { title, genre: data.genre ?? null, cover: null })
         // ICY sender ingen billeder — slå coveret op i Apple Music (programtekster uden match giver bare intet cover)
-        if (title) {
-          const found = await lookupAppleCover(title, controller.signal)
-          if (!cancelled && found) setMeta(prev => prev.title === title ? { ...prev, cover: found } : prev)
-        }
+        const found = await lookupAppleCover(title, controller.signal)
+        if (!cancelled && found) setMeta(prev => prev.title === title ? { ...prev, cover: found } : prev)
       } catch { }
+      return ICY_POLL_MS
     }
-    fetchMeta()
-    const interval = setInterval(fetchMeta, 30000)
-    return () => { cancelled = true; controller.abort(); clearInterval(interval) }
+
+    // Selvplanlagt løkke i stedet for fast setInterval: næste hentning afhænger af svaret
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let running = false
+    async function tick() {
+      if (running || cancelled) return
+      running = true
+      let delay = ICY_POLL_MS
+      try { delay = await fetchMeta() } finally { running = false }
+      if (!cancelled) timer = setTimeout(tick, delay)
+    }
+    tick()
+    // Vender appen tilbage til forgrunden (låst skærm, app-skift), hentes der straks — timere kan have stået stille
+    function onVisible() {
+      if (document.visibilityState !== 'visible' || cancelled) return
+      if (timer) { clearTimeout(timer); timer = null }
+      tick()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      controller.abort()
+      if (timer) clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [currentStation?.id, isPlaying])
 
   // Sangtitel + cover til OS'ets "Now Playing" (låseskærm, CarPlay, medietaster)

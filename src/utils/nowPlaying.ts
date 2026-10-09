@@ -98,6 +98,8 @@ export interface NowPlayingCover {
 export interface NowPlaying {
   title: string | null
   cover: NowPlayingCover | null
+  // Hvornår nummeret slutter (ms siden epoch), hvis netværket oplyser det — bruges til at hente igen lige efter skiftet
+  endMs?: number
 }
 
 const EMPTY: NowPlaying = { title: null, cover: null }
@@ -136,7 +138,8 @@ async function fetchIris(src: Extract<NowPlayingSource, { kind: 'iris' }>, signa
     : null
   // Apple Music-covers i faste størrelser — 600×600 er skarpt på låseskærm/CarPlay
   const cover = coverOf(song.cover_art_url_xl, '600x600') ?? coverOf(song.cover_art_url_l, '225x225')
-  return { title: formatTrack(artists, song.title), cover }
+  const endMs = durationMs > 0 && Number.isFinite(airtime) ? airtime + durationMs : undefined
+  return { title: formatTrack(artists, song.title), cover, endMs }
 }
 
 async function fetchStreamAbc(src: Extract<NowPlayingSource, { kind: 'streamabc' }>, signal: AbortSignal): Promise<NowPlaying> {
@@ -157,7 +160,8 @@ async function fetchBauer(src: Extract<NowPlayingSource, { kind: 'bauer' }>, sig
   const data = await res.json()
   if (typeof data?.end === 'string' && isStale(Date.parse(data.end))) return EMPTY
   const title = typeof data?.title === 'string' && data.title ? data.title : null
-  return { title, cover: title ? coverOf(data?.cover, '320x320') : null }
+  const endMs = typeof data?.end === 'string' ? Date.parse(data.end) : NaN
+  return { title, cover: title ? coverOf(data?.cover, '320x320') : null, endMs: Number.isFinite(endMs) ? endMs : undefined }
 }
 
 const COVER_SOURCE_LABELS: Record<NowPlayingSource['kind'], string> = {

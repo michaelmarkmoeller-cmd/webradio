@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
     const title = song ? (artist ? `${artist} - ${song}` : song) : null
 
     // Kort delt cache — alle lyttere på samme station deler ét opslag hos Bauer
-    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=15')
+    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=5')
     const cover = typeof data?.ImageUrl === 'string' && data.ImageUrl.startsWith('https://') ? data.ImageUrl : null
     return res.json({ title, cover, end: copenhagenToIso(data?.EventFinish) })
   } catch {
