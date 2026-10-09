@@ -131,8 +131,9 @@ test.describe('TC-03: Afspilning', () => {
       const a = document.querySelector('audio')
       return a?.src ?? ''
     })
+    // Præcis tekst (exact): en sangtitel som "Stayin' Alive" må ikke ramme "Live"-tjekket
     const player = page.locator('.fixed.bottom-0')
-    await expect(player.locator('text=LIVE')).toBeVisible({ timeout: 10000 })
+    await expect(player.getByText('Live', { exact: true })).toBeVisible({ timeout: 10000 })
     await card.click()
     await page.waitForTimeout(500)
     const srcAfter = await page.evaluate(() => {
@@ -142,8 +143,8 @@ test.describe('TC-03: Afspilning', () => {
     expect(srcAfter).toBe(srcBefore)
     // Genklik må ikke sætte "Forbinder" — der kommer ingen ny 'playing'-hændelse, så den ville hænge
     await page.waitForTimeout(1500)
-    await expect(player.locator('text=FORBINDER')).toHaveCount(0)
-    await expect(player.locator('text=LIVE')).toBeVisible()
+    await expect(player.getByText('Forbinder', { exact: true })).toHaveCount(0)
+    await expect(player.getByText('Live', { exact: true })).toBeVisible()
   })
 
   test('TC-03-03: Stationsskift stopper forrige', async ({ page }) => {
