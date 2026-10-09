@@ -109,7 +109,10 @@ export function Player() {
         // dets cover, og ryd først hvis stationen er blevet ved med at være tom i ca. et minut (fx nyheder)
         if (!title) {
           emptyIcyPolls++
-          if (emptyIcyPolls >= EMPTY_ICY_KEEP_POLLS) setMeta({ title: null, genre: data.genre ?? null, cover: null })
+          // Genren (fra stream-headeren) vises uafhængigt af titlen og opdateres altid
+          setMeta(prev => emptyIcyPolls >= EMPTY_ICY_KEEP_POLLS
+            ? { title: null, genre: data.genre ?? null, cover: null }
+            : { ...prev, genre: data.genre ?? null })
           return ICY_POLL_MS
         }
         emptyIcyPolls = 0

@@ -147,10 +147,16 @@ test.describe('TC-21: Hurtigere skift af titel', () => {
     expect(calls).toBe(2)
   })
 
-  test('TC-21-06: Bauer-API\'et caches kun kort (s-maxage=5)', async ({ page }) => {
-    const res = await page.request.get(`${APP_URL}/api/now-playing?station=nov`)
-    expect(res.status()).toBe(200)
-    expect(res.headers()['cache-control']).toContain('s-maxage=5')
+  test('TC-21-06: Bauer-API caches kun kort (ca. 5 sek.) — ikke længere 15', async ({ page }) => {
+    // Vercel skjuler s-maxage i svaret til klienten, så adfærden måles: efter 6-7 sek. må svaret ikke længere være
+    // et friskt HIT (med den gamle s-maxage=15 ville det stadig have været det)
+    const url = `${APP_URL}/api/now-playing?station=nov`
+    const first = await page.request.get(url)
+    expect(first.status()).toBe(200)
+    await new Promise(r => setTimeout(r, 6500))
+    const later = await page.request.get(url)
+    expect(later.status()).toBe(200)
+    expect(later.headers()['x-vercel-cache']).not.toBe('HIT')
   })
 
   test('TC-21-07: Titlen hentes straks når appen bliver synlig igen', async ({ page }) => {
