@@ -207,6 +207,8 @@ for (const arg of artists) {
   await mkdir(dir, { recursive: true })
   const file = `${dir}/folder.jpg`
   await writeFile(file, out)
+  // Kopi i roden navngivet som kunstneren
+  await writeFile(`Downloaded Covers/${safe(label)}.jpg`, out)
   console.log(`  ✓ ${file}${note}`)
   console.log(`    Kilde: ${source}`)
   console.log(`    Tekst: ${skipText ? 'ingen' : `"${label}" som overlay`}${isAlbumCover ? ' (albumcover — tjek om navn allerede er på)' : ''}`)
