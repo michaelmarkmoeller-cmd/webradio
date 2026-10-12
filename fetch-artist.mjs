@@ -74,6 +74,10 @@ async function fetchWikipediaPhoto(query) {
   const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + ' band music')}&srlimit=3&format=json&origin=*`)
   const j = await r.json()
   for (const p of (j.query?.search ?? [])) {
+    // Verificer at artikeltitlen matcher kunstnernavnet — undgår forkerte Wikipedia-hits
+    const titleNorm = p.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const queryNorm = query.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (!titleNorm.includes(queryNorm) && !queryNorm.includes(titleNorm)) continue
     const r2 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&pageids=${p.pageid}&prop=pageimages&pithumbsize=2000&pilicense=any&format=json&origin=*`)
     const j2 = await r2.json()
     const page = Object.values(j2.query?.pages ?? {})[0]
