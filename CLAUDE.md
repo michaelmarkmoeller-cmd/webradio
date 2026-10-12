@@ -385,6 +385,31 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
 - `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
+## Kunstnercovers til `Downloaded Covers/` (aftalt 12-10-2026)
+Michael bygger en samling kunstnercovers til sit musikbibliotek (uafhængigt af selve appen). `fetch-artist.mjs` + `fetch-cover.mjs` ligger i rodmappen; output i `Downloaded Covers/` (i `.gitignore` — følger ikke med via git, Michael flytter færdige covers ud løbende, så mappen er ofte tom/halvtom).
+
+**Regler**
+- Ét `<Navn>.jpg` direkte i mappens rod — ingen undermapper, albums eller singler. Kvadratisk, **1000–2000 px**, skal vise gruppens/kunstnerens **navn eller logo**
+- **Filnavn = det præcise mappenavn** i Michaels bibliotek (fx `Cabbalero.jpg`, selv hvis Deezer staver `Cabballero`), ikke kilden's stavemåde
+- **Sæt kun navnet på selv hvis det ikke allerede står på billedet.** Flow: hent først `--plain` (uden tekst) → se billedet → kør igen uden `--plain` (= med navnetekst) kun hvis navnet mangler
+- Se altid resultatet igennem og flag tvetydige/forkerte/svage match ærligt (få fans, forkert person, remix-single, cd-cover med anden tekst). Gæt ikke på klippede navne — spørg
+
+**Brug**
+```
+node fetch-artist.mjs [--plain] "Søgenavn[=Vist navn]" ...     # flere kunstnere i ét kald
+node fetch-artist.mjs --plain "186634757=Divine"                # tal = Deezer-kunstner-id (tvetydige navne)
+node fetch-cover.mjs "Kunstner - Titel" [størrelse]             # ét nummers cover (iTunes)
+```
+- Kilde: **Deezer** `api.deezer.com/search/artist` → `picture_xl` (1000×1000; ingen nøgle). Kandidater: samme navn (flest fans først), derefter navne der starter med søgningen. **Deezers grå pladsholder springes over** (billedets pixelspredning < 25) og næste kandidat tages; kun pladsholdere → "intet kunstnerfoto"
+- Navnet tegnes som SVG (Arial Black, hvid + sort kontur, mørk gradient nederst) via `sharp`. Officielle logoer kræver fanart.tv-nøgle (TheAudioDB's testnøgle er død) — ikke i brug
+- **Tvetydige navne:** flere Deezer-kunstnere hedder ofte det samme ("Berlin", "Blue", "Divine" — flest fans er ikke altid den rigtige). Tjek billedet; find det rigtige id via `api.deezer.com/search?q=<kunstner + kendt nummer>` (`artist.id`) og kør med `id=Vist navn`
+- **Intet Deezer-foto → Apple Music-albumcover som reserve** (iTunes Search API, `artworkUrl100` → `1000x1000bb`; originalen kan være mindre, fx 620 px = under minimum, flag det). Vælg et album/single hvor kunstneren og/eller navnet står på coveret. Samarbejder ("A & B") findes ofte kun som single-titel hos Apple (`feat.` i titlen) — søg på nummeret. Brugt til bl.a. Dave Gahan, Def Dames Dope, David Guetta-samarbejder, Bowie & Jagger
+
+**Skærmbillede-flow (aftalt 12-10-2026)**: Michael sender skærmbilleder af sit bibliotek (mappevisning `CD'er > <bogstav>`). **Gule mappeikoner = kunstnere uden cover** → læs navnene af, hent dem, gennemgå billederne og rapportér i en tabel (navn på billedet i forvejen? / tekst sat på / svagt match). Navne klippet af med "…" spørges der om.
+
+**Kendte svage/uafklarede** (pr. 12-10-2026): DJ Space C (kun D'Mixmasters-cover hos Deezer), Discomaniax (Apple-cover kun 620 px), Domino Dancing (usikkert — Apple-EP af kunstneren DOMINO; Michaels sang er "You Are My Sunshine"), Clueless/C.J. Lewis/Caramba (usikre match), Betty & Boop og Boom-bastic (forkerte, ikke afklaret)
+**Krav:** `sharp` er allerede dev-dependency (`npm install`)
+
 ## Workflow ved ændringer
 1. Rediger kode lokalt
 2. Test med `npm run dev` og verificer i browser **inden** push

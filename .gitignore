@@ -36,3 +36,6 @@ test-results/
 
 # Midlertidig plan fra localize-logos.mjs (slettes efter --apply)
 localize-logos-plan.json
+
+# Downloaded covers (lokale, ikke i git)
+Downloaded Covers/
