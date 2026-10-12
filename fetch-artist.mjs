@@ -34,10 +34,12 @@ async function fetchAppleArtistPhoto(query, artistId) {
   // Find Apple Music artist-ID hvis ikke angivet
   if (!artistId) {
     for (const country of ['dk', 'us']) {
-      const r = await fetch(`https://itunes.apple.com/search?entity=musicArtist&term=${encodeURIComponent(query)}&limit=10&country=${country}`)
-      const j = await r.json()
-      const match = (j.results ?? []).find(a => norm(a.artistName) === norm(query))
-      if (match) { artistId = String(match.artistId); break }
+      try {
+        const r = await fetch(`https://itunes.apple.com/search?entity=musicArtist&term=${encodeURIComponent(query)}&limit=10&country=${country}`)
+        const j = await r.json()
+        const match = (j.results ?? []).find(a => norm(a.artistName) === norm(query))
+        if (match) { artistId = String(match.artistId); break }
+      } catch { break } // rate limit eller JSON-fejl → spring Apple Music over
     }
   }
   if (!artistId) return null
@@ -87,6 +89,8 @@ async function fetchWikipediaPhoto(query) {
   return null
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
 for (const arg of artists) {
   // Syntaks: "153089=Erasure"  → Apple Music ID + mappenavn
   //          "Enrique Iglesias|Enrique Iglesias feat. Pitbull" → søgenavn|mappenavn
@@ -110,26 +114,64 @@ for (const arg of artists) {
     label    = arg
   }
 
+  await sleep(3000)
   console.log(`\n→ ${label}`)
 
   let buf = null, source = '', note = ''
 
-  // Primær: Apple Music artistprofil — kun hvis det er et rigtigt artistfoto (AMCArtistImages)
-  const apple = await fetchAppleArtistPhoto(query, artistId)
-  if (apple) {
-    buf    = apple.buf
-    source = `Apple Music artistfoto (${apple.width}×${apple.height}px)`
-    if (apple.width < 1000 || apple.height < 1000) note = ' ⚠️ under 1000px'
+  // Primær: Apple Music artistprofil — kun ægte artistfotos (AMCArtistImages) → navn påskrives
+  // Fallback 1: Wikipedia-foto → navn påskrives
+  // Fallback 2: Apple Music albumcover → plain (navn står allerede på coveret)
+  let isAlbumCover = false
+  try {
+    const apple = await fetchAppleArtistPhoto(query, artistId)
+    if (apple) {
+      buf    = apple.buf
+      source = `Apple Music artistfoto (${apple.width}×${apple.height}px)`
+      if (apple.width < 1000 || apple.height < 1000) note = ' ⚠️ under 1000px'
+    }
+  } catch { /* rate limit eller netværksfejl — prøv næste kilde */ }
+
+  if (!buf) {
+    try {
+      const wiki = await fetchWikipediaPhoto(query)
+      if (wiki) {
+        buf    = wiki.buf
+        source = `Wikipedia (${wiki.width}×${wiki.height}px)`
+        if (wiki.width < 1000 || wiki.height < 1000) note = ' ⚠️ under 1000px'
+      }
+    } catch { /* rate limit eller netværksfejl */ }
   }
 
-  // Fallback: Wikipedia (bruges også når Apple Music kun har albumcovers)
+  // Fallback 2: albumcover — ingen navnetekst (navn er allerede på coveret)
   if (!buf) {
-    const wiki = await fetchWikipediaPhoto(query)
-    if (wiki) {
-      buf    = wiki.buf
-      source = `Wikipedia (${wiki.width}×${wiki.height}px)`
-      if (wiki.width < 1000 || wiki.height < 1000) note = ' ⚠️ under 1000px'
-    }
+    try {
+      const r = await fetch(`https://itunes.apple.com/search?entity=musicArtist&term=${encodeURIComponent(query)}&limit=5&country=us`)
+      const j = await r.json()
+      const hit = j.results?.find(a => a.artistName.toLowerCase().includes(query.toLowerCase().split(' ')[0].toLowerCase()))
+      if (hit) {
+        const slug = hit.artistName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        const page = await fetch(`https://music.apple.com/us/artist/${slug}/${hit.artistId}`, {
+          headers: { 'User-Agent': IOS_UA }
+        })
+        const html = await page.text()
+        const ogImg = html.match(/property="og:image" content="([^"]+)"/)?.[1]
+        if (ogImg) {
+          const base = ogImg.replace(/\/\d+x\d+[a-z]+\.[a-z]+$/, '')
+          const res = await fetch(`${base}/${SIZE}x${SIZE}bb.jpg`)
+          if (res.ok) {
+            const b = Buffer.from(await res.arrayBuffer())
+            if (b.length) {
+              const meta = await sharp(b).metadata()
+              buf = b
+              source = `Apple Music albumcover (${meta.width}×${meta.height}px) — plain`
+              isAlbumCover = true
+              if (meta.width < 1000 || meta.height < 1000) note = ' ⚠️ under 1000px'
+            }
+          }
+        }
+      }
+    } catch { /* intet fundet */ }
   }
 
   if (!buf) {
@@ -150,9 +192,10 @@ for (const arg of artists) {
       text-anchor="middle" fill="#fff" stroke="#000" stroke-width="${fontSize / 25}"
       paint-order="stroke">${name}</text></svg>`
 
+  const skipText = plain || isAlbumCover
   const out = await sharp(buf)
     .resize(SIZE, SIZE, { fit: 'cover' })
-    .composite(plain ? [] : [{ input: Buffer.from(svg) }])
+    .composite(skipText ? [] : [{ input: Buffer.from(svg) }])
     .jpeg({ quality: 92 })
     .toBuffer()
 
@@ -162,5 +205,5 @@ for (const arg of artists) {
   await writeFile(file, out)
   console.log(`  ✓ ${file}${note}`)
   console.log(`    Kilde: ${source}`)
-  console.log(`    Tekst: ${plain ? 'ingen' : `"${label}" som overlay`}`)
+  console.log(`    Tekst: ${skipText ? 'ingen (navn allerede på billedet)' : `"${label}" som overlay`}`)
 }
