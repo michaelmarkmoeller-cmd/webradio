@@ -192,7 +192,7 @@ for (const arg of artists) {
       text-anchor="middle" fill="#fff" stroke="#000" stroke-width="${fontSize / 25}"
       paint-order="stroke">${name}</text></svg>`
 
-  const skipText = plain || isAlbumCover
+  const skipText = plain
   const out = await sharp(buf)
     .resize(SIZE, SIZE, { fit: 'cover' })
     .composite(skipText ? [] : [{ input: Buffer.from(svg) }])
@@ -205,5 +205,5 @@ for (const arg of artists) {
   await writeFile(file, out)
   console.log(`  ✓ ${file}${note}`)
   console.log(`    Kilde: ${source}`)
-  console.log(`    Tekst: ${skipText ? 'ingen (navn allerede på billedet)' : `"${label}" som overlay`}`)
+  console.log(`    Tekst: ${skipText ? 'ingen' : `"${label}" som overlay`}${isAlbumCover ? ' (albumcover — tjek om navn allerede er på)' : ''}`)
 }
