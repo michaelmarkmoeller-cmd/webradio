@@ -236,10 +236,10 @@ ICY sender kun tekst — aldrig billeder. `src/utils/coverLookup.ts` → `lookup
 ## Åbne punkter pr. 08-10-2026 (næste session)
 - ~~Hurtigere titel-skift~~ — **GJORT 09-10-2026** (se "Hentefrekvens" under ICY stream-metadata; TC-21). Afventer Michaels iPhone-test
 - **Radio Soft + forkert cover (Aqua - Turn Back Time):** kunne ikke genskabes (Bauer og Apple giver begge Aquarium-coveret); Michael ser et "Pop Hits / Stingray Music"-cover i den store afspiller — afventer hvad der står under "Now Playing" ("Cover fra …") og om PWA'en var en gammel version
-- radio SAW In The Mix 80er sender stilhed (se nedenfor)
+- ~~radio SAW In The Mix 80er sender stilhed~~ — løst 13-10-2026 (se nedenfor)
 
-## Kendt: radio SAW In The Mix 80er sender stilhed (08-10-2026)
-Streamen svarer 200 med gyldig MP3 og `icy-name`, men lyden er digital stilhed (−91 dB over 72 sek., målt med ffmpeg `volumedetect`; søsterkanalerne ≈ −13 dB). Kilden hos streamabc (`117-inthemix80er`) leverer tom lyd — ikke en app-fejl, og `check-streams.mjs` fanger det ikke (kun HTTP-status). Ikke løst; tjek igen senere, eller erstat/fjern stationen.
+## Løst: radio SAW In The Mix 80er sendte stilhed (08-10-2026, løst 13-10-2026)
+Streamen (`117-inthemix80er` hos streamabc) leverede 08-10-2026 digital stilhed (−91 dB over 72 sek., målt med ffmpeg `volumedetect`; søsterkanalerne ≈ −13 dB) — kilden, ikke en app-fejl. 13-10-2026 målt igen: −13,1 dB mean / −0,8 dB max over 20 sek. (radio SAW 80er: −13,3 dB), og Michael bekræftede lyd. `check-streams.mjs` fanger kun HTTP-status, ikke stilhed — hvis det gentager sig, mål med `ffmpeg -t 20 -i <url> -af volumedetect -f null -`.
 
 ## Stations-oprydning 23-09-2026
 Et `icy-name`-tjek af alle 80 stationer afslørede forkerte kanaler, som det almindelige tilgængeligheds-tjek ikke fanger:
@@ -385,29 +385,35 @@ Alle kendte fejl fra kodegennemgang 2026-06-15 er rettet:
 - `check-icy-title.mjs <url> ...` — viser `icy-name` + aktuel `StreamTitle` for givne URL'er (hurtig verificering af en ny stream)
 - `fix-dr-streams.mjs`, `fix-streams-sep2026.mjs`, `add-italo-disco-sep2026.mjs`, `fix-90s90s-stream.mjs`, `fix-danske80-stream.mjs`, `add-80s-hits-sep2026.mjs` — stations-oprydning 23-09-2026 (se nedenfor)
 
-## Kunstnercovers til `Downloaded Covers/` (aftalt 12-10-2026)
-Michael bygger en samling kunstnercovers til sit musikbibliotek (uafhængigt af selve appen). `fetch-artist.mjs` + `fetch-cover.mjs` ligger i rodmappen; output i `Downloaded Covers/` (i `.gitignore` — følger ikke med via git, Michael flytter færdige covers ud løbende, så mappen er ofte tom/halvtom).
+## Kunstnercovers til `Downloaded Covers/` (aftalt 12-10-2026, scripts opdateret 13-10-2026)
+Michael bygger en samling kunstnercovers til sit musikbibliotek (uafhængigt af selve appen). `fetch-artist.mjs`, `fetch-cover.mjs`, `make-letter-covers.mjs` og `make-A-cover.mjs` ligger i rodmappen; output i `Downloaded Covers/` (i `.gitignore` — følger ikke med via git, Michael flytter færdige covers ud løbende, så mappen er ofte tom/halvtom).
 
 **Regler**
-- Ét `<Navn>.jpg` direkte i mappens rod — ingen undermapper, albums eller singler. Kvadratisk, **1000–2000 px**, skal vise gruppens/kunstnerens **navn eller logo**
-- **Filnavn = det præcise mappenavn** i Michaels bibliotek (fx `Cabbalero.jpg`, selv hvis Deezer staver `Cabballero`), ikke kilden's stavemåde
-- **Sæt kun navnet på selv hvis det ikke allerede står på billedet.** Flow: hent først `--plain` (uden tekst) → se billedet → kør igen uden `--plain` (= med navnetekst) kun hvis navnet mangler
+- Kvadratisk, **1000–2000 px**, skal vise gruppens/kunstnerens **navn eller logo**
+- **Filnavn/mappenavn = det præcise mappenavn** i Michaels bibliotek (fx `Cabbalero`, selv hvis kilden staver `Cabballero`), ikke kildens stavemåde
+- **Navnetekst er slået TIL som standard** (ændret 13-10-2026 — før var flowet "hent `--plain` først"). Brug `--plain` kun når navnet allerede står på billedet (fx albumcover-reserve, der altid er plain)
 - Se altid resultatet igennem og flag tvetydige/forkerte/svage match ærligt (få fans, forkert person, remix-single, cd-cover med anden tekst). Gæt ikke på klippede navne — spørg
 
-**Brug**
+**`fetch-artist.mjs`** (omskrevet 13-10-2026 — kilden er ikke længere Deezer)
 ```
-node fetch-artist.mjs [--plain] "Søgenavn[=Vist navn]" ...     # flere kunstnere i ét kald
-node fetch-artist.mjs --plain "186634757=Divine"                # tal = Deezer-kunstner-id (tvetydige navne)
-node fetch-cover.mjs "Kunstner - Titel" [størrelse]             # ét nummers cover (iTunes)
+node fetch-artist.mjs --letter E "Erasure" "Echo & The Bunnymen"      # --letter er påkrævet
+node fetch-artist.mjs --letter E --plain "Erasure"                    # uden navnetekst
+node fetch-artist.mjs --letter E "153089=Erasure"                     # tal = Apple Music artist-id (tvetydige navne)
+node fetch-artist.mjs --letter E "Søgenavn|Mappenavn"                 # søgenavn ≠ mappenavn
 ```
-- Kilde: **Deezer** `api.deezer.com/search/artist` → `picture_xl` (1000×1000; ingen nøgle). Kandidater: samme navn (flest fans først), derefter navne der starter med søgningen. **Deezers grå pladsholder springes over** (billedets pixelspredning < 25) og næste kandidat tages; kun pladsholdere → "intet kunstnerfoto"
-- Navnet tegnes som SVG (Arial Black, hvid + sort kontur, mørk gradient nederst) via `sharp`. Officielle logoer kræver fanart.tv-nøgle (TheAudioDB's testnøgle er død) — ikke i brug
-- **Tvetydige navne:** flere Deezer-kunstnere hedder ofte det samme ("Berlin", "Blue", "Divine" — flest fans er ikke altid den rigtige). Tjek billedet; find det rigtige id via `api.deezer.com/search?q=<kunstner + kendt nummer>` (`artist.id`) og kør med `id=Vist navn`
-- **Intet Deezer-foto → Apple Music-albumcover som reserve** (iTunes Search API, `artworkUrl100` → `1000x1000bb`; originalen kan være mindre, fx 620 px = under minimum, flag det). Vælg et album/single hvor kunstneren og/eller navnet står på coveret. Samarbejder ("A & B") findes ofte kun som single-titel hos Apple (`feat.` i titlen) — søg på nummeret. Brugt til bl.a. Dave Gahan, Def Dames Dope, David Guetta-samarbejder, Bowie & Jagger
+- **Kilder i rækkefølge:** (1) Apple Music-artistside (`music.apple.com/us/artist/…`, `og:image` → 1000×1000; kun ægte artistfotos med `AMCArtistImages` i URL'en; id findes via iTunes `entity=musicArtist` i `dk` så `us`, eksakt navnematch) → (2) Wikipedia (`pageimages`, kun hvis artikeltitlen matcher kunstnernavnet, min. 700 px) → (3) Apple Music-albumcover som reserve (altid plain — navn står på coveret). ⚠️ under 1000 px markeres i outputtet
+- **Output (ændret):** `Downloaded Covers/<Bogstav>/<Navn>/folder.jpg` **plus** en kopi `Downloaded Covers/<Navn>.jpg` i roden. 3 sek. pause mellem kunstnere (rate limit)
+- Navnet tegnes som SVG (Arial Black, hvid + sort kontur, mørk gradient nederst) via `sharp`
+- **Tvetydige navne:** flere kunstnere hedder det samme ("Berlin", "Blue", "Divine"). Tjek billedet; find det rigtige Apple-id og kør med `id=Vist navn`
+- Samarbejder ("A & B") findes ofte kun som single-titel hos Apple — brug `fetch-cover.mjs` på nummeret
+
+**`fetch-cover.mjs "Kunstner - Titel" [størrelse]`** — ét nummers cover via iTunes Search API
+
+**`make-letter-covers.mjs`** (13-10-2026) — genererer 26 syntetiske bogstav-covers A–Z (1000×1000 JPEG, SVG→`sharp`; hvert bogstav har sit eget tema, fx A = Supernova, B = Neon Bubble Galaxy, D = Disco Diamond, Z = Zigzag Rave). Skriver `Downloaded Covers/<Bogstav>/folder.jpg` + `Downloaded Covers/<Bogstav>.jpg`. Kør: `node make-letter-covers.mjs` (genererer alle 26). **`make-A-cover.mjs`** er en tidligere enkelt-prototype af A (kvinde-figur på gradient) — erstattet af A i `make-letter-covers.mjs`, beholdt som reference
 
 **Skærmbillede-flow (aftalt 12-10-2026)**: Michael sender skærmbilleder af sit bibliotek (mappevisning `CD'er > <bogstav>`). **Gule mappeikoner = kunstnere uden cover** → læs navnene af, hent dem, gennemgå billederne og rapportér i en tabel (navn på billedet i forvejen? / tekst sat på / svagt match). Navne klippet af med "…" spørges der om.
 
-**Kendte svage/uafklarede** (pr. 12-10-2026): DJ Space C (kun D'Mixmasters-cover hos Deezer), Discomaniax (Apple-cover kun 620 px), Domino Dancing (usikkert — Apple-EP af kunstneren DOMINO; Michaels sang er "You Are My Sunshine"), Clueless/C.J. Lewis/Caramba (usikre match), Betty & Boop og Boom-bastic (forkerte, ikke afklaret)
+**Kendte svage/uafklarede** (pr. 12-10-2026, fundet med den tidligere Deezer-version — genprøv med den nye): DJ Space C (kun D'Mixmasters-cover), Discomaniax (Apple-cover kun 620 px), Domino Dancing (usikkert — Apple-EP af kunstneren DOMINO; Michaels sang er "You Are My Sunshine"), Clueless/C.J. Lewis/Caramba (usikre match), Betty & Boop og Boom-bastic (forkerte, ikke afklaret)
 **Krav:** `sharp` er allerede dev-dependency (`npm install`)
 
 ## Workflow ved ændringer
